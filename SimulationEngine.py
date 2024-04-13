@@ -21,6 +21,9 @@ class SimulationEngine:
     def sendWorkerToMine(self, timelineID, simTime, travelTime):
         self.mBuildOrder.sendWorkerToMine(timelineID, simTime, travelTime)
 
+    def sendWorkerToLumber(self, timelineID, simTime, travelTime):
+        self.mBuildOrder.sendWorkerToLumber(timelineID, simTime, travelTime)
+
 def main():
     simEngine = SimulationEngine()
     simEngine.newBuildOrder(Race.NIGHT_ELF)
@@ -28,7 +31,7 @@ def main():
     simEngine.sendWorkerToMine(timelineID=1, simTime=0, travelTime=1.2 * SECONDS_TO_SIMTIME)
     simEngine.sendWorkerToMine(timelineID=2, simTime=0, travelTime =1.5 * SECONDS_TO_SIMTIME)
     simEngine.sendWorkerToMine(timelineID=3, simTime=0, travelTime=1.8 * SECONDS_TO_SIMTIME)
-    simEngine.sendWorkerToMine(timelineID=4, simTime=0, travelTime=2 * SECONDS_TO_SIMTIME)
+    simEngine.sendWorkerToLumber(timelineID=4, simTime=0, travelTime=3 * SECONDS_TO_SIMTIME)
 
     for i in range(1, 121):
         simEngine.simulate(i * SECONDS_TO_SIMTIME)

@@ -5,7 +5,6 @@ class EventHandler:
         self.mNextEventID = 0
 
     def registerEvent(self, eventSimTime, event):
-        print("EVent handler register event")
         if eventSimTime not in self.mEvents:
             self.mEvents[eventSimTime] = [event]
         else:

@@ -92,6 +92,9 @@ class BuildOrder:
     def addGoldToCount(self, amount):
         self.mCurrentResources.mCurrentGold += amount
 
+    def addLumberToCount(self, amount):
+        self.mCurrentResources.mCurrentLumber += amount
+
     #Sim time only needed for Undead and Elf, to bring their next +10 gold proportionally forward
     def addWorkerToMine(self, simTime):
         if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
@@ -165,13 +168,11 @@ class BuildOrder:
         else:
             return None
 
-    #Returns a list of [simTime, event] pairs
-    #If action could not fit on any timeline, return an empty list
     def sendWorkerToMine(self, timelineID, simTime, travelTime):
         if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
             enterMineEvent = Event(eventFunction = lambda: self.addWorkerToMine(simTime + travelTime), recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
             goToMineAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = travelTime, startTime = simTime, duration = 0, 
-                               requiredTimelineType = TimelineType.WORKER, events = [(simTime, enterMineEvent)], interruptable=True, actionName="Go to mine")
+                               requiredTimelineType = TimelineType.WORKER, events = [(simTime + travelTime, enterMineEvent)], interruptable=True, actionName="Go to mine")
             if not self.addActionToMatchingTimeline(action = goToMineAction):
                 print("Failed to add go to mine action to timeline")
 
@@ -183,7 +184,23 @@ class BuildOrder:
             timeToMine = 5 * SECONDS_TO_SIMTIME
             goldMined = 10
             event = Event(eventFunction = self.addGoldToCount(goldMined), recurPeriodSimtime = timeToMine, eventName = "Return 10 gold")
-            self.mEventHandler.registerEvent(eventSimTime=simTime + timeToMine , event=event)
+            self.mEventHandler.registerEvent(eventSimTime=simTime + timeToMine, event=event)
+
+    def sendWorkerToLumber(self, timelineID, simTime, travelTime):
+        if self.mRace == Race.NIGHT_ELF:
+            timeToLumb = 8 * SECONDS_TO_SIMTIME
+            lumberGained = 5
+            gainLumberEvent = Event(eventFunction = lambda: self.addLumberToCount(lumberGained), recurPeriodSimtime = timeToLumb, eventName = "Gain 5 lumber", eventID = self.mEventHandler.getNewEventID())
+            goToLumberAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = travelTime, startTime = simTime, duration = 0, 
+                               requiredTimelineType = TimelineType.WORKER, events = [(simTime + travelTime + timeToLumb, gainLumberEvent)], interruptable=True, actionName="Go to lumber")
+            if not self.addActionToMatchingTimeline(action = goToLumberAction):
+                print("Failed to add go to lumber action to timeline")
+
+            self.mEventHandler.registerEvent(eventSimTime=simTime + travelTime + timeToLumb, event=gainLumberEvent)
+
+        elif self.mRace == Race.ORC or self.mRace == Race.HUMAN or self.mRace == Race.UNDEAD:
+            #TODO:
+            pass
 
     #Return True if successfully added, False otherwise
     #If timeline ID is not passed in, ignore it
