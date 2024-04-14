@@ -1,3 +1,36 @@
+from enum import Enum, auto
+
+# Each building that can make units/upgrades has its own timeline
+# There are also timelines for constructing buildings, shops to buy/sell items and tavern
+class TimelineType(Enum):
+    #NEUTRAL
+    WORKER = auto()
+    TAVERN = auto()
+    GOBLIN_MERCHANT = auto()
+    GOLD_MINE = auto()
+    #HUMAN
+    #Represents all tiers of the town hall
+    TOWN_HALL = auto()
+    HUMAN_BARRACKS = auto()
+    LUMBER_MILL = auto()
+    BLACKSMITH = auto()
+    ALTAR_OF_KINGS = auto()
+    ARCANE_SANCTUM = auto()
+    WORKSHOP = auto()
+    SCOUT_TOWER = auto()
+    GRYPHON_AVIARY = auto()
+    ARCANE_VAULT = auto()
+    #NIGHT ELF
+    #Represents all tiers of the tree of life
+    TREE_OF_LIFE = auto()
+    ANCIENT_OF_WAR = auto()
+    HUNTERS_HALL = auto()
+    ALTAR_OF_ELDERS = auto()
+    ANCIENT_OF_LORE = auto()
+    ANCIENT_OF_WIND = auto()
+    CHIMAERA_ROOST = auto()
+    ANCIENT_OF_WONDERS = auto()
+
 # Represents a single timeline on the planner. For example, the production queue of a barracks, or blacksmith, etc.
 class Timeline:
     def __init__(self, timelineType, timelineID):
@@ -11,6 +44,8 @@ class Timeline:
     def getTimelineID(self):
         return self.mTimelineID
 
+    #Returns the next action based on the sim time
+    #Return None if no actions >= that sim time
     def getNextAction(self, simTime):
         #Actions are assumed to be in time-order
         for i in range(len(self.mActions)):
@@ -19,7 +54,9 @@ class Timeline:
         #No next action found
         return None
 
-    #If no actions have a simtime less that the simtime passed in, returns None
+    #Returns the previous action based on the sim time
+    #Return None if no actions < that sim time
+    #Note that, unlike getNextAction, an action with a sim time of exactly simTime passed in doesn't count as the prev action
     def getPrevAction(self, simTime):
         if len(self.mActions) == 0:
             return None
