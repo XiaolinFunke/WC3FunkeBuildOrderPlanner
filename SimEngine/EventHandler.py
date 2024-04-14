@@ -10,6 +10,11 @@ class EventHandler:
         else:
             self.mEvents[eventSimTime].append(event)
 
+    #Execution times are inclusive
+    def executeEventsInRange(self, startSimTime, endSimTime):
+        for simTime in range(startSimTime, endSimTime + 1):
+            self.executeEvents(simTime)
+
     def executeEvents(self, simTime):
         if simTime in self.mEvents:
             for event in self.mEvents[simTime]:
