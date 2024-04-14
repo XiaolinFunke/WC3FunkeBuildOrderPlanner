@@ -4,11 +4,11 @@ class EventHandler:
         self.mEvents = {}
         self.mNextEventID = 0
 
-    def registerEvent(self, eventSimTime, event):
-        if eventSimTime not in self.mEvents:
-            self.mEvents[eventSimTime] = [event]
+    def registerEvent(self, event):
+        if event.getEventTime() not in self.mEvents:
+            self.mEvents[event.getEventTime()] = [event]
         else:
-            self.mEvents[eventSimTime].append(event)
+            self.mEvents[event.getEventTime()].append(event)
 
     #Execution times are inclusive
     def executeEventsInRange(self, startSimTime, endSimTime):
@@ -20,7 +20,8 @@ class EventHandler:
             for event in self.mEvents[simTime]:
                 event.execute()
                 if event.doesRecur():
-                    self.registerEvent(simTime + event.getRecurPeriodSimTime(), event)
+                    event.recur()
+                    self.registerEvent(event)
 
     #Returns the unregistered event, in case we want to reschedule it
     #If no event matches, return None
@@ -41,12 +42,13 @@ class EventHandler:
         return eventID
 
 class Event:
-    def __init__(self, eventFunction, recurPeriodSimtime, eventID, eventName = ""):
+    def __init__(self, eventFunction, eventTime, recurPeriodSimtime, eventID, eventName = ""):
         self.mFunction = eventFunction
         #A recur period of 0 indicates it does not recur
         self.mRecurPeriodSimTime = recurPeriodSimtime
         self.mEventName = eventName
         self.mEventID = eventID
+        self.mEventTime = eventTime
 
     def __str__(self):
         return "Event:\"" + self.mEventName + "\" - addr " + hex(id(self))
@@ -59,6 +61,17 @@ class Event:
 
     def getEventName(self):
         return self.mEventName
+
+    #Change this event's time based on its recur period
+    def recur(self):
+        if self.doesRecur():
+            self.mEventTime += self.mRecurPeriodSimTime
+
+    def setEventTime(self, newEventTime):
+        self.mEventTime = newEventTime
+
+    def getEventTime(self):
+        return self.mEventTime
 
     def getRecurPeriodSimTime(self):
         return self.mRecurPeriodSimTime

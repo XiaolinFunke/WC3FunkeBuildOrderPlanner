@@ -108,7 +108,7 @@ class Action:
         self.mActionName = actionName
         #Some actions, such as mining actions, are interruptable, and can be overwritten by other actions
         self.mInterruptable = interruptable
-        #List of pairs of (simtime, event)
+        #List of events
         self.mAssociatedEvents = events
 
     def getStartTime(self):
