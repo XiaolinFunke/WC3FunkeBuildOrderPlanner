@@ -3,6 +3,9 @@ from enum import Enum, auto
 SECONDS_TO_SIMTIME = 10 #simtime is in deciseconds
 SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
 
+STARTING_GOLD = 500
+STARTING_LUMBER = 150
+
 class Race(Enum):
     HUMAN = auto()
     ORC = auto()

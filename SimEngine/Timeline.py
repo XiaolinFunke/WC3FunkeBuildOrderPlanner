@@ -44,6 +44,9 @@ class Timeline:
     def getTimelineID(self):
         return self.mTimelineID
 
+    def getNumActions(self):
+        return len(self.mActions)
+
     #Returns the next action based on the sim time
     #Return None if no actions >= that sim time
     def getNextAction(self, simTime):
@@ -69,20 +72,41 @@ class Timeline:
         #No next action found, so previous action must be last action in list
         return self.mActions[len(self.mActions) - 1]
 
-    #Return True if action was successfully added to timeline
-    #False if failed (usually due to there already being an action in that timeslot)
+    #Add the action to the timeline, if it doesn't conflict with the Action that starts before it
+    #Any actions with start times after this one will be removed from the Timeline as well
+    #Returns False and won't add if overlaps with the Action before it in the Timeline
     def addAction(self, newAction):
-        #TODO: This insertion is O=n complexity. Since these are sorted, could do as well as O=log(n) if performance is an issue
+        i = self.findProperSpotForAction(newAction) 
+        prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 else 0
+        if newAction.getStartTime() < prevActionEndTime:
+            return False
+        else:
+            self.mActions.insert(i, newAction)
+            #Remove all Actions after this new one, since we will have to recalculate all of those anyway
+            #and we want to ensure the list still has no overlapping
+            self.mActions = self.mActions[:i + 1]
+            return True
+
+    #Return the simtime when the given Action could be scheduled on this timeline
+    #If no overlap with an earlier action, will return the simTime of the Action.
+    #However, if it would overlap with an earlier Action, will return a later time when it can actually be scheduled
+    def getNextPossibleTimeForAction(self, newAction):
+        i = self.findProperSpotForAction(newAction)
+        prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 else 0
+        newStartTime = max(newAction.getStartTime(), prevActionEndTime)
+        return newStartTime
+
+    #Returns the index of where the Action would be inserted (assuming they are in time-order and no overlapping)
+    #Ignore any Actions currently scheduled after the start time of the new action, since earlier
+    #actions get priority over later ones (if we're inserting an action, everything after that will need to be re-simulated anyway)
+    def findProperSpotForAction(self, newAction):
+        #TODO: This search is O=n complexity. Since these are sorted, could do as well as O=log(n) if performance is an issue
         #Increment loop an additional time because we can insert before all elements or after all, as well as in between
         #Loop and check if new action can be inserted BEFORE the action we're looking at
         for i in range(len(self.mActions) + 1):
-            #We've reached the end or new action ends before existing action - must insert here if possible
-            if i == len(self.mActions) or ((newAction.mStartTime + newAction.mDuration) < self.mActions[i].mStartTime):
-                #Check that previous action ends in time for the new action to start
-                if i == 0 or ((self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration) < newAction.mStartTime):
-                    self.mActions.insert(i, newAction)
-                    return True
-        return False
+            #We've reached the end or new action starts before existing action - must insert here
+            if i == len(self.mActions) or newAction.mStartTime < self.mActions[i].mStartTime:
+                return i
 
 class WorkerTimeline(Timeline):
     def __init__(self, timelineType, currentTask, timelineID, lumberCycleTimeSec, lumberGainPerCycle, goldCycleTimeSec, goldGainPerCycle):
@@ -147,6 +171,9 @@ class Action:
         self.mInterruptable = interruptable
         #List of events
         self.mAssociatedEvents = events
+
+    def setStartTime(self, startTime):
+        self.mStartTime = startTime
 
     def getStartTime(self):
         return self.mStartTime

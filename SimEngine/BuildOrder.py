@@ -1,6 +1,6 @@
-from SimulationConstants import WorkerTask, Race, SECONDS_TO_SIMTIME
-from EventHandler import Event, EventHandler
-from Timeline import WispTimeline, GoldMineTimeline, Action, TimelineType
+from SimEngine.SimulationConstants import WorkerTask, Race, SECONDS_TO_SIMTIME
+from SimEngine.EventHandler import Event, EventHandler
+from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Action, TimelineType
 
 class MapStartingPosition:
     def __init__(self, name, lumberTripTravelTimeSec, goldTripTravelTimeSec):
@@ -101,12 +101,12 @@ class BuildOrder:
 
             gainGoldEventPair = self.modifyGainGoldEvent(mineTimeline.getNumWorkersInMine(), mineTimeline.getNumWorkersInMine() - 1, mineTimeline, simTime)
 
-            mineTimeline.addWorkerToMine()
+            mineTimeline.removeWorkerFromMine()
 
             removeWorkerFromMineAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = 0, startTime = simTime, duration = 0, 
                                requiredTimelineType = TimelineType.GOLD_MINE, events = [gainGoldEventPair], interruptable=False, actionName="Remove Worker from Mine")
             if not mineTimeline.addAction(newAction = removeWorkerFromMineAction):
-                print("Failed to add new worker action to mine timeline")
+                print("Failed to add remove worker action from mine timeline")
 
     def modifyGainGoldEvent(self, oldNumWorkers, newNumWorkers, mineTimeline, simTime):
         #Already a worker in the mine, and a +10 gold event
@@ -114,6 +114,8 @@ class BuildOrder:
         #Will need to bring that event forward
         prevAction = mineTimeline.getPrevAction(simTime)
         #The "New worker in mine" or "Remove worker from mine" action on the mine timeline will be associated with a gain gold event
+        if not prevAction:
+            return None
         gainGoldEvent = prevAction.getAssociatedEvent()
 
         speedChangeProportion =  oldNumWorkers / newNumWorkers
