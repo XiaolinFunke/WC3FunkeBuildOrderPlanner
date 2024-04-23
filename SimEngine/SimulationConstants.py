@@ -6,6 +6,10 @@ SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
 STARTING_GOLD = 500
 STARTING_LUMBER = 150
 
+GOLD_MINED_PER_TRIP = 10
+#Time to mine for 1 worker
+TIME_TO_MINE_GOLD_BASE_SEC = 5
+
 class Race(Enum):
     HUMAN = auto()
     ORC = auto()

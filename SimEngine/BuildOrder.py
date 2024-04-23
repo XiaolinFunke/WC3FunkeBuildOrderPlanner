@@ -28,8 +28,8 @@ class BuildOrder:
         #Give initial starting units
         if self.mRace == Race.NIGHT_ELF:
             for i in range(5):
-                self.mInactiveTimelines.append(WispTimeline(timelineType = TimelineType.WORKER, currentTask = WorkerTask.ROAMING, timelineID = self.getNextTimelineID()))
-            self.mInactiveTimelines.append(GoldMineTimeline(timelineType = TimelineType.GOLD_MINE, timelineID = self.getNextTimelineID(), maxWorkersInMine = 5))
+                self.mInactiveTimelines.append(WispTimeline(timelineType = TimelineType.WORKER, currentTask = WorkerTask.ROAMING, timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
+            self.mInactiveTimelines.append(GoldMineTimeline(timelineType = TimelineType.GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler))
             #TODO: Give main town hall timeline as well
 
     #Will simulate up to specified simtime
@@ -56,82 +56,16 @@ class BuildOrder:
     def getCurrentResources(self):
         return self.mCurrentResources
 
-    def addGoldToCount(self, amount):
-        self.mCurrentResources.mCurrentGold += amount
-
     def addLumberToCount(self, amount):
         self.mCurrentResources.mCurrentLumber += amount
 
-    #Sim time only needed for Undead and Elf, to bring their next +10 gold proportionally forward
     def addWorkerToMine(self, simTime):
-        if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
-            mineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+        mineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+        mineTimeline.addWorkerToMine(simTime)
 
-            if mineTimeline.mineIsFull():
-                print("Tried to add a worker to mine when it's already full")
-                return
-
-            if mineTimeline.mineIsEmpty():
-                #Time to mine for 1 worker (diminishes proportionally with number of workers)
-                timeToMine = 5 * SECONDS_TO_SIMTIME
-                goldMined = 10
-
-                #For first worker, we need to create the +10 gold event that we will use from here on out
-                gainGoldEvent = Event(eventFunction = lambda: self.addGoldToCount(goldMined), eventTime=simTime + timeToMine , recurPeriodSimtime = timeToMine, eventName = "Gain 10 gold", 
-                                      eventID = self.mEventHandler.getNewEventID())
-                self.mEventHandler.registerEvent(gainGoldEvent)
-            else:
-                gainGoldEvent = self.modifyGainGoldEvent(mineTimeline.getNumWorkersInMine(), mineTimeline.getNumWorkersInMine() + 1, mineTimeline, simTime)
-
-            mineTimeline.addWorkerToMine()
-
-            newWorkerInMineAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = 0, startTime = simTime, duration = 0, 
-                               requiredTimelineType = TimelineType.GOLD_MINE, events = [gainGoldEvent], interruptable=False, actionName="New Worker in Mine")
-            if not mineTimeline.addAction(newAction = newWorkerInMineAction):
-                print("Failed to add new worker action to mine timeline")
-
-    #Sim time only needed for Undead and Elf, to bring their next +10 gold proportionally forward
     def removeWorkerFromMine(self, simTime):
-        if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
-            mineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
-
-            if mineTimeline.mineIsEmpty():
-                print("Tried to remove a worker from mine when it's already empty")
-                return
-
-            gainGoldEventPair = self.modifyGainGoldEvent(mineTimeline.getNumWorkersInMine(), mineTimeline.getNumWorkersInMine() - 1, mineTimeline, simTime)
-
-            mineTimeline.removeWorkerFromMine()
-
-            removeWorkerFromMineAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = 0, startTime = simTime, duration = 0, 
-                               requiredTimelineType = TimelineType.GOLD_MINE, events = [gainGoldEventPair], interruptable=False, actionName="Remove Worker from Mine")
-            if not mineTimeline.addAction(newAction = removeWorkerFromMineAction):
-                print("Failed to add remove worker action from mine timeline")
-
-    def modifyGainGoldEvent(self, oldNumWorkers, newNumWorkers, mineTimeline, simTime):
-        #Already a worker in the mine, and a +10 gold event
-        #Next 10 gold gained will be proportionally faster now that we have another worker
-        #Will need to bring that event forward
-        prevAction = mineTimeline.getPrevAction(simTime)
-        #The "New worker in mine" or "Remove worker from mine" action on the mine timeline will be associated with a gain gold event
-        if not prevAction:
-            return None
-        gainGoldEvent = prevAction.getAssociatedEvent()
-
-        speedChangeProportion =  oldNumWorkers / newNumWorkers
-        #The new time of the +10 gold event will be proportionally sooner
-        goldEventNewSimTime = simTime + round((gainGoldEvent.getEventTime() - simTime) * speedChangeProportion)
-
-        #Re-register the event at the new time
-        unregisteredEvent = self.mEventHandler.unRegisterEvent(gainGoldEvent.getEventTime(), gainGoldEvent.getEventID())
-        unregisteredEvent.mRecurPeriodSimTime = round(unregisteredEvent.mRecurPeriodSimTime * speedChangeProportion)
-
-        if newNumWorkers != 0:
-            unregisteredEvent.setEventTime(goldEventNewSimTime)
-            self.mEventHandler.registerEvent(unregisteredEvent)
-            return unregisteredEvent
-        else:
-            return None
+        mineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+        mineTimeline.removeWorkerFromMine(simTime)
 
     def sendWorkerToMine(self, timelineID, simTime, travelTime):
         if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:

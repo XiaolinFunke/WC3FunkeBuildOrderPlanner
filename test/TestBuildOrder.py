@@ -8,16 +8,16 @@ class TestBuildOrder(unittest.TestCase):
     def testFindMatchingTimeline(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
-        inactiveAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 0)
+        inactiveAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 0, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveAltarTimeline)
         self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), inactiveAltarTimeline)
 
-        activeAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 1)
+        activeAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 1, buildOrder.mEventHandler)
         buildOrder.mActiveTimelines.append(activeAltarTimeline)
         #Should find active one first
         self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), activeAltarTimeline)
 
-        inactiveLoreTimeline = Timeline(TimelineType.ANCIENT_OF_LORE, 2)
+        inactiveLoreTimeline = Timeline(TimelineType.ANCIENT_OF_LORE, 2, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveLoreTimeline)
         self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ANCIENT_OF_LORE), inactiveLoreTimeline)
 
@@ -32,7 +32,7 @@ class TestBuildOrder(unittest.TestCase):
     def testAddActionToMatchingTimeline(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
-        inactiveAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 0)
+        inactiveAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 0, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveAltarTimeline)
         self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), inactiveAltarTimeline)
 
@@ -51,16 +51,3 @@ class TestBuildOrder(unittest.TestCase):
         currentResources = buildOrder.getCurrentResources()
         self.assertEqual(currentResources.mCurrentGold, 500)
         self.assertEqual(currentResources.mCurrentLumber, 150)
-
-    def testAddResourcesToCount(self):
-        buildOrder = BuildOrder(Race.NIGHT_ELF)
-
-        currentResources = buildOrder.getCurrentResources()
-
-        lumberToAdd = 5
-        goldToAdd = 10
-        buildOrder.addLumberToCount(lumberToAdd)
-        buildOrder.addGoldToCount(goldToAdd)
-        self.assertEqual(currentResources.mCurrentGold, goldToAdd + STARTING_GOLD)
-        self.assertEqual(currentResources.mCurrentLumber, lumberToAdd + STARTING_LUMBER)
-

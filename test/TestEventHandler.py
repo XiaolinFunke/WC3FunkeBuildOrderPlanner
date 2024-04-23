@@ -110,7 +110,7 @@ class TestEventHandler(unittest.TestCase):
         eventHandler.executeEventsInRange(31,40)
         self.assertEqual(self.testInt, 1)
 
-    def testGetEventID(self):
+    def testGetNewEventID(self):
         eventHandler = EventHandler() 
 
         self.assertEqual(eventHandler.getNewEventID(), 0)

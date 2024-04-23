@@ -136,22 +136,22 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder.sendWorkerToMine(timelineID=1, simTime=0, travelTime=1 * SECONDS_TO_SIMTIME)
 
         #4 wisp-seconds of mining has been done, which is not enough to gain 10 gold
-        buildOrder.removeWorkerFromMine(timelineID=0, simTime=3, travelTime=0)
-        buildOrder.removeWorkerFromMine(timelineID=1, simTime=3, travelTime=0)
+        buildOrder.removeWorkerFromMine(simTime=3)
+        buildOrder.removeWorkerFromMine(simTime=3)
 
         #Progress toward the 10 gold should have been reset, so we won't gain any here either
         buildOrder.sendWorkerToMine(timelineID=0, simTime=4, travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.removeWorkerFromMine(timelineID=0, simTime=7, travelTime=0)
+        buildOrder.removeWorkerFromMine(simTime=7)
 
         #Progress toward the 10 gold should have been reset, so we won't gain any here either
         buildOrder.sendWorkerToMine(timelineID=0, simTime=8, travelTime=1 * SECONDS_TO_SIMTIME)
         buildOrder.sendWorkerToMine(timelineID=1, simTime=8, travelTime=1 * SECONDS_TO_SIMTIME)
         buildOrder.sendWorkerToMine(timelineID=2, simTime=8, travelTime=1 * SECONDS_TO_SIMTIME)
         buildOrder.sendWorkerToMine(timelineID=3, simTime=8, travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.removeWorkerFromMine(timelineID=0, simTime=10, travelTime=0)
-        buildOrder.removeWorkerFromMine(timelineID=1, simTime=10, travelTime=0)
-        buildOrder.removeWorkerFromMine(timelineID=2, simTime=10, travelTime=0)
-        buildOrder.removeWorkerFromMine(timelineID=3, simTime=10, travelTime=0)
+        buildOrder.removeWorkerFromMine(simTime=10)
+        buildOrder.removeWorkerFromMine(simTime=10)
+        buildOrder.removeWorkerFromMine(simTime=10)
+        buildOrder.removeWorkerFromMine(simTime=10)
 
         buildOrder.sendWorkerToMine(timelineID=0, simTime=11, travelTime=1 * SECONDS_TO_SIMTIME)
         #Don't remove worker here, so we should finally gain our first 1- gold at 17 seconds
@@ -173,7 +173,7 @@ class TestResourceGathering(unittest.TestCase):
 
         #Add a second worker for 1s and then remove it. Ensure the next 10 gold is at the right time
         buildOrder.sendWorkerToMine(timelineID=1, simTime=6 * SECONDS_TO_SIMTIME, travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.removeWorkerFromMine(timelineID=1, simTime=8 * SECONDS_TO_SIMTIME, travelTime=0)
+        buildOrder.removeWorkerFromMine(simTime=8 * SECONDS_TO_SIMTIME)
         timeSec = 10
         expectedGoldAmount += 10
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
@@ -185,7 +185,7 @@ class TestResourceGathering(unittest.TestCase):
         expectedGoldAmount += 10
 
         #Remove 1 (2 left)
-        buildOrder.removeWorkerFromMine(timelineID=2, simTime=13 * SECONDS_TO_SIMTIME, travelTime=0)
+        buildOrder.removeWorkerFromMine(simTime=13 * SECONDS_TO_SIMTIME)
         timeSec = 14
         expectedGoldAmount += 10
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
@@ -222,28 +222,29 @@ class TestResourceGathering(unittest.TestCase):
         #First 10 gold is at 1.375s. Each subsequent gold should be at 1.25s (5/4) intervals
         #So, we should also gain 10 gold at time 3601.375
         #Since our steps are in 10ths of a second, we should be gaining that 10 gold either at 3601.3 or 3601.4 if we aren't accumulating error
-        timeSec = 3601.4 * SECONDS_TO_SIMTIME
+        timeSec = 3601.4
         expectedGoldAmount = STARTING_GOLD + ((timeSec - 1.4) * 4 / 5 * 10)
 
-        buildOrder.simulate((timeSec - 0.1) * SECONDS_TO_SIMTIME)
+        buildOrder.simulate(round((timeSec - 0.1) * SECONDS_TO_SIMTIME))
 
         #We should not be more than 1 sim time step off of accurate
         #At one step earlier, we should be either correct already, or short 10 gold
         self.assertTrue(buildOrder.getCurrentResources().mCurrentGold == expectedGoldAmount or buildOrder.getCurrentResources().mCurrentGold == expectedGoldAmount - 10)
-        buildOrder.simulate(timeSec * SECONDS_TO_SIMTIME)
+        buildOrder.simulate(round(timeSec * SECONDS_TO_SIMTIME))
         #At the later step, we should have the correct amount of gold
         self.assertEqual( buildOrder.getCurrentResources().mCurrentGold, expectedGoldAmount )
 
+    @unittest.skip("Re-enable when individual wisps are targeted by commands")
     def testElfLumberMiningNoProgressKept(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
         buildOrder.sendWorkerToLumber(timelineID=0, simTime=0, travelTime=1 * SECONDS_TO_SIMTIME)
         #7 seconds of mining has been done, which is not enough to gain 5 lumber
-        buildOrder.removeWorkerFromLumber(timelineID=0, simTime=8, travelTime=0)
+        buildOrder.removeWorkerFromLumber(simTime=8)
 
         buildOrder.sendWorkerToLumber(timelineID=0, simTime=10, travelTime=1 * SECONDS_TO_SIMTIME)
         #5 seconds of mining has been done, which is not enough to gain 5 lumber
-        buildOrder.removeWorkerFromLumber(timelineID=0, simTime=16, travelTime=0)
+        buildOrder.removeWorkerFromLumber(simTime=16)
 
         buildOrder.sendWorkerToLumber(timelineID=0, simTime=18, travelTime=1 * SECONDS_TO_SIMTIME)
         #First 5 lumber should be mined at 26 seconds

@@ -4,13 +4,13 @@ from SimEngine.Timeline import Timeline, TimelineType, Action
 
 class TestTimeline(unittest.TestCase):
     def testAddAction(self):
-        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0)
+        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0, eventHandler=None)
 
         action = Action(goldCost=0, lumberCost=0, foodCost=0, travelTime=0, startTime=0, duration=10, requiredTimelineType=TimelineType.WORKER, events = [], actionName="Test action")
         self.assertEqual(timeline.addAction(action), True)
 
     def testAddMultipleActions(self):
-        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0)
+        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0, eventHandler=None)
 
         action = Action(goldCost=0, lumberCost=0, foodCost=0, travelTime=0, startTime=0, duration=10, requiredTimelineType=TimelineType.WORKER, events = [], actionName="Test action")
         self.assertEqual(timeline.addAction(action), True)
@@ -21,7 +21,7 @@ class TestTimeline(unittest.TestCase):
     #Should not be able to add an Action that overlaps with one that comes before it
     #Should be able to if it overlaps with one that comes after
     def testAddOverlappingActions(self):
-        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0)
+        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0, eventHandler=None)
 
         action = Action(goldCost=0, lumberCost=0, foodCost=0, travelTime=0, startTime=10, duration=10, requiredTimelineType=TimelineType.WORKER, events = [], actionName="Test action")
         self.assertEqual(timeline.addAction(action), True)
@@ -43,7 +43,7 @@ class TestTimeline(unittest.TestCase):
 
     #Should be able to add an action that starts at the time that another action ends
     def testAddNearlyOverlappingActions(self):
-        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0)
+        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0, eventHandler=None)
 
         action = Action(goldCost=0, lumberCost=0, foodCost=0, travelTime=0, startTime=10, duration=10, requiredTimelineType=TimelineType.WORKER, events = [], actionName="Test action")
         self.assertEqual(timeline.addAction(action), True)
@@ -53,7 +53,7 @@ class TestTimeline(unittest.TestCase):
         self.assertEqual(timeline.addAction(action2), True)
 
     def testFindProperSpotForAction(self):
-        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0)
+        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0, eventHandler=None)
 
         action = Action(goldCost=0, lumberCost=0, foodCost=0, travelTime=0, startTime=10, duration=2, requiredTimelineType=TimelineType.WORKER, events = [], actionName="Test action")
         self.assertEqual(timeline.addAction(action), True)
@@ -86,7 +86,7 @@ class TestTimeline(unittest.TestCase):
         self.assertEqual(timeline.findProperSpotForAction(action9), 2)
 
     def testGetNextPossibleTimeForAction(self):
-        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0)
+        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0, eventHandler=None)
 
         action = Action(goldCost=0, lumberCost=0, foodCost=0, travelTime=0, startTime=10, duration=2, requiredTimelineType=TimelineType.WORKER, events = [], actionName="Test action")
         self.assertEqual(timeline.addAction(action), True)
@@ -119,7 +119,7 @@ class TestTimeline(unittest.TestCase):
         self.assertEqual(timeline.getNextPossibleTimeForAction(action9), 20)
 
     def testGetNextAction(self):
-        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0)
+        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0, eventHandler=None)
 
         actionStartTime=10
         action = Action(goldCost=0, lumberCost=0, foodCost=0, travelTime=0, startTime=actionStartTime, duration=0, requiredTimelineType=TimelineType.WORKER, events = [], actionName="Test action")
@@ -135,7 +135,7 @@ class TestTimeline(unittest.TestCase):
         self.assertEqual(None, nextAction)
 
     def testGetPrevAction(self):
-        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0)
+        timeline = Timeline(timelineType=TimelineType.WORKER, timelineID=0, eventHandler=None)
 
         actionStartTime=10
         action = Action(goldCost=0, lumberCost=0, foodCost=0, travelTime=0, startTime=actionStartTime, duration=0, requiredTimelineType=TimelineType.WORKER, events = [], actionName="Test action")
