@@ -153,5 +153,11 @@ class CurrentResources:
         elif (race == Race.NIGHT_ELF or race == Race.UNDEAD):
             self.mCurrentFoodMax = 10
 
+    def getCurrentGold(self):
+        return self.mCurrentGold
+
+    def getCurrentLumber(self):
+        return self.mCurrentLumber
+
     def print(self):
         print("| Gold:", self.mCurrentGold, "| Lumber:", self.mCurrentLumber, "| Food:", str(self.mCurrentFood) + "/" + str(self.mCurrentFoodMax) + " |")

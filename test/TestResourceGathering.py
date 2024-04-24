@@ -3,35 +3,27 @@ import unittest
 from SimEngine.BuildOrder import BuildOrder
 from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER
 
-#TODO: Could combine these two functions using a function ptr
 #Checks the gold amount at the specified time BUT also
 #checks the simtime right before that time, to ensure that the gold was achieved at exactly that time
 #That way, we can't be off by even 1 simtime unit and still have the test pass
 def testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, testClass):
-    simTime = round(timeSec * SECONDS_TO_SIMTIME)
-
-    #First, simulate to just before the time of interest. That way, we can double-check that the gold amount we want is
-    #only achieved right on the time we expect
-    justBeforeSimTime = simTime - 1
-    buildOrder.simulate(justBeforeSimTime)
-    testClass.assertLess(buildOrder.getCurrentResources().mCurrentGold, expectedGoldAmount)
-
-    #Now, simulate to the time of interest
-    buildOrder.simulate(simTime)
-    testClass.assertEqual(buildOrder.getCurrentResources().mCurrentGold, expectedGoldAmount)
+    testResourceAmountPrecise(timeSec,expectedGoldAmount, buildOrder.getCurrentResources().getCurrentGold, buildOrder, testClass )
 
 def testLumberAmountPrecise(timeSec, expectedLumberAmount, buildOrder, testClass):
+    testResourceAmountPrecise(timeSec,expectedLumberAmount, buildOrder.getCurrentResources().getCurrentLumber, buildOrder, testClass )
+
+def testResourceAmountPrecise(timeSec, expectedResourceAmount, currentResourceFunc, buildOrder, testClass):
     simTime = round(timeSec * SECONDS_TO_SIMTIME)
 
     #First, simulate to just before the time of interest. That way, we can double-check that the gold amount we want is
     #only achieved right on the time we expect
     justBeforeSimTime = simTime - 1
     buildOrder.simulate(justBeforeSimTime)
-    testClass.assertLess(buildOrder.getCurrentResources().mCurrentLumber, expectedLumberAmount)
+    testClass.assertLess(currentResourceFunc(), expectedResourceAmount, "Actual resource amount was not less than expected at the time step directly before")
 
     #Now, simulate to the time of interest
     buildOrder.simulate(simTime)
-    testClass.assertEqual(buildOrder.getCurrentResources().mCurrentLumber, expectedLumberAmount)
+    testClass.assertEqual(currentResourceFunc(), expectedResourceAmount, "Actual resource amount did not match expected")
 
 class TestResourceGathering(unittest.TestCase):
     def testElfGoldMiningStartSimple(self):
@@ -123,7 +115,8 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder.sendWorkerToMine(timelineID=3, simTime=0, travelTime=1 * SECONDS_TO_SIMTIME)
 
         #3601 so it's a multiple of 5 + 1, meaning we should gain gold right at that time
-        timeSec = 3601
+        #timeSec = 3601
+        timeSec = 6
         expectedGoldAmount = STARTING_GOLD + ((timeSec - 1) * 4 / 5 * 10)
 
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
@@ -229,7 +222,8 @@ class TestResourceGathering(unittest.TestCase):
 
         #We should not be more than 1 sim time step off of accurate
         #At one step earlier, we should be either correct already, or short 10 gold
-        self.assertTrue(buildOrder.getCurrentResources().mCurrentGold == expectedGoldAmount or buildOrder.getCurrentResources().mCurrentGold == expectedGoldAmount - 10)
+        self.assertTrue(buildOrder.getCurrentResources().mCurrentGold == expectedGoldAmount or buildOrder.getCurrentResources().mCurrentGold == expectedGoldAmount - 10, 
+                        "Current gold is " + str(buildOrder.getCurrentResources().mCurrentGold) + ", but expected " + str(expectedGoldAmount) + " or " + str(expectedGoldAmount - 10))
         buildOrder.simulate(round(timeSec * SECONDS_TO_SIMTIME))
         #At the later step, we should have the correct amount of gold
         self.assertEqual( buildOrder.getCurrentResources().mCurrentGold, expectedGoldAmount )
