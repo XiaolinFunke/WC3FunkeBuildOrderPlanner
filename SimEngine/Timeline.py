@@ -60,6 +60,14 @@ class Timeline:
         #No next action found
         return None
 
+    #Get the current action if there is one. If not, get the previous one
+    def getCurrOrPrevAction(self, simTime):
+        currAction = self.getCurrentAction(simTime)
+        if currAction:
+            return currAction
+        else:
+            return self.getPrevAction(simTime)
+
     #Returns the previous action based on the sim time
     #Return None if no actions < that sim time
     #Note that, unlike getNextAction, an action with a sim time of exactly simTime passed in doesn't count as the prev action
@@ -122,6 +130,9 @@ class Timeline:
             if i == len(self.mActions) or newAction.mStartTime < self.mActions[i].mStartTime:
                 return i
 
+    def printTimeline(self):
+        print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)
+
 class WorkerTimeline(Timeline):
     def __init__(self, timelineType, currentTask, timelineID, eventHandler, lumberCycleTimeSec, lumberGainPerCycle, goldCycleTimeSec, goldGainPerCycle):
         super().__init__(timelineType, timelineID, eventHandler)
@@ -169,7 +180,7 @@ class GoldMineTimeline(Timeline):
                 def addGoldToCount(goldMined):
                     self.mCurrentResources += goldMined
                 #For first worker, we need to create the +10 gold event that we will use from here on out
-                gainGoldEvent = Event(eventFunction = lambda: self.addGoldToCount(GOLD_MINED_PER_TRIP), eventTime=simTime + timeToMine , recurPeriodSimtime = timeToMine, eventName = "Gain 10 gold", 
+                gainGoldEvent = Event(eventFunction = lambda: self.addGoldToCount(GOLD_MINED_PER_TRIP), eventTime=simTime + timeToMine, recurPeriodSimtime = timeToMine, eventName = "Gain 10 gold", 
                                       eventID = self.mEventHandler.getNewEventID())
                 self.mEventHandler.registerEvent(gainGoldEvent)
             else:
@@ -211,21 +222,21 @@ class GoldMineTimeline(Timeline):
         #Already a worker in the mine, and a +10 gold event
         #Next 10 gold gained will be proportionally faster now that we have another worker
         #Will need to bring that event forward
-        prevAction = self.getPrevAction(simTime)
         #The event could also be for the current time, if multiple workers are added at exact same time (unrealistic, but happens in tests)
-        if not prevAction:
-            prevAction = self.getCurrentAction(simTime)
+        prevAction = self.getCurrOrPrevAction(simTime)
         #The "New worker in mine" or "Remove worker from mine" action on the mine timeline will be associated with a gain gold event
         gainGoldEvent = prevAction.getAssociatedEvent()
 
         if newNumWorkers != 0:
             #The new time of the +10 gold event will be proportionally sooner or later
-            changeProportion =  oldNumWorkers / newNumWorkers
-            goldEventNewSimTime = simTime + round((gainGoldEvent.getEventTime() - simTime) * changeProportion)
+            changeProportion = oldNumWorkers / newNumWorkers
+            #Use true time so we don't accumulate error, but ensure that never gives a negative result
+            goldEventNewSimTime = simTime + max(gainGoldEvent.getTrueTime() - simTime, 0) * changeProportion
 
             #Re-register the event at the new time
             unregisteredEvent = self.mEventHandler.unRegisterEvent(gainGoldEvent.getEventTime(), gainGoldEvent.getEventID())
-            unregisteredEvent.mRecurPeriodSimTime = round(unregisteredEvent.mRecurPeriodSimTime * changeProportion)
+            newRecurPeriod = unregisteredEvent.getTrueRecurPeriodSimTime() * changeProportion
+            unregisteredEvent.setRecurPeriodSimTime(newRecurPeriod)
 
             unregisteredEvent.setEventTime(goldEventNewSimTime)
             self.mEventHandler.registerEvent(unregisteredEvent)
@@ -273,6 +284,7 @@ class Action:
     def getAssociatedEvent(self):
         if len(self.mAssociatedEvents) == 1:
             return self.mAssociatedEvents[0]
+        print("Tried to get associated event, but there were", len(self.mAssociatedEvents), "associated events")
         return None
 
     def getAssociatedEvents(self):
@@ -280,3 +292,9 @@ class Action:
     
     def getRequiredTimelineType(self):
         return self.mRequiredTimelineType
+
+    def __str__(self):
+        return "Action:\"" + self.mActionName + "(" + str(self.getStartTime()) + " - " + str(self.getStartTime() + self.mDuration) + ") - " + str(len(self.mAssociatedEvents)) + " events"
+
+    def __repr__(self):
+        return self.__str__()

@@ -33,7 +33,8 @@ class EventHandler:
         return None
 
     def printScheduledEvents(self):
-        for simTime, events in self.mEvents.items():
+        #Print events sorted by simtime
+        for simTime, events in sorted(self.mEvents.items(), key=lambda x: x[0]):
             print("simTime", simTime, ":", events)
 
     def getNewEventID(self):
@@ -43,18 +44,20 @@ class EventHandler:
 
 class Event:
     def __init__(self, eventFunction, eventTime, recurPeriodSimtime, eventID, eventName = ""):
+        self.mCurrRecurrenceError = 0
+        self.setEventTime(eventTime)
+
         self.mFunction = eventFunction
-        #A recur period of 0 indicates it does not recur
-        self.mRecurPeriodSimTime = recurPeriodSimtime
+
+        self.setRecurPeriodSimTime(recurPeriodSimtime)
         self.mEventName = eventName
         self.mEventID = eventID
-        self.mEventTime = eventTime
 
     def __str__(self):
         return "Event:\"" + self.mEventName + "\" - addr " + hex(id(self))
 
     def __repr__(self):
-        return "Event:\"" + self.mEventName + "\" - addr " + hex(id(self))
+        return self.__str__()
     
     def getEventID(self):
         return self.mEventID
@@ -65,16 +68,45 @@ class Event:
     #Change this event's time based on its recur period
     def recur(self):
         if self.doesRecur():
+            self.mCurrRecurrenceError += self.mErrorPerRecurrence
             self.mEventTime += self.mRecurPeriodSimTime
+            #Adjust for the build-up of recurrence error
+            #Adjust at 0.5 instead of 1, so that we are always within half a step rather than being able to be off by almost a full step
+            if self.mCurrRecurrenceError >= 0.5:
+                self.mEventTime -= 1
+                self.mCurrRecurrenceError -= 1
+            elif self.mCurrRecurrenceError <= -0.5:
+                self.mEventTime += 1
+                self.mCurrRecurrenceError += 1
 
+    #Automatically rounded (note, python3 uses banker's rounding to avoid bias)
     def setEventTime(self, newEventTime):
-        self.mEventTime = newEventTime
+        roundedTime = round(newEventTime)
+        error = roundedTime - newEventTime
+        self.mEventTime = roundedTime
+        self.mCurrRecurrenceError = error
 
+    #Get the time this event is scheduled for
     def getEventTime(self):
         return self.mEventTime
 
+    #Get the time this event WOULD BE scheduled for, if we could simulate
+    #perfectly accurately
+    def getTrueTime(self):
+        return self.mEventTime - self.mCurrRecurrenceError
+
+    def getTrueRecurPeriodSimTime(self):
+        return self.mRecurPeriodSimTime - self.mErrorPerRecurrence
+
     def getRecurPeriodSimTime(self):
         return self.mRecurPeriodSimTime
+
+    def setRecurPeriodSimTime(self, recurPeriodSimtime):
+        #A recur period of 0 indicates it does not recur
+        self.mRecurPeriodSimTime = round(recurPeriodSimtime)
+        #For recurring events that don't have an integer sim time period, some error will occur
+        #We should track this error to ensure it doesn't build up over time
+        self.mErrorPerRecurrence = self.mRecurPeriodSimTime - recurPeriodSimtime
 
     def doesRecur(self):
         return self.mRecurPeriodSimTime > 0

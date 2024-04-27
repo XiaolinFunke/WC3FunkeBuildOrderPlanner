@@ -87,6 +87,48 @@ class TestEventHandler(unittest.TestCase):
         eventHandler.executeEventsInRange(31,40)
         self.assertEqual(self.testInt, 4)
 
+    #Recurring events with non-integer simtime periods should not accumulate error over time. We should always be within half a simtime step of correct
+    def testEventRecurrenceNonInteger(self):
+        eventHandler = EventHandler() 
+
+        self.testInt = 0
+        def increment():
+            self.testInt += 1
+
+        recurPeriodSimtime = 10.1
+        event = Event(eventFunction = lambda: increment(), eventTime = 10, recurPeriodSimtime = recurPeriodSimtime, eventID = eventHandler.getNewEventID())
+
+        eventHandler.registerEvent(event)
+
+        #If we lose 0.1 simtime steps each recurrence (each recurrence if faster by that amount), we would be off by 
+        #0.1 * (simTime / 10.1) simTime steps (divide by 10 again to get how far integer is off)
+        simTime = 10100
+        eventHandler.executeEventsInRange(0, simTime)
+        numIncrements = round(simTime / recurPeriodSimtime)
+        self.assertEqual(self.testInt, numIncrements)
+
+    #If a recurring event has a start time that is a non-integer, that initial error should also be taken into account
+    def testEventRecurrenceNonIntegerStartTime(self):
+        eventHandler = EventHandler() 
+
+        self.testInt = 0
+        def increment():
+            self.testInt += 1
+
+        recurPeriodSimtime = 1.2
+        event = Event(eventFunction = lambda: increment(), eventTime = 1.4, recurPeriodSimtime = recurPeriodSimtime, eventID = eventHandler.getNewEventID())
+
+        eventHandler.registerEvent(event)
+
+        #If we don't take into account the event time's error, we'd increment at time 1, 2, and 3
+        #If we do, we should increment at time 1, 3 and 4
+        #Real would be time 1.4, 2.6, 3.8
+        simTime = 2
+        eventHandler.executeEventsInRange(0, simTime)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.executeEventsInRange(simTime, 3)
+        self.assertEqual(self.testInt, 2)
+
     def testUnregisterRecurringEvent(self):
         eventHandler = EventHandler() 
 
