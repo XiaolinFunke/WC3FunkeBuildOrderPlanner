@@ -160,7 +160,53 @@ class TestEventHandler(unittest.TestCase):
         self.assertEqual(eventHandler.getNewEventID(), 2)
         self.assertEqual(eventHandler.getNewEventID(), 3)
         self.assertEqual(eventHandler.getNewEventID(), 4)
-        
+
+    #If the same time is executed twice in a row, the event handler should only execute the new events that have been
+    #added for that time since the previous execution
+    #Test that ONLY the new events are executed
+    def testExecuteSameTimeAgain(self):
+        eventHandler = EventHandler() 
+
+        self.testInt = 0
+        def increment():
+            self.testInt += 1
+        event = Event(eventFunction = lambda: increment(), eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+
+        eventHandler.registerEvent(event)
+
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEventsInRange(0, 10)
+        self.assertEqual(self.testInt, 1)
+
+        self.testInt2 = 0
+        def increment2():
+            self.testInt2 += 1
+        event2 = Event(eventFunction = lambda: increment2(), eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        event3 = Event(eventFunction = lambda: increment2(), eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        eventHandler.registerEvent(event2)
+        eventHandler.registerEvent(event3)
+
+        #Should only execute the new events
+        eventHandler.executeEventsInRange(10, 20)
+        self.assertEqual(self.testInt, 1)
+        self.assertEqual(self.testInt2, 2)
+
+    #Some events may add other events. If an event adds another event to the currently executing event list for a given simTime, that event should be executed as well
+    def testEventAddsAnotherEventToOwnList(self):
+        eventHandler = EventHandler() 
+
+        self.testInt = 0
+        def increment():
+            self.testInt += 1
+        incrementEvent = Event(eventFunction = lambda: increment(), eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        triggerEvent = Event(eventFunction = lambda: eventHandler.registerEvent(incrementEvent), eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+
+        eventHandler.registerEvent(triggerEvent)
+
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEventsInRange(0, 10)
+        #Increment event wasn't in list of events when the events for time 10 are executed, but it will get added as we execute, so it should be executed as well
+        self.assertEqual(self.testInt, 1)
 
 if __name__ == "__main__":
     unittest.main()

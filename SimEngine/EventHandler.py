@@ -3,6 +3,10 @@ class EventHandler:
         #Simtime -> list of functions to execute at that time
         self.mEvents = {}
         self.mNextEventID = 0
+        #The Event ID of the last event executed
+        self.mLastEventExecuted = -1
+        #The last simtime we have executed. Note that this is updated even if no events were registered for that simtime
+        self.mLastSimTimeExecuted = -1
 
     def registerEvent(self, event):
         if event.getEventTime() not in self.mEvents:
@@ -16,12 +20,31 @@ class EventHandler:
             self.executeEvents(simTime)
 
     def executeEvents(self, simTime):
-        if simTime in self.mEvents:
-            for event in self.mEvents[simTime]:
+        if simTime not in self.mEvents:
+            self.mLastSimTimeExecuted = simTime
+            return
+
+        executeRemainingEvents = True
+        #If we have already executed at this simtime, we only want to execute the remaining events
+        if simTime == self.mLastSimTimeExecuted:
+            executeRemainingEvents = False
+
+        #Use index and while loop so that we also execute any events that may be added to this list
+        #by the events we are executing
+        i = 0
+        while i < len(self.mEvents[simTime]):
+            event = self.mEvents[simTime][i]
+            if executeRemainingEvents:
                 event.execute()
+                self.mLastEventExecuted = event.getEventID()
                 if event.doesRecur():
                     event.recur()
                     self.registerEvent(event)
+            #This event was the last one we executed, so we should start executing the events for this simtime from here on
+            elif event.getEventID() == self.mLastEventExecuted:
+                executeRemainingEvents = True
+            i += 1
+        self.mLastSimTimeExecuted = simTime
 
     #Returns the unregistered event, in case we want to reschedule it
     #If no event matches, return None

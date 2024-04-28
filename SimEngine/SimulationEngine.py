@@ -15,7 +15,9 @@ class SimulationEngine:
         self.mBuildOrder.simulate(untilSimTime)
 
     def sendWorkerToMine(self, timelineID, simTime, travelTime):
-        self.mBuildOrder.sendWorkerToMine(timelineID, simTime, travelTime)
+        self.simulate(simTime)
+        self.mBuildOrder.sendWorkerToMine(timelineID, travelTime)
 
     def sendWorkerToLumber(self, timelineID, simTime, travelTime):
-        self.mBuildOrder.sendWorkerToLumber(timelineID, simTime, travelTime)
+        self.simulate(simTime)
+        self.mBuildOrder.sendWorkerToLumber(timelineID, travelTime)
