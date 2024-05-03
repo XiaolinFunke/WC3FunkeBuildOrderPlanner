@@ -1,6 +1,6 @@
-from SimEngine.SimulationConstants import WorkerTask, Race, SECONDS_TO_SIMTIME
+from SimEngine.SimulationConstants import WorkerTask, Race, SECONDS_TO_SIMTIME, UnitType
 from SimEngine.EventHandler import Event, EventHandler
-from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Action, TimelineType
+from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, WorkerMovementAction, Timeline
 
 class MapStartingPosition:
     def __init__(self, name, lumberTripTravelTimeSec, goldTripTravelTimeSec):
@@ -30,7 +30,7 @@ class BuildOrder:
             for i in range(5):
                 self.mInactiveTimelines.append(WispTimeline(timelineType = TimelineType.WORKER, currentTask = WorkerTask.ROAMING, timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
             self.mInactiveTimelines.append(GoldMineTimeline(timelineType = TimelineType.GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler))
-            #TODO: Give main town hall timeline as well
+            self.mInactiveTimelines.append(Timeline(timelineType = TimelineType.TREE_OF_LIFE, timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
 
     #Will simulate up to specified simtime
     def simulate(self, untilSimTime):
@@ -66,10 +66,12 @@ class BuildOrder:
         mineTimeline.removeWorkerFromMine(self.mCurrentSimTime)
 
     def sendWorkerToMine(self, timelineID, travelTime):
+        #TODO: Should these two actions just be called on the timeline once it's found?
+        #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
+        #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
         if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
             enterMineEvent = Event(eventFunction = lambda: self.addWorkerToMine(), eventTime=self.mCurrentSimTime + travelTime, recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
-            goToMineAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = travelTime, startTime = self.mCurrentSimTime, duration = 0, 
-                               requiredTimelineType = TimelineType.WORKER, events = [enterMineEvent], interruptable=True, actionName="Go to mine")
+            goToMineAction = WorkerMovementAction(travelTime = travelTime, startTime = self.mCurrentSimTime, requiredTimelineType=TimelineType.WORKER, events = [enterMineEvent], actionName="Go to mine")
             if not self.addActionToMatchingTimeline(action = goToMineAction):
                 print("Failed to add go to mine action to timeline")
 
@@ -80,8 +82,7 @@ class BuildOrder:
             timeToLumb = 8 * SECONDS_TO_SIMTIME
             lumberGained = 5
             gainLumberEvent = Event(eventFunction = lambda: self.addLumberToCount(lumberGained), eventTime=self.mCurrentSimTime + travelTime + timeToLumb , recurPeriodSimtime = timeToLumb, eventName = "Gain 5 lumber", eventID = self.mEventHandler.getNewEventID())
-            goToLumberAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = travelTime, startTime = self.mCurrentSimTime, duration = 0, 
-                               requiredTimelineType = TimelineType.WORKER, events = [(self.mCurrentSimTime + travelTime + timeToLumb, gainLumberEvent)], interruptable=True, actionName="Go to lumber")
+            goToLumberAction = WorkerMovementAction(travelTime = travelTime, startTime = self.mCurrentSimTime, requiredTimelineType=TimelineType.WORKER, events = [gainLumberEvent], actionName="Go to lumber")
             if not self.addActionToMatchingTimeline(action = goToLumberAction):
                 print("Failed to add go to lumber action to timeline")
 
@@ -91,13 +92,13 @@ class BuildOrder:
     #If timeline ID is not passed in, ignore it
     def addActionToMatchingTimeline(self, action, timelineID = -1):
         for timeline in self.mActiveTimelines:
-            if action.getRequiredTimelineType() == timeline.getTimelineType() and (timelineID == -1 or timeline.getTimelineID() == timelineID) and timeline.addAction(action):
+            if action.getRequiredTimelineType() == timeline.getTimelineType() and (timelineID == -1 or timeline.getTimelineID() == timelineID) and timeline.addAction(action, self.mCurrentResources):
                 return True
 
         #If none of the active timelines work, try inactive
         i = 0
         while i < len(self.mInactiveTimelines):
-            if action.getRequiredTimelineType() == self.mInactiveTimelines[i].getTimelineType() and (timelineID == -1 or self.mInactiveTimelines[i].getTimelineID()) and self.mInactiveTimelines[i].addAction(action):
+            if action.getRequiredTimelineType() == self.mInactiveTimelines[i].getTimelineType() and (timelineID == -1 or self.mInactiveTimelines[i].getTimelineID()) and self.mInactiveTimelines[i].addAction(action, self.mCurrentResources):
                 #Now that this timeline has an item on it, it should be considered an 'active' timeline
                 self.mActiveTimelines.append(self.mInactiveTimelines.pop(i))
                 return True
@@ -117,13 +118,63 @@ class BuildOrder:
             if timelineType == timeline.getTimelineType() and (timelineID == -1 or timeline.getTimelineID() == timelineID):
                 return timeline
 
-    def buildUnit(self, unitType, time):
-        #TODO:
-        #Check if have enough money
-        #Simulate until do
-        #Look thorugh active timelines. Track next available time
-        #If any available, use it. If not, check inactive
-        pass
+    #Returns list of ALL timelines that match (Active ones will be first in the list)
+    def findAllMatchingTimelines(self, timelineType):
+        matchingTimelines = []
+
+        for timeline in self.mActiveTimelines:
+            if timelineType == timeline.getTimelineType():
+                matchingTimelines.append(timeline)
+
+        #If none of the active timelines work, try inactive
+        for timeline in self.mInactiveTimelines:
+            if timelineType == timeline.getTimelineType():
+                matchingTimelines.append(timeline)
+
+        return matchingTimelines
+
+    #Return True if successful, False otherwise
+    def buildUnit(self, unitType):
+        if unitType == UnitType.WISP:
+            #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
+            while not self.areRequiredResourcesAvailable(goldRequired=60, lumberRequired=0, foodRequired=1):
+                self.simulate(self.mCurrentSimTime + 1)
+
+            #Tree of life timeline represents all tiers of tree of life
+            matchingTimelines = self.findAllMatchingTimelines(TimelineType.TREE_OF_LIFE)
+            if not matchingTimelines:
+                print("Tried to build wisp, but did not find a matching timeline")
+                return False
+            
+            #TODO: Need to account for if a new Timeline is scheduled to be added in the future that can handle this request
+            minAvailableTime = float('inf')
+            for timeline in matchingTimelines:
+                prevMinAvailableTime = minAvailableTime
+                minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
+                if minAvailableTime != prevMinAvailableTime:
+                    nextAvailableTimeline = timeline
+
+            self.simulate(minAvailableTime)
+            nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID(), self.mCurrentResources)
+        return True
+
+    #Return True if we have the gold, lumber, and food required to build a unit/building
+    def areRequiredResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):
+        if self.mCurrentResources.getCurrentGold() < goldRequired:
+            return False
+        elif self.mCurrentResources.getCurrentLumber() < lumberRequired:
+            return False
+        elif max(self.mCurrentResources.mCurrentFoodMax - self.mCurrentResources.mCurrentFood, 0) < foodRequired:
+            return False
+        return True
+
+    def printAllTimelines(self):
+        print("Active Timelines:")
+        for timeline in self.mActiveTimelines:
+            timeline.printTimeline()
+        print("Inactive Timelines:")
+        for timeline in self.mInactiveTimelines:
+            timeline.printTimeline()
 
 class CurrentResources:
     def __init__(self, race):
@@ -137,6 +188,30 @@ class CurrentResources:
             self.mCurrentFoodMax = 11
         elif (race == Race.NIGHT_ELF or race == Race.UNDEAD):
             self.mCurrentFoodMax = 10
+
+    def deductGold(self, amount):
+        if amount > self.mCurrentGold:
+            print("Tried to deduct", amount, "gold, but only have", self.mCurrentGold)
+        else:
+            self.mCurrentGold -= amount
+
+    def deductLumber(self, amount):
+        if amount > self.mCurrentLumber:
+            print("Tried to deduct", amount, "lumber, but only have", self.mCurrentLumber)
+        else:
+            self.mCurrentLumber -= amount
+
+    def increaseMaxFood(self, amount):
+        self.mCurrentFoodMax += amount
+
+    def increaseFoodUsed(self, amount):
+        self.mCurrentFood += amount
+
+    def decreaseFoodUsedByOne(self):
+        if self.mCurrentFood <= 0:
+            print("Tried to decrease food used by one, but food count was", self.mCurrentFood)
+        else:
+            self.mCurrentFood -= 1
 
     def getCurrentGold(self):
         return self.mCurrentGold

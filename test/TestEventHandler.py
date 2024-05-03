@@ -207,6 +207,3 @@ class TestEventHandler(unittest.TestCase):
         eventHandler.executeEventsInRange(0, 10)
         #Increment event wasn't in list of events when the events for time 10 are executed, but it will get added as we execute, so it should be executed as well
         self.assertEqual(self.testInt, 1)
-
-if __name__ == "__main__":
-    unittest.main()

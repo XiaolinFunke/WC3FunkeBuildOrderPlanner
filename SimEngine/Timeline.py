@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType
 from SimEngine.EventHandler import Event
 
 # Each building that can make units/upgrades has its own timeline
@@ -96,9 +96,10 @@ class Timeline:
 
     #Add the action to the timeline, if it doesn't conflict with the Action that starts before it
     #Any actions with start times after this one will be removed from the Timeline as well
+    #If currentResources is not passed in, Action will be assumed to not affect current resources
     #Returns False and won't add if overlaps with the Action before it in the Timeline
-    def addAction(self, newAction):
-        i = self.findProperSpotForAction(newAction) 
+    def addAction(self, newAction, currentResources = None):
+        i = self.findProperSpotForAction(newAction.getStartTime()) 
         prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 else 0
         if newAction.getStartTime() < prevActionEndTime:
             return False
@@ -107,28 +108,43 @@ class Timeline:
             #Remove all Actions after this new one, since we will have to recalculate all of those anyway
             #and we want to ensure the list still has no overlapping
             self.mActions = self.mActions[:i + 1]
+            if currentResources:
+                newAction.payForAction(currentResources)
             return True
 
     #Return the simtime when the given Action could be scheduled on this timeline
     #If no overlap with an earlier action, will return the simTime of the Action.
     #However, if it would overlap with an earlier Action, will return a later time when it can actually be scheduled
-    def getNextPossibleTimeForAction(self, newAction):
-        i = self.findProperSpotForAction(newAction)
+    def getNextPossibleTimeForAction(self, actionStartTime):
+        i = self.findProperSpotForAction(actionStartTime)
         prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 else 0
-        newStartTime = max(newAction.getStartTime(), prevActionEndTime)
+        newStartTime = max(actionStartTime, prevActionEndTime)
         return newStartTime
 
     #Returns the index of where the Action would be inserted (assuming they are in time-order and no overlapping)
     #Ignore any Actions currently scheduled after the start time of the new action, since earlier
     #actions get priority over later ones (if we're inserting an action, everything after that will need to be re-simulated anyway)
-    def findProperSpotForAction(self, newAction):
+    def findProperSpotForAction(self, actionStartTime):
         #TODO: This search is O=n complexity. Since these are sorted, could do as well as O=log(n) if performance is an issue
         #Increment loop an additional time because we can insert before all elements or after all, as well as in between
         #Loop and check if new action can be inserted BEFORE the action we're looking at
         for i in range(len(self.mActions) + 1):
             #We've reached the end or new action starts before existing action - must insert here
-            if i == len(self.mActions) or newAction.mStartTime < self.mActions[i].mStartTime:
+            if i == len(self.mActions) or actionStartTime < self.mActions[i].mStartTime:
                 return i
+
+    def buildUnit(self, unitType, simTime, inactiveTimelines, getNextTimelineIDFunc, currentResources):
+        if unitType == UnitType.WISP:
+            if not self.mTimelineType == TimelineType.TREE_OF_LIFE:
+                print("Timeline type is incorrect to build wisp")
+            else:
+                buildTime = 14 * SECONDS_TO_SIMTIME
+                events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.WORKER, getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
+                                             0, self.mEventHandler.getNewEventID(), "Wisp produced") ]
+                buildWispAction = BuildUnitAction(goldCost = 60, lumberCost = 0, foodCost = 1, startTime = simTime, 
+                                         duration=buildTime, requiredTimelineType=TimelineType.TREE_OF_LIFE, events=events, actionName="Build wisp")
+                self.addAction(buildWispAction, currentResources)
+                pass
 
     def printTimeline(self):
         print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)
@@ -186,8 +202,7 @@ class GoldMineTimeline(Timeline):
             else:
                 gainGoldEvent = self.modifyGainGoldEvent(self.getNumWorkersInMine(), self.getNumWorkersInMine() + 1, simTime)
 
-            newWorkerInMineAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = 0, startTime = simTime, duration = 0, 
-                               requiredTimelineType = TimelineType.GOLD_MINE, events = [gainGoldEvent], interruptable=False, actionName="New Worker in Mine")
+            newWorkerInMineAction = WorkerMovementAction(travelTime = 0, startTime = simTime, requiredTimelineType = TimelineType.GOLD_MINE, events = [gainGoldEvent], actionName="New Worker in Mine")
             if not self.addAction(newAction = newWorkerInMineAction):
                 print("Failed to add new worker action to mine timeline")
                 return False
@@ -209,8 +224,7 @@ class GoldMineTimeline(Timeline):
             #Don't bother adding a None event if the mine now has 0 workers
             if gainGoldEvent:
                 events = [gainGoldEvent]
-            removeWorkerFromMineAction = Action(goldCost = 0, lumberCost = 0, foodCost = 0, travelTime = 0, startTime = simTime, duration = 0, 
-                               requiredTimelineType = TimelineType.GOLD_MINE, events = events, interruptable=False, actionName="Remove Worker from Mine")
+            removeWorkerFromMineAction = WorkerMovementAction(travelTime = 0, startTime = simTime, requiredTimelineType = TimelineType.GOLD_MINE, events = events, actionName="Remove Worker from Mine")
             if not self.addAction(newAction = removeWorkerFromMineAction):
                 print("Failed to add Remove Worker action from mine timeline")
                 return False
@@ -256,10 +270,9 @@ class GoldMineTimeline(Timeline):
         return self.mNumWorkersInMine
 
 class Action:
-    def __init__(self, goldCost, lumberCost, foodCost, travelTime, startTime, duration, requiredTimelineType, events, actionName, interruptable = False):
+    def __init__(self, goldCost, lumberCost, travelTime, startTime, duration, requiredTimelineType, events, actionName, isExecutedASAP = False, interruptable = False):
         self.mGoldCost = goldCost
         self.mLumberCost = lumberCost
-        self.mFoodCost = foodCost
         #Start time starts at the beginning of the travel time 
         #In simtime
         self.mStartTime = startTime
@@ -271,8 +284,14 @@ class Action:
         self.mActionName = actionName
         #Some actions, such as mining actions, are interruptable, and can be overwritten by other actions
         self.mInterruptable = interruptable
+        #If True, we will execute this action as soon as possible after the previous one
+        self.mIsExecutedASAP = isExecutedASAP
         #List of events
         self.mAssociatedEvents = events
+
+    def payForAction(self, currentResources):
+        currentResources.deductGold(self.mGoldCost)
+        currentResources.deductLumber(self.mLumberCost)
 
     def setStartTime(self, startTime):
         self.mStartTime = startTime
@@ -298,3 +317,32 @@ class Action:
 
     def __repr__(self):
         return self.__str__()
+
+class BuildUnitAction(Action):
+    def __init__(self, goldCost, lumberCost, foodCost, startTime, duration, requiredTimelineType, events, actionName):
+        super().__init__(goldCost, lumberCost, 0, startTime, duration, requiredTimelineType, events, actionName, True, False)
+        self.mFoodCost = foodCost
+
+    def payForAction(self, currentResources):
+        super().payForAction(currentResources)
+        currentResources.increaseFoodUsed(self.mFoodCost)
+
+class BuildStructureAction(Action):
+    def __init__(self, goldCost, lumberCost, foodProvided, travelTime, startTime, duration, requiredTimelineType, events, actionName, isInterruptable, consumesWorker):
+        super().__init__(goldCost, lumberCost, travelTime, startTime, duration, requiredTimelineType, events, actionName, False, isInterruptable)
+        self.mFoodProvided = foodProvided
+        self.mConsumesWorker = consumesWorker
+
+    def payForAction(self, currentResources):
+        super().payForAction(currentResources)
+        if self.mConsumesWorker:
+            currentResources.decreaseFoodUsedByOne()
+        currentResources.increaseFoodMax(self.mFoodProvided)
+
+class ShopAction(Action):
+    def __init__(self, goldCost, startTime, requiredTimelineType, events, actionName):
+        super().__init__(goldCost, 0, 0, startTime, 0, requiredTimelineType, events, actionName, True, False)
+
+class WorkerMovementAction(Action):
+    def __init__(self, travelTime, startTime, requiredTimelineType, events, actionName):
+        super().__init__(0, 0, travelTime, startTime, 0, requiredTimelineType, events, actionName, False, True)
