@@ -1,4 +1,4 @@
-from SimEngine.SimulationConstants import WorkerTask, Race, SECONDS_TO_SIMTIME, UnitType
+from SimEngine.SimulationConstants import WorkerTask, Race, SECONDS_TO_SIMTIME, UnitType, STARTING_FOOD_MAX_MAP
 from SimEngine.EventHandler import Event, EventHandler
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, WorkerMovementAction, Timeline
 
@@ -155,7 +155,7 @@ class BuildOrder:
                     nextAvailableTimeline = timeline
 
             self.simulate(minAvailableTime)
-            nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID(), self.mCurrentResources)
+            nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources)
         return True
 
     #Return True if we have the gold, lumber, and food required to build a unit/building
@@ -182,12 +182,7 @@ class CurrentResources:
         self.mCurrentLumber = 150
         self.mCurrentFood = 5
 
-        if (race == Race.HUMAN):
-            self.mCurrentFoodMax = 12
-        elif (race == Race.ORC):
-            self.mCurrentFoodMax = 11
-        elif (race == Race.NIGHT_ELF or race == Race.UNDEAD):
-            self.mCurrentFoodMax = 10
+        self.mCurrentFoodMax = STARTING_FOOD_MAX_MAP[race]
 
     def deductGold(self, amount):
         if amount > self.mCurrentGold:
@@ -218,6 +213,12 @@ class CurrentResources:
 
     def getCurrentLumber(self):
         return self.mCurrentLumber
+
+    def getCurrentFood(self):
+        return self.mCurrentFood
+
+    def getCurrentFoodMax(self):
+        return self.mCurrentFoodMax
 
     def print(self):
         print("| Gold:", self.mCurrentGold, "| Lumber:", self.mCurrentLumber, "| Food:", str(self.mCurrentFood) + "/" + str(self.mCurrentFoodMax) + " |")

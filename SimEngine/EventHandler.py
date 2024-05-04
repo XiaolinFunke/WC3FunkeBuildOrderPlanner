@@ -14,6 +14,10 @@ class EventHandler:
         else:
             self.mEvents[event.getEventTime()].append(event)
 
+    def registerEvents(self, events):
+        for event in events:
+            self.registerEvent(event)
+
     #Execution times are inclusive
     def executeEventsInRange(self, startSimTime, endSimTime):
         for simTime in range(startSimTime, endSimTime + 1):
@@ -57,6 +61,7 @@ class EventHandler:
 
     def printScheduledEvents(self):
         #Print events sorted by simtime
+        print("Scheduled events:")
         for simTime, events in sorted(self.mEvents.items(), key=lambda x: x[0]):
             print("simTime", simTime, ":", events)
 

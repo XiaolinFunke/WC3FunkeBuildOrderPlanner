@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP
 from SimEngine.EventHandler import Event
 
 # Each building that can make units/upgrades has its own timeline
@@ -138,9 +138,10 @@ class Timeline:
             if not self.mTimelineType == TimelineType.TREE_OF_LIFE:
                 print("Timeline type is incorrect to build wisp")
             else:
-                buildTime = 14 * SECONDS_TO_SIMTIME
+                buildTime = UNIT_STATS_MAP[unitType].mTimeToBuildSec * SECONDS_TO_SIMTIME
                 events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.WORKER, getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
                                              0, self.mEventHandler.getNewEventID(), "Wisp produced") ]
+                self.mEventHandler.registerEvents(events)
                 buildWispAction = BuildUnitAction(goldCost = 60, lumberCost = 0, foodCost = 1, startTime = simTime, 
                                          duration=buildTime, requiredTimelineType=TimelineType.TREE_OF_LIFE, events=events, actionName="Build wisp")
                 self.addAction(buildWispAction, currentResources)
