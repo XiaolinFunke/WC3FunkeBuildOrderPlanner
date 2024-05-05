@@ -1,8 +1,7 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER
-from SimEngine.Timeline import TimelineType
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER, UnitType
 
 #Checks the gold amount at the specified time BUT also
 #checks the simtime right before that time, to ensure that the gold was achieved at exactly that time
@@ -31,7 +30,6 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
         #All workers mine immediately
-        #TODO: This is acting like we only have one wisp if they all have the same simtime and travel time
         buildOrder.sendWorkerToMine(timelineID=0, travelTime=0)
         buildOrder.sendWorkerToMine(timelineID=1, travelTime=0)
         buildOrder.sendWorkerToMine(timelineID=2, travelTime=0)
@@ -296,5 +294,24 @@ class TestResourceGathering(unittest.TestCase):
         testLumberAmountPrecise(timeSec + 1, expectedLumberAmount + 5, buildOrder, self)
         testLumberAmountPrecise(timeSec + 2, expectedLumberAmount + 10, buildOrder, self)
         testLumberAmountPrecise(timeSec + 3, expectedLumberAmount + 15, buildOrder, self)
+
+    def testElfMiningWithNewWisp(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+
+        #All workers mine immediately
+        buildOrder.sendWorkerToMine(timelineID=0, travelTime=0)
+        buildOrder.sendWorkerToMine(timelineID=1, travelTime=0)
+        buildOrder.sendWorkerToMine(timelineID=2, travelTime=0)
+        buildOrder.sendWorkerToMine(timelineID=3, travelTime=0)
+        buildOrder.sendWorkerToMine(timelineID=4, travelTime=0)
+
+        buildOrder.buildUnit(UnitType.WISP)
+
+        timeSec = 3600
+        expectedGoldAmount = STARTING_GOLD + (timeSec * 10)
+
+        testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
+        #TODO: Need to also make it so we are controlling specific workers by timeline ID
+        buildOrder.sendWorkerToMine(timelineID=buildOrder.getNextBuiltWorkerTimelineID(), travelTime=0)
 
 

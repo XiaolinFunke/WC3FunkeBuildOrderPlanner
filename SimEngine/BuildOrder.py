@@ -57,36 +57,18 @@ class BuildOrder:
     def addLumberToCount(self, amount):
         self.mCurrentResources.mCurrentLumber += amount
 
-    def addWorkerToMine(self):
-        mineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
-        mineTimeline.addWorkerToMine(self.mCurrentSimTime)
-
     def removeWorkerFromMine(self):
         mineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
         mineTimeline.removeWorkerFromMine(self.mCurrentSimTime)
 
     def sendWorkerToMine(self, timelineID, travelTime):
-        #TODO: Should these two actions just be called on the timeline once it's found?
         #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
         #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
-        if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
-            enterMineEvent = Event(eventFunction = lambda: self.addWorkerToMine(), eventTime=self.mCurrentSimTime + travelTime, recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
-            goToMineAction = WorkerMovementAction(travelTime = travelTime, startTime = self.mCurrentSimTime, requiredTimelineType=TimelineType.WORKER, events = [enterMineEvent], actionName="Go to mine")
-            if not self.addActionToMatchingTimeline(action = goToMineAction):
-                print("Failed to add go to mine action to timeline")
-
-            self.mEventHandler.registerEvent(enterMineEvent)
+        goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+        self.findMatchingTimeline(TimelineType.WORKER, timelineID).sendWorkerToMine(goldMineTimeline, self.mCurrentSimTime, travelTime)
 
     def sendWorkerToLumber(self, timelineID, travelTime):
-        if self.mRace == Race.NIGHT_ELF:
-            timeToLumb = 8 * SECONDS_TO_SIMTIME
-            lumberGained = 5
-            gainLumberEvent = Event(eventFunction = lambda: self.addLumberToCount(lumberGained), eventTime=self.mCurrentSimTime + travelTime + timeToLumb , recurPeriodSimtime = timeToLumb, eventName = "Gain 5 lumber", eventID = self.mEventHandler.getNewEventID())
-            goToLumberAction = WorkerMovementAction(travelTime = travelTime, startTime = self.mCurrentSimTime, requiredTimelineType=TimelineType.WORKER, events = [gainLumberEvent], actionName="Go to lumber")
-            if not self.addActionToMatchingTimeline(action = goToLumberAction):
-                print("Failed to add go to lumber action to timeline")
-
-            self.mEventHandler.registerEvent(gainLumberEvent)
+        self.findMatchingTimeline(TimelineType.WORKER, timelineID).sendWorkerToLumber(self.mCurrentSimTime, self.mCurrentResources, travelTime)
 
     #Return True if successfully added, False otherwise
     #If timeline ID is not passed in, ignore it
@@ -157,6 +139,29 @@ class BuildOrder:
             self.simulate(minAvailableTime)
             nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources)
         return True
+
+    #Returns the timeline ID of the next worker that will finish building
+    def getNextBuiltWorkerTimelineID(self): 
+        #TODO: This function could be optimized if it's a performance issue
+        initialNumWorkerTimelines = len(self.findAllMatchingTimelines(TimelineType.WORKER))
+
+        #TODO: Have some way to ensure a worker is being built, so that we know we won't simulate forever here
+        simTime = self.mCurrentSimTime
+        while True:
+            self.simulate(simTime)
+            workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
+            #Number of worker timelines has changed. This means a worker was built
+            if initialNumWorkerTimelines != len(workerTimelines):
+                break
+            simTime += 1
+
+        #TODO: Handle possible edge-case if we build multiple workers at the same time
+        #Return the timeline with the highest timeline ID, since that means it's newest
+        highestTimelineID = float('-inf')
+        for timeline in self.findAllMatchingTimelines(TimelineType.WORKER):
+            highestTimelineID = max(highestTimelineID, timeline.getTimelineID())
+
+        return highestTimelineID
 
     #Return True if we have the gold, lumber, and food required to build a unit/building
     def areRequiredResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):

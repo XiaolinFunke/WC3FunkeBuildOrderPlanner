@@ -147,6 +147,35 @@ class Timeline:
                 self.addAction(buildWispAction, currentResources)
                 pass
 
+    def sendWorkerToMine(self, goldMineTimeline, currSimTime, travelTime):
+        #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
+        #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
+        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + travelTime), eventTime=currSimTime + travelTime, recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
+        goToMineAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [enterMineEvent], actionName="Go to mine")
+        if not self.addAction(goToMineAction) :
+            print("Failed to add go to mine action to timeline")
+            return False
+
+        self.mEventHandler.registerEvent(enterMineEvent)
+        return True
+
+    def sendWorkerToLumber(self, currSimTime, currentResources, travelTime):
+        def addLumberToCount(amount):
+            currentResources.mCurrentLumber += amount
+
+        #TODO: Keep these values somewhere else
+        timeToLumb = 8 * SECONDS_TO_SIMTIME
+        lumberGained = 5
+        gainLumberEvent = Event(eventFunction = lambda: addLumberToCount(lumberGained), eventTime=currSimTime + travelTime + timeToLumb , recurPeriodSimtime = timeToLumb, eventName = "Gain 5 lumber", eventID = self.mEventHandler.getNewEventID())
+        goToLumberAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [gainLumberEvent], actionName="Go to lumber")
+
+        if not self.addAction(goToLumberAction):
+            print("Failed to add go to lumber action to timeline")
+            return False
+
+        self.mEventHandler.registerEvent(gainLumberEvent)
+        return True
+
     def printTimeline(self):
         print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)
 
