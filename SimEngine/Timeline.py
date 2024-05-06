@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP, WorkerTask
 from SimEngine.EventHandler import Event
 
 # Each building that can make units/upgrades has its own timeline
@@ -139,7 +139,7 @@ class Timeline:
                 print("Timeline type is incorrect to build wisp")
             else:
                 buildTime = UNIT_STATS_MAP[unitType].mTimeToBuildSec * SECONDS_TO_SIMTIME
-                events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.WORKER, getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
+                events = [ Event(lambda: inactiveTimelines.append(WispTimeline(getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
                                              0, self.mEventHandler.getNewEventID(), "Wisp produced") ]
                 self.mEventHandler.registerEvents(events)
                 buildWispAction = BuildUnitAction(goldCost = 60, lumberCost = 0, foodCost = 1, startTime = simTime, 
@@ -147,42 +147,13 @@ class Timeline:
                 self.addAction(buildWispAction, currentResources)
                 pass
 
-    def sendWorkerToMine(self, goldMineTimeline, currSimTime, travelTime):
-        #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
-        #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
-        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + travelTime), eventTime=currSimTime + travelTime, recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
-        goToMineAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [enterMineEvent], actionName="Go to mine")
-        if not self.addAction(goToMineAction) :
-            print("Failed to add go to mine action to timeline")
-            return False
-
-        self.mEventHandler.registerEvent(enterMineEvent)
-        return True
-
-    def sendWorkerToLumber(self, currSimTime, currentResources, travelTime):
-        def addLumberToCount(amount):
-            currentResources.mCurrentLumber += amount
-
-        #TODO: Keep these values somewhere else
-        timeToLumb = 8 * SECONDS_TO_SIMTIME
-        lumberGained = 5
-        gainLumberEvent = Event(eventFunction = lambda: addLumberToCount(lumberGained), eventTime=currSimTime + travelTime + timeToLumb , recurPeriodSimtime = timeToLumb, eventName = "Gain 5 lumber", eventID = self.mEventHandler.getNewEventID())
-        goToLumberAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [gainLumberEvent], actionName="Go to lumber")
-
-        if not self.addAction(goToLumberAction):
-            print("Failed to add go to lumber action to timeline")
-            return False
-
-        self.mEventHandler.registerEvent(gainLumberEvent)
-        return True
-
     def printTimeline(self):
         print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)
 
 class WorkerTimeline(Timeline):
-    def __init__(self, timelineType, currentTask, timelineID, eventHandler, lumberCycleTimeSec, lumberGainPerCycle, goldCycleTimeSec, goldGainPerCycle):
+    def __init__(self, timelineType, timelineID, eventHandler, lumberCycleTimeSec, lumberGainPerCycle, goldCycleTimeSec, goldGainPerCycle):
         super().__init__(timelineType, timelineID, eventHandler)
-        self.mCurrentTask = currentTask
+        self.mCurrentTask = WorkerTask.ROAMING
         #For most workers, the cycle starts at the town hall with no resource and ends at the town hall when they drop off the resource
         #For wisps/acolytes, cycle starts as soon as the worker is on the mine/tree ands end when they get the resource
         self.mLumberCycleTimeSec = lumberCycleTimeSec
@@ -193,9 +164,55 @@ class WorkerTimeline(Timeline):
         self.mTimeAtCurrentTaskSec = 0
         self.mProductiveTimeAtCurrentTaskSec = 0
 
+    def changeTask(self, goldMineTimeline, currSimTime, newTask):
+        if self.mCurrentTask == newTask:
+            return
+
+        if self.mCurrentTask == WorkerTask.GOLD:
+            goldMineTimeline.removeWorkerFromMine(currSimTime)
+        elif self.mCurrentTask == WorkerTask.LUMBER:
+            #Lumber action is associated with an event to gain lumber. Remove that event here now that this worker is doing something else
+            gainLumberEvent = self.getCurrOrPrevAction(currSimTime).getAssociatedEvent()
+            self.mEventHandler.unRegisterEvent(gainLumberEvent.getEventTime(), gainLumberEvent.getEventID())
+
+        self.mCurrentTask = newTask
+
+    def sendWorkerToMine(self, goldMineTimeline, currSimTime, travelTime):
+        self.changeTask(goldMineTimeline, currSimTime, WorkerTask.ROAMING)
+        #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
+        #For example, a unit could be building a building, which w, timelineIDould be an uninteruptable task (for elf and orc at least)
+        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + travelTime) and self.changeTask(goldMineTimeline, currSimTime + travelTime, WorkerTask.GOLD), eventTime=currSimTime + travelTime, recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
+        goToMineAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [enterMineEvent], actionName="Go to mine")
+        if not self.addAction(goToMineAction) :
+            print("Failed to add go to mine action to timeline")
+            return False
+
+        self.mEventHandler.registerEvent(enterMineEvent)
+        return True
+
+    def sendWorkerToLumber(self, goldMineTimeline, currSimTime, currentResources, travelTime):
+        def addLumberToCount(amount):
+            currentResources.mCurrentLumber += amount
+
+        self.changeTask(goldMineTimeline, currSimTime, WorkerTask.LUMBER)
+        gainLumberEvent = Event(eventFunction = lambda: addLumberToCount(self.mLumberGainPerCycle), eventTime=currSimTime + travelTime + (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), 
+                                recurPeriodSimtime = (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), eventName = "Gain 5 lumber", eventID = self.mEventHandler.getNewEventID())
+        goToLumberAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [gainLumberEvent], actionName="Go to lumber")
+
+        if not self.addAction(goToLumberAction):
+            print("Failed to add go to lumber action to timeline")
+            return False
+
+        self.mEventHandler.registerEvent(gainLumberEvent)
+        return True
+
+    def printTimeline(self):
+        print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mCurrentTask, self.mActions)
+
 class WispTimeline(WorkerTimeline):
-    def __init__(self, timelineType, currentTask, timelineID, eventHandler):
-        super().__init__(timelineType = timelineType, currentTask = currentTask, timelineID = timelineID, eventHandler=eventHandler, lumberCycleTimeSec = 8, lumberGainPerCycle = 5, goldCycleTimeSec = 5, goldGainPerCycle = 10)
+    def __init__(self, timelineID, eventHandler):
+        super().__init__(timelineType = TimelineType.WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+                         lumberCycleTimeSec = 8, lumberGainPerCycle = 5, goldCycleTimeSec = 5, goldGainPerCycle = 10)
 
 class GoldMineTimeline(Timeline):
     def __init__(self, timelineType, timelineID, eventHandler, race, currentResources):

@@ -1,6 +1,6 @@
 from SimEngine.SimulationConstants import WorkerTask, Race, SECONDS_TO_SIMTIME, UnitType, STARTING_FOOD_MAX_MAP
 from SimEngine.EventHandler import Event, EventHandler
-from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, WorkerMovementAction, Timeline
+from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, WorkerMovementAction, Timeline, WorkerTimeline
 
 class MapStartingPosition:
     def __init__(self, name, lumberTripTravelTimeSec, goldTripTravelTimeSec):
@@ -27,9 +27,10 @@ class BuildOrder:
 
         #Give initial starting units
         if self.mRace == Race.NIGHT_ELF:
+            goldMineTimeline = GoldMineTimeline(timelineType = TimelineType.GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler)
+            self.mInactiveTimelines.append(goldMineTimeline)
             for i in range(5):
-                self.mInactiveTimelines.append(WispTimeline(timelineType = TimelineType.WORKER, currentTask = WorkerTask.ROAMING, timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
-            self.mInactiveTimelines.append(GoldMineTimeline(timelineType = TimelineType.GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler))
+                self.mInactiveTimelines.append(WispTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
             self.mInactiveTimelines.append(Timeline(timelineType = TimelineType.TREE_OF_LIFE, timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
 
     #Will simulate up to specified simtime
@@ -57,10 +58,6 @@ class BuildOrder:
     def addLumberToCount(self, amount):
         self.mCurrentResources.mCurrentLumber += amount
 
-    def removeWorkerFromMine(self):
-        mineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
-        mineTimeline.removeWorkerFromMine(self.mCurrentSimTime)
-
     def sendWorkerToMine(self, timelineID, travelTime):
         #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
         #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
@@ -68,7 +65,9 @@ class BuildOrder:
         self.findMatchingTimeline(TimelineType.WORKER, timelineID).sendWorkerToMine(goldMineTimeline, self.mCurrentSimTime, travelTime)
 
     def sendWorkerToLumber(self, timelineID, travelTime):
-        self.findMatchingTimeline(TimelineType.WORKER, timelineID).sendWorkerToLumber(self.mCurrentSimTime, self.mCurrentResources, travelTime)
+        #TODO: A little bit odd that we need to pass teh goldmine here (it's because we might be moving a worker OFF of gold. But if we store it on the timeline, then we need to pass the goldmine to buildUnit just in case the unit is a wisp)
+        goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+        self.findMatchingTimeline(TimelineType.WORKER, timelineID).sendWorkerToLumber(goldMineTimeline, self.mCurrentSimTime, self.mCurrentResources, travelTime)
 
     #Return True if successfully added, False otherwise
     #If timeline ID is not passed in, ignore it
@@ -146,14 +145,13 @@ class BuildOrder:
         initialNumWorkerTimelines = len(self.findAllMatchingTimelines(TimelineType.WORKER))
 
         #TODO: Have some way to ensure a worker is being built, so that we know we won't simulate forever here
-        simTime = self.mCurrentSimTime
+        self.mCurrentSimTime
         while True:
-            self.simulate(simTime)
+            self.simulate(self.mCurrentSimTime + 1)   
             workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
             #Number of worker timelines has changed. This means a worker was built
             if initialNumWorkerTimelines != len(workerTimelines):
                 break
-            simTime += 1
 
         #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
