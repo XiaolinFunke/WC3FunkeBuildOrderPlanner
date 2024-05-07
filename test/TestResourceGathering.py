@@ -331,7 +331,7 @@ class TestResourceGathering(unittest.TestCase):
         expectedGoldAmount = (STARTING_GOLD - UNIT_STATS_MAP[UnitType.WISP].mGoldCost) + 120 + ((timeSec - 15) * 10)
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
-    def testElfSwitchingWorkerResource(self):
+    def testElfSwitchingWorkerLumberToGold(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
@@ -354,3 +354,30 @@ class TestResourceGathering(unittest.TestCase):
         #We shouldn't have been on lumber long enough to gain any
         self.assertEqual(buildOrder.getCurrentResources().getCurrentLumber(), STARTING_LUMBER, "Actual lumber amount did not match expected")
 
+    def testElfSwitchingWorkerGoldToLumber(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+        workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
+
+        #All workers mine immediately
+        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
+        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
+        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=0)
+        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=0)
+        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[4].getTimelineID(), travelTime=0)
+
+        buildOrder.simulate(15 * SECONDS_TO_SIMTIME)
+        #After 15 seconds, move a gold worker to lumber
+        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[3].getTimelineID(), travelTime=0)
+
+        #We have 4 workers mining for 15 seconds (120 gold)
+        #And then 3 workers mining for the rest
+        timeSec = 3600
+        expectedGoldAmount = STARTING_GOLD + 120 + ((timeSec - 15) * (3/5) * 10)
+        testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
+
+        #We have 1 worker lumbering for 15 seconds (5 lumber, 5 more at 16 seconds, 24 seconds, etc.)
+        #And then we add a second for the rest (first 5 lumber at 23 seconds)
+        #so, at 24 seconds we have +20 lumber. Will have 10 more at 32 seconds, 10 more every 8 seconds
+        timeSec = 7200
+        expectedLumberAmount = STARTING_LUMBER + 20 + ((timeSec - 24) / 8 * 10)
+        testLumberAmountPrecise(timeSec, expectedLumberAmount, buildOrder, self)
