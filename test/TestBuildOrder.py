@@ -1,8 +1,9 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import Race, STARTING_GOLD, STARTING_LUMBER
-from SimEngine.Timeline import Timeline, TimelineType, Action, BuildUnitAction
+from SimEngine.SimulationConstants import Race
+from SimEngine.Timeline import Timeline, TimelineType
+from SimEngine.Action import BuildUnitAction
 
 class TestBuildOrder(unittest.TestCase):
     def testFindMatchingTimeline(self):

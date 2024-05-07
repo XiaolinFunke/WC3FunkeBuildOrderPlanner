@@ -1,6 +1,6 @@
-from SimEngine.SimulationConstants import WorkerTask, Race, SECONDS_TO_SIMTIME, UnitType, STARTING_FOOD_MAX_MAP
-from SimEngine.EventHandler import Event, EventHandler
-from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, WorkerMovementAction, Timeline, WorkerTimeline
+from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP
+from SimEngine.EventHandler import EventHandler
+from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, Timeline
 
 class MapStartingPosition:
     def __init__(self, name, lumberTripTravelTimeSec, goldTripTravelTimeSec):
@@ -138,6 +138,31 @@ class BuildOrder:
             self.simulate(minAvailableTime)
             nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources)
         return True
+
+    #Return True if successful, False otherwise
+    # def buildStructure(self, structureType):
+    #     if unitType == UnitType.WISP:
+    #         #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
+    #         while not self.areRequiredResourcesAvailable(goldRequired=60, lumberRequired=0, foodRequired=1):
+    #             self.simulate(self.mCurrentSimTime + 1)
+
+    #         #Tree of life timeline represents all tiers of tree of life
+    #         matchingTimelines = self.findAllMatchingTimelines(TimelineType.TREE_OF_LIFE)
+    #         if not matchingTimelines:
+    #             print("Tried to build wisp, but did not find a matching timeline")
+    #             return False
+            
+    #         #TODO: Need to account for if a new Timeline is scheduled to be added in the future that can handle this request
+    #         minAvailableTime = float('inf')
+    #         for timeline in matchingTimelines:
+    #             prevMinAvailableTime = minAvailableTime
+    #             minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
+    #             if minAvailableTime != prevMinAvailableTime:
+    #                 nextAvailableTimeline = timeline
+
+    #         self.simulate(minAvailableTime)
+    #         nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources)
+    #     return True
 
     #Returns the timeline ID of the next worker that will finish building
     def getNextBuiltWorkerTimelineID(self): 
