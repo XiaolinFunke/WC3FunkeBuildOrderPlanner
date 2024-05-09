@@ -253,7 +253,7 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
         #7 seconds of mining has been done, which is not enough to gain 5 lumber
         buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
-
+        
         buildOrder.simulate(10 * SECONDS_TO_SIMTIME)
         buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
         #5 seconds of mining has been done, which is not enough to gain 5 lumber
@@ -261,8 +261,10 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
 
         buildOrder.simulate(18 * SECONDS_TO_SIMTIME)
+        print("WHY DOES THIS THINK THE MINE IS ALREADY EMPTY?")
         buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
         #First 5 lumber should be mined at 27 seconds
+
 
         timeSec = 27
         expectedLumberAmount = STARTING_LUMBER + 5

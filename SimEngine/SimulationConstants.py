@@ -24,10 +24,40 @@ GOLD_MINED_PER_TRIP = 10
 TIME_TO_MINE_GOLD_BASE_SEC = 5
 
 class WorkerTask(Enum):
-    GOLD = auto(),
-    LUMBER = auto(),
-    CONSTRUCTING = auto(),
+    GOLD = auto()
+    LUMBER = auto()
+    CONSTRUCTING = auto()
     ROAMING = auto()
+    IN_PRODUCTION = auto()
+
+class StructureType(Enum):
+    #HUMAN
+    #Represents all tiers of the town hall
+    TOWN_HALL = auto()
+    FARM = auto()
+    HUMAN_BARRACKS = auto()
+    LUMBER_MILL = auto()
+    BLACKSMITH = auto()
+    ALTAR_OF_KINGS = auto()
+    ARCANE_SANCTUM = auto()
+    WORKSHOP = auto()
+    SCOUT_TOWER = auto()
+    GRYPHON_AVIARY = auto()
+    ARCANE_VAULT = auto()
+    #NIGHT ELF
+    #Represents all tiers of the tree of life
+    TREE_OF_LIFE = auto()
+    #TODO: How do we handle entangle gold mine? -- kind of like an upgrade?
+    ENTANGLED_GOLD_MINE = auto()
+    MOON_WELL = auto()
+    ANCIENT_OF_WAR = auto()
+    ANCIENT_PROTECTOR = auto()
+    HUNTERS_HALL = auto()
+    ALTAR_OF_ELDERS = auto()
+    ANCIENT_OF_LORE = auto()
+    ANCIENT_OF_WIND = auto()
+    CHIMAERA_ROOST = auto()
+    ANCIENT_OF_WONDERS = auto()
 
 class UnitType(Enum):
     #NEUTRAL
@@ -81,4 +111,15 @@ class UnitStats:
 
 UNIT_STATS_MAP = {
     UnitType.WISP: UnitStats(goldCost = 60, lumberCost = 0, foodCost = 1, timeToBuildSec = 14)
+}
+
+class StructureStats:
+    def __init__(self, goldCost, lumberCost, foodProvided, timeToBuildSec):
+        self.mGoldCost = goldCost
+        self.mLumberCost = lumberCost
+        self.mFoodProvided = foodProvided
+        self.mTimeToBuildSec = timeToBuildSec
+
+STRUCTURE_STATS_MAP = {
+    StructureType.ALTAR_OF_ELDERS: StructureStats(goldCost = 180, lumberCost = 50, foodProvided = 0, timeToBuildSec = 60)
 }

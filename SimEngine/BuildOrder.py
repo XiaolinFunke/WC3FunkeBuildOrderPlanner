@@ -1,4 +1,4 @@
-from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP
+from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP, StructureType, WorkerTask
 from SimEngine.EventHandler import EventHandler
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, Timeline
 
@@ -140,29 +140,39 @@ class BuildOrder:
         return True
 
     #Return True if successful, False otherwise
-    # def buildStructure(self, structureType):
-    #     if unitType == UnitType.WISP:
-    #         #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
-    #         while not self.areRequiredResourcesAvailable(goldRequired=60, lumberRequired=0, foodRequired=1):
-    #             self.simulate(self.mCurrentSimTime + 1)
+    #Will be built with the most idle worker currently doing the workerTask passed in
+    def buildStructure(self, structureType, travelTime, workerTask):
+        if structureType == StructureType.ALTAR_OF_ELDERS:
+            #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
+            while not self.areRequiredResourcesAvailable(goldRequired=180, lumberRequired=50, foodRequired=0):
+                self.simulate(self.mCurrentSimTime + 1)
 
-    #         #Tree of life timeline represents all tiers of tree of life
-    #         matchingTimelines = self.findAllMatchingTimelines(TimelineType.TREE_OF_LIFE)
-    #         if not matchingTimelines:
-    #             print("Tried to build wisp, but did not find a matching timeline")
-    #             return False
+            if workerTask == WorkerTask.GOLD or workerTask == WorkerTask.LUMBER:
+                workerTimeline = self.getMostIdleWorker(workerTask == WorkerTask.GOLD)
+            elif workerTask == WorkerTask.IN_PRODUCTION:
+                workerTimeline = self.findMatchingTimeline(TimelineType.WORKER, self.getNextBuiltWorkerTimelineID())
             
-    #         #TODO: Need to account for if a new Timeline is scheduled to be added in the future that can handle this request
-    #         minAvailableTime = float('inf')
-    #         for timeline in matchingTimelines:
-    #             prevMinAvailableTime = minAvailableTime
-    #             minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
-    #             if minAvailableTime != prevMinAvailableTime:
-    #                 nextAvailableTimeline = timeline
+            goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+            return workerTimeline.buildStructure(structureType, self.mCurrentSimTime, travelTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline)
+        return True
+    
+    #Get the timeline of the 'most idle' worker on gold or lumber
+    #@param isOnGold - True if the worker should be on gold. If false, on lumber
+    def getMostIdleWorker(self, isOnGold):
+        workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
+        correctTaskWorkerTimelines = []
+        correctTask = WorkerTask.GOLD if isOnGold else WorkerTask.LUMBER
 
-    #         self.simulate(minAvailableTime)
-    #         nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources)
-    #     return True
+        for timeline in workerTimelines:
+            if timeline.getCurrentTask() == correctTask:
+                correctTaskWorkerTimelines.append(timeline)
+
+        if len(correctTaskWorkerTimelines) == 0:
+            return None
+
+        #TODO: Determine the idleness of the workers
+        #For now, just return the first one
+        return correctTaskWorkerTimelines[0]
 
     #Returns the timeline ID of the next worker that will finish building
     def getNextBuiltWorkerTimelineID(self): 
@@ -183,6 +193,8 @@ class BuildOrder:
         highestTimelineID = float('-inf')
         for timeline in self.findAllMatchingTimelines(TimelineType.WORKER):
             highestTimelineID = max(highestTimelineID, timeline.getTimelineID())
+            #TODO: Could just track the timeline of the highest here as well and return that instead of the ID - worker movement 
+            #functions could call this automatically instead of needing to call this from outside
 
         return highestTimelineID
 

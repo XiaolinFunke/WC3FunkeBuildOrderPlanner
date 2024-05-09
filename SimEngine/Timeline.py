@@ -1,7 +1,7 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP, WorkerTask
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP, WorkerTask, StructureType, STRUCTURE_STATS_MAP
 from SimEngine.EventHandler import Event
-from SimEngine.Action import BuildUnitAction, WorkerMovementAction
+from SimEngine.Action import BuildUnitAction, WorkerMovementAction, BuildStructureAction
 
 # Each building that can make units/upgrades has its own timeline
 # There are also timelines for constructing buildings, shops to buy/sell items and tavern
@@ -154,7 +154,7 @@ class Timeline:
 class WorkerTimeline(Timeline):
     def __init__(self, timelineType, timelineID, eventHandler, lumberCycleTimeSec, lumberGainPerCycle, goldCycleTimeSec, goldGainPerCycle):
         super().__init__(timelineType, timelineID, eventHandler)
-        self.mCurrentTask = WorkerTask.ROAMING
+        self.mCurrentTask = WorkerTask.IN_PRODUCTION
         #For most workers, the cycle starts at the town hall with no resource and ends at the town hall when they drop off the resource
         #For wisps/acolytes, cycle starts as soon as the worker is on the mine/tree ands end when they get the resource
         self.mLumberCycleTimeSec = lumberCycleTimeSec
@@ -178,11 +178,14 @@ class WorkerTimeline(Timeline):
 
         self.mCurrentTask = newTask
 
+    def getCurrentTask(self):
+        return self.mCurrentTask
+
     def sendWorkerToMine(self, goldMineTimeline, currSimTime, travelTime):
-        self.changeTask(goldMineTimeline, currSimTime, WorkerTask.ROAMING)
+        self.changeTask(goldMineTimeline, currSimTime, WorkerTask.GOLD)
         #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
         #For example, a unit could be building a building, which w, timelineIDould be an uninteruptable task (for elf and orc at least)
-        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + travelTime) and self.changeTask(goldMineTimeline, currSimTime + travelTime, WorkerTask.GOLD), eventTime=currSimTime + travelTime, recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
+        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + travelTime), eventTime=currSimTime + travelTime, recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
         goToMineAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [enterMineEvent], actionName="Go to mine")
         if not self.addAction(goToMineAction) :
             print("Failed to add go to mine action to timeline")
@@ -205,6 +208,21 @@ class WorkerTimeline(Timeline):
             return False
 
         self.mEventHandler.registerEvent(gainLumberEvent)
+        return True
+
+    #Return True if successful, False otherwise
+    def buildStructure(self, structureType, simTime, travelTime, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
+        if structureType == StructureType.ALTAR_OF_ELDERS:
+            buildTime = STRUCTURE_STATS_MAP[structureType].mTimeToBuildSec * SECONDS_TO_SIMTIME
+            events = [ Event(lambda: inactiveTimelines.append(Timeline(getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
+                                            0, self.mEventHandler.getNewEventID(), "Altar of Elders finished") ]
+            self.mEventHandler.registerEvents(events)
+            buildAltarAction = BuildStructureAction(goldCost = STRUCTURE_STATS_MAP[structureType].mGoldCost, lumberCost = STRUCTURE_STATS_MAP[structureType].mLumberCost, 
+                                                    foodProvided = STRUCTURE_STATS_MAP[structureType].mFoodProvided, travelTime=travelTime, startTime = simTime, 
+                                        duration=buildTime, requiredTimelineType=TimelineType.WORKER, events=events, actionName="Build Altar of Elders", isInterruptable=False, consumesWorker=False)
+            self.addAction(buildAltarAction, currentResources)
+
+            self.changeTask(goldMineTimeline, simTime, WorkerTask.CONSTRUCTING)
         return True
 
     def printTimeline(self):

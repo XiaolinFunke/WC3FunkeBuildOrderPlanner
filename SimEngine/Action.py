@@ -66,7 +66,7 @@ class BuildStructureAction(Action):
         super().payForAction(currentResources)
         if self.mConsumesWorker:
             currentResources.decreaseFoodUsedByOne()
-        currentResources.increaseFoodMax(self.mFoodProvided)
+        currentResources.increaseMaxFood(self.mFoodProvided)
 
 class ShopAction(Action):
     def __init__(self, goldCost, startTime, requiredTimelineType, events, actionName):
