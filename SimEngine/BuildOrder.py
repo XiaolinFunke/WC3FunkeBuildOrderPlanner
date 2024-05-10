@@ -63,11 +63,15 @@ class BuildOrder:
         #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
         goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
         self.findMatchingTimeline(TimelineType.WORKER, timelineID).sendWorkerToMine(goldMineTimeline, self.mCurrentSimTime, travelTime)
+        #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
+        self.simulate(self.mCurrentSimTime)
 
     def sendWorkerToLumber(self, timelineID, travelTime):
         #TODO: A little bit odd that we need to pass teh goldmine here (it's because we might be moving a worker OFF of gold. But if we store it on the timeline, then we need to pass the goldmine to buildUnit just in case the unit is a wisp)
         goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
         self.findMatchingTimeline(TimelineType.WORKER, timelineID).sendWorkerToLumber(goldMineTimeline, self.mCurrentSimTime, self.mCurrentResources, travelTime)
+        #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
+        self.simulate(self.mCurrentSimTime)
 
     #Return True if successfully added, False otherwise
     #If timeline ID is not passed in, ignore it
@@ -137,6 +141,8 @@ class BuildOrder:
 
             self.simulate(minAvailableTime)
             nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources)
+        #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
+        self.simulate(self.mCurrentSimTime)
         return True
 
     #Return True if successful, False otherwise
@@ -154,6 +160,8 @@ class BuildOrder:
             
             goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
             return workerTimeline.buildStructure(structureType, self.mCurrentSimTime, travelTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline)
+        #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
+        self.simulate(self.mCurrentSimTime)
         return True
     
     #Get the timeline of the 'most idle' worker on gold or lumber
