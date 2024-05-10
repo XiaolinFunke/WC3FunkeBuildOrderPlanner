@@ -5,7 +5,7 @@ class EventHandler:
         self.mNextEventID = 0
         #The Event ID of the last event executed
         self.mLastEventExecuted = -1
-        #The last simtime we have executed. Note that this is updated even if no events were registered for that simtime
+        #The last simtime we have executed events for (only updated if there were actually events to execute at that time, not just if we tried to execute)
         self.mLastSimTimeExecuted = -1
 
     def registerEvent(self, event):
@@ -25,11 +25,10 @@ class EventHandler:
 
     def executeEvents(self, simTime):
         if simTime not in self.mEvents:
-            self.mLastSimTimeExecuted = simTime
             return
 
         executeRemainingEvents = True
-        #If we have already executed at this simtime, we only want to execute the remaining events
+        #If we have already executed at this simtime, we only want to execute the remaining events (the events after the last event we've executed)
         if simTime == self.mLastSimTimeExecuted:
             executeRemainingEvents = False
 
@@ -82,7 +81,7 @@ class Event:
         self.mEventID = eventID
 
     def __str__(self):
-        return "Event:\"" + self.mEventName + "\" - addr " + hex(id(self))
+        return "Event:\"" + self.mEventName + "\" - ID " + str(self.mEventID)
 
     def __repr__(self):
         return self.__str__()

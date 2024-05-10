@@ -154,7 +154,7 @@ class Timeline:
 class WorkerTimeline(Timeline):
     def __init__(self, timelineType, timelineID, eventHandler, lumberCycleTimeSec, lumberGainPerCycle, goldCycleTimeSec, goldGainPerCycle):
         super().__init__(timelineType, timelineID, eventHandler)
-        self.mCurrentTask = WorkerTask.IN_PRODUCTION
+        self.mCurrentTask = WorkerTask.IDLE
         #For most workers, the cycle starts at the town hall with no resource and ends at the town hall when they drop off the resource
         #For wisps/acolytes, cycle starts as soon as the worker is on the mine/tree ands end when they get the resource
         self.mLumberCycleTimeSec = lumberCycleTimeSec
@@ -185,7 +185,8 @@ class WorkerTimeline(Timeline):
         self.changeTask(goldMineTimeline, currSimTime, WorkerTask.GOLD)
         #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
         #For example, a unit could be building a building, which w, timelineIDould be an uninteruptable task (for elf and orc at least)
-        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + travelTime), eventTime=currSimTime + travelTime, recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
+        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + travelTime), eventTime=currSimTime + travelTime, 
+                               recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
         goToMineAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [enterMineEvent], actionName="Go to mine")
         if not self.addAction(goToMineAction) :
             print("Failed to add go to mine action to timeline")
@@ -244,9 +245,6 @@ class GoldMineTimeline(Timeline):
         else:
             self.mMaxWorkersInMine = 1
 
-    def addGoldToCount(self, amount):
-        self.mCurrentResources.mCurrentGold += amount
-
     #Sim time only needed for Undead and Elf, to bring their next +10 gold proportionally forward
     #Return False if Action failed to add, True if succeeded
     def addWorkerToMine(self, simTime):
@@ -260,9 +258,9 @@ class GoldMineTimeline(Timeline):
                 timeToMine = TIME_TO_MINE_GOLD_BASE_SEC * SECONDS_TO_SIMTIME
 
                 def addGoldToCount(goldMined):
-                    self.mCurrentResources += goldMined
+                    self.mCurrentResources.mCurrentGold += goldMined
                 #For first worker, we need to create the +10 gold event that we will use from here on out
-                gainGoldEvent = Event(eventFunction = lambda: self.addGoldToCount(GOLD_MINED_PER_TRIP), eventTime=simTime + timeToMine, recurPeriodSimtime = timeToMine, eventName = "Gain 10 gold", 
+                gainGoldEvent = Event(eventFunction = lambda: addGoldToCount(GOLD_MINED_PER_TRIP), eventTime=simTime + timeToMine, recurPeriodSimtime = timeToMine, eventName = "Gain 10 gold", 
                                       eventID = self.mEventHandler.getNewEventID())
                 self.mEventHandler.registerEvent(gainGoldEvent)
             else:

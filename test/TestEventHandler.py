@@ -44,7 +44,7 @@ class TestEventHandler(unittest.TestCase):
         self.assertEqual(self.testInt1, 1)
         self.assertEqual(self.testInt2, 0)
         eventHandler.executeEventsInRange(10, 20)
-        self.assertEqual(self.testInt1, 2)
+        self.assertEqual(self.testInt1, 1)
         self.assertEqual(self.testInt2, 1)
 
     def testUnregisterEvent(self):

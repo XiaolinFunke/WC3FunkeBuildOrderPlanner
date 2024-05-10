@@ -29,6 +29,7 @@ class WorkerTask(Enum):
     CONSTRUCTING = auto()
     ROAMING = auto()
     IN_PRODUCTION = auto()
+    IDLE = auto()
 
 class StructureType(Enum):
     #HUMAN
