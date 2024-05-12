@@ -213,17 +213,27 @@ class WorkerTimeline(Timeline):
 
     #Return True if successful, False otherwise
     def buildStructure(self, structureType, simTime, travelTime, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
-        if structureType == StructureType.ALTAR_OF_ELDERS:
-            buildTime = STRUCTURE_STATS_MAP[structureType].mTimeToBuildSec * SECONDS_TO_SIMTIME
-            events = [ Event(lambda: inactiveTimelines.append(Timeline(getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
-                                            0, self.mEventHandler.getNewEventID(), "Altar of Elders finished") ]
-            self.mEventHandler.registerEvents(events)
-            buildAltarAction = BuildStructureAction(goldCost = STRUCTURE_STATS_MAP[structureType].mGoldCost, lumberCost = STRUCTURE_STATS_MAP[structureType].mLumberCost, 
-                                                    foodProvided = STRUCTURE_STATS_MAP[structureType].mFoodProvided, travelTime=travelTime, startTime = simTime, 
-                                        duration=buildTime, requiredTimelineType=TimelineType.WORKER, events=events, actionName="Build Altar of Elders", isInterruptable=False, consumesWorker=False)
-            self.addAction(buildAltarAction, currentResources)
+        structureStats = STRUCTURE_STATS_MAP[structureType]
+        buildTime = structureStats.mTimeToBuildSec * SECONDS_TO_SIMTIME
 
-            self.changeTask(goldMineTimeline, simTime, WorkerTask.CONSTRUCTING)
+        #TODO: Could refactor this to combine more cases
+        if structureType == StructureType.ALTAR_OF_ELDERS:
+            events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.ALTAR_OF_ELDERS, getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
+                                            0, self.mEventHandler.getNewEventID(), structureStats.mName + " finished") ]
+            self.mEventHandler.registerEvents(events)
+        elif structureType == StructureType.MOON_WELL:
+            events = [ Event(lambda: currentResources.increaseMaxFood(10), simTime + buildTime, 
+                                            0, self.mEventHandler.getNewEventID(), structureStats.mName + " finished") ]
+            self.mEventHandler.registerEvents(events)
+
+        #TODO: A lot of the action stuff doesn't seem necessary anymore, like required timeline type... what is the role of Actions now? Doestn' seem like it's something we create beforehand that then
+        #is used to inform our timelines and events.. unless it should be? idk
+        buildAction = BuildStructureAction(goldCost = structureStats.mGoldCost, lumberCost = structureStats.mLumberCost, 
+                                                    foodProvided = structureStats.mFoodProvided, travelTime=travelTime, startTime = simTime, 
+                                        duration=buildTime, requiredTimelineType=TimelineType.WORKER, events=events, actionName="Build " + structureStats.mName, isInterruptable=False, consumesWorker=False)
+        self.addAction(buildAction, currentResources)
+        self.changeTask(goldMineTimeline, simTime, WorkerTask.CONSTRUCTING)
+
         return True
 
     def printTimeline(self):

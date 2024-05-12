@@ -115,12 +115,15 @@ UNIT_STATS_MAP = {
 }
 
 class StructureStats:
-    def __init__(self, goldCost, lumberCost, foodProvided, timeToBuildSec):
+    def __init__(self, name, goldCost, lumberCost, foodProvided, timeToBuildSec):
+        self.mName = name
         self.mGoldCost = goldCost
         self.mLumberCost = lumberCost
         self.mFoodProvided = foodProvided
         self.mTimeToBuildSec = timeToBuildSec
+    
 
 STRUCTURE_STATS_MAP = {
-    StructureType.ALTAR_OF_ELDERS: StructureStats(goldCost = 180, lumberCost = 50, foodProvided = 0, timeToBuildSec = 60)
+    StructureType.ALTAR_OF_ELDERS: StructureStats(name = "Altar of Elders", goldCost = 180, lumberCost = 50, foodProvided = 0, timeToBuildSec = 60),
+    StructureType.MOON_WELL: StructureStats(name = "Moon Well", goldCost = 180, lumberCost = 40, foodProvided = 10, timeToBuildSec = 50)
 }

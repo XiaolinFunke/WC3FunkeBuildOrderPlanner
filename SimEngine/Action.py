@@ -59,6 +59,7 @@ class BuildUnitAction(Action):
 class BuildStructureAction(Action):
     def __init__(self, goldCost, lumberCost, foodProvided, travelTime, startTime, duration, requiredTimelineType, events, actionName, isInterruptable, consumesWorker):
         super().__init__(goldCost, lumberCost, travelTime, startTime, duration, requiredTimelineType, events, actionName, False, isInterruptable)
+        #TODO: Are some of these Action members even really necessary to track? Like, won't food provided really just be handled by the associated event?
         self.mFoodProvided = foodProvided
         self.mConsumesWorker = consumesWorker
 
@@ -66,7 +67,7 @@ class BuildStructureAction(Action):
         super().payForAction(currentResources)
         if self.mConsumesWorker:
             currentResources.decreaseFoodUsedByOne()
-        currentResources.increaseMaxFood(self.mFoodProvided)
+        #Don't increase max food by food provided, since that only happens when a building is complete, not paid for
 
 class ShopAction(Action):
     def __init__(self, goldCost, startTime, requiredTimelineType, events, actionName):

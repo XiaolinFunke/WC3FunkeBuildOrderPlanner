@@ -1,4 +1,4 @@
-from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP, StructureType, WorkerTask
+from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP, StructureType, WorkerTask, STRUCTURE_STATS_MAP
 from SimEngine.EventHandler import EventHandler
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, Timeline
 
@@ -148,18 +148,20 @@ class BuildOrder:
     #Return True if successful, False otherwise
     #Will be built with the most idle worker currently doing the workerTask passed in
     def buildStructure(self, structureType, travelTime, workerTask):
-        if structureType == StructureType.ALTAR_OF_ELDERS:
-            #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
-            while not self.areRequiredResourcesAvailable(goldRequired=180, lumberRequired=50, foodRequired=0):
-                self.simulate(self.mCurrentSimTime + 1)
+        #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
+        structureStats = STRUCTURE_STATS_MAP[structureType]
+        while not self.areRequiredResourcesAvailable(goldRequired=structureStats.mGoldCost, lumberRequired=structureStats.mLumberCost, foodRequired=0):
+            self.simulate(self.mCurrentSimTime + 1)
 
-            if workerTask == WorkerTask.GOLD or workerTask == WorkerTask.LUMBER:
-                workerTimeline = self.getMostIdleWorker(workerTask == WorkerTask.GOLD)
-            elif workerTask == WorkerTask.IN_PRODUCTION:
-                workerTimeline = self.findMatchingTimeline(TimelineType.WORKER, self.getNextBuiltWorkerTimelineID())
-            
-            goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
-            return workerTimeline.buildStructure(structureType, self.mCurrentSimTime, travelTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline)
+        if workerTask == WorkerTask.GOLD or workerTask == WorkerTask.LUMBER:
+            workerTimeline = self.getMostIdleWorker(workerTask == WorkerTask.GOLD)
+        elif workerTask == WorkerTask.IN_PRODUCTION:
+            workerTimeline = self.findMatchingTimeline(TimelineType.WORKER, self.getNextBuiltWorkerTimelineID())
+        
+        goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+        if not workerTimeline.buildStructure(structureType, self.mCurrentSimTime, travelTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline):
+            return False
+
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
         self.simulate(self.mCurrentSimTime)
         return True
