@@ -2,7 +2,7 @@ import unittest
 
 from SimEngine.BuildOrder import BuildOrder
 from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER, UnitType, UNIT_STATS_MAP
-from SimEngine.Timeline import TimelineType
+from SimEngine.TimelineTypeEnum import TimelineType
 
 #Checks the gold amount at the specified time BUT also
 #checks the simtime right before that time, to ensure that the gold was achieved at exactly that time

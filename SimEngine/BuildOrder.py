@@ -1,6 +1,7 @@
-from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP, StructureType, WorkerTask, STRUCTURE_STATS_MAP
+from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP, StructureType, WorkerTask, STRUCTURE_STATS_MAP, UNIT_STATS_MAP
 from SimEngine.EventHandler import EventHandler
-from SimEngine.Timeline import WispTimeline, GoldMineTimeline, TimelineType, Timeline
+from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline
+from SimEngine.TimelineTypeEnum import TimelineType
 
 class MapStartingPosition:
     def __init__(self, name, lumberTripTravelTimeSec, goldTripTravelTimeSec):
@@ -24,6 +25,9 @@ class BuildOrder:
         self.mCurrentResources = CurrentResources(race)
         self.mEventHandler = EventHandler()
         self.mCurrentSimTime = 0
+
+        #Track number of heroes built, so we can know if it's the first free one, or if we already have 3 and can't build more
+        self.mHeroesBuilt = 0
 
         #Give initial starting units
         if self.mRace == Race.NIGHT_ELF:
@@ -119,42 +123,86 @@ class BuildOrder:
         return matchingTimelines
 
     #Return True if successful, False otherwise
-    def buildUnit(self, unitType):
-        if unitType == UnitType.WISP:
-            #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
-            while not self.areRequiredResourcesAvailable(goldRequired=60, lumberRequired=0, foodRequired=1):
-                self.simulate(self.mCurrentSimTime + 1)
+    def buildUnit(self, unitType, isFree = False):
+        if self.isUnitHero(unitType):
+            print("Tried to call buidUnit on a hero. Should use buildHero instead")
+            return False
 
-            #Tree of life timeline represents all tiers of tree of life
-            matchingTimelines = self.findAllMatchingTimelines(TimelineType.TREE_OF_LIFE)
-            if not matchingTimelines:
-                print("Tried to build wisp, but did not find a matching timeline")
-                return False
-            
-            #TODO: Need to account for if a new Timeline is scheduled to be added in the future that can handle this request
-            minAvailableTime = float('inf')
-            for timeline in matchingTimelines:
-                prevMinAvailableTime = minAvailableTime
-                minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
-                if minAvailableTime != prevMinAvailableTime:
-                    nextAvailableTimeline = timeline
+        return self._doBuildUnit(unitType)
 
-            self.simulate(minAvailableTime)
-            nextAvailableTimeline.buildUnit(UnitType.WISP, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources)
+    #Return True if successful, False otherwise
+    def _doBuildUnit(self, unitType, isFree = False):
+        #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
+        unitStats = UNIT_STATS_MAP[unitType]
+        while not self.areRequiredResourcesAvailable(goldRequired=unitStats.mGoldCost, lumberRequired=unitStats.mLumberCost, foodRequired=unitStats.mFoodCost, isFree=isFree):
+            self.simulate(self.mCurrentSimTime + 1)
+
+        #TODO: Need to account for if a new Timeline is scheduled to be added in the future that can handle this request
+        matchingTimelines = self.findAllMatchingTimelines(unitStats.mTimelineTypeNeeded)
+        if not matchingTimelines:
+            print("Tried to build " + unitStats.mName + ", but did not find a timeline of type ", unitStats.mTimelineTypeNeeded)
+            return False
+
+        minAvailableTime = float('inf')
+        for timeline in matchingTimelines:
+            prevMinAvailableTime = minAvailableTime
+            minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
+            if minAvailableTime != prevMinAvailableTime:
+                nextAvailableTimeline = timeline
+
+        self.simulate(minAvailableTime)
+
+        if not nextAvailableTimeline.buildUnit(unitType, self.mCurrentSimTime, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, isFree):
+            print("Failed to build", UNIT_STATS_MAP[unitType].mName)
+            return False
+
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
         self.simulate(self.mCurrentSimTime)
         return True
+
+    #Return True if the unit is a hero, False otherwise
+    def isUnitHero(self, unitType):
+        #TODO: Add rest of heroes here
+        if unitType != UnitType.DEMON_HUNTER and unitType != UnitType.ARCHMAGE:
+            return False
+        
+        return True
+
+    def buildHero(self, unitType):
+        #TODO: Enforce not building same hero twice as well
+        #TODO: Could have a hero bool as part of the unit stats
+        if not self.isUnitHero(unitType):
+            print("Unit ", unitType, " is not a hero")
+            return False
+
+        #Can't build any more heroes after the third one
+        if self.mHeroesBuilt >= 3:
+            return False
+
+        #First hero is free
+        isFree = False
+        
+        if self.mHeroesBuilt == 0:
+            isFree = True
+
+        if self._doBuildUnit(unitType, isFree):
+            self.mHeroesBuilt += 1
+            return True
+        else:
+            return False
 
     #Return True if successful, False otherwise
     #Will be built with the most idle worker currently doing the workerTask passed in
     def buildStructure(self, structureType, travelTime, workerTask):
         #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
         structureStats = STRUCTURE_STATS_MAP[structureType]
-        while not self.areRequiredResourcesAvailable(goldRequired=structureStats.mGoldCost, lumberRequired=structureStats.mLumberCost, foodRequired=0):
+        while not self.areRequiredResourcesAvailable(goldRequired=structureStats.mGoldCost, lumberRequired=structureStats.mLumberCost, foodRequired=0, isFree=False):
             self.simulate(self.mCurrentSimTime + 1)
 
-        if workerTask == WorkerTask.GOLD or workerTask == WorkerTask.LUMBER:
-            workerTimeline = self.getMostIdleWorker(workerTask == WorkerTask.GOLD)
+        if workerTask == WorkerTask.IDLE:
+            workerTimeline = self.getIdleWorker()
+        elif workerTask == WorkerTask.GOLD or workerTask == WorkerTask.LUMBER:
+            workerTimeline = self.getMostIdleWorkerOnResource(workerTask == WorkerTask.GOLD)
         elif workerTask == WorkerTask.IN_PRODUCTION:
             workerTimeline = self.findMatchingTimeline(TimelineType.WORKER, self.getNextBuiltWorkerTimelineID())
         
@@ -165,13 +213,27 @@ class BuildOrder:
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
         self.simulate(self.mCurrentSimTime)
         return True
-    
-    #Get the timeline of the 'most idle' worker on gold or lumber
-    #@param isOnGold - True if the worker should be on gold. If false, on lumber
-    def getMostIdleWorker(self, isOnGold):
+
+    def getIdleWorker(self):
         workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
+
+        idleWorkerTimelines = []
+        for timeline in workerTimelines:
+            if timeline.getCurrentTask() == WorkerTask.IDLE:
+                idleWorkerTimelines.append(timeline)
+
+        if len(idleWorkerTimelines) > 0:
+            return idleWorkerTimelines[0]
+        else:
+            return None
+    
+    #Get the timeline of the 'most idle' worker on a given resource
+    #@param onGold - True if the worker should be taken from gold. If false, from lumber
+    def getMostIdleWorkerOnResource(self, onGold):
+        workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
+
         correctTaskWorkerTimelines = []
-        correctTask = WorkerTask.GOLD if isOnGold else WorkerTask.LUMBER
+        correctTask = WorkerTask.GOLD if onGold else WorkerTask.LUMBER
 
         for timeline in workerTimelines:
             if timeline.getCurrentTask() == correctTask:
@@ -209,10 +271,11 @@ class BuildOrder:
         return highestTimelineID
 
     #Return True if we have the gold, lumber, and food required to build a unit/building
-    def areRequiredResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):
-        if self.mCurrentResources.getCurrentGold() < goldRequired:
+    #If isFree is True, only check food requirement
+    def areRequiredResourcesAvailable(self, goldRequired, lumberRequired, foodRequired, isFree):
+        if self.mCurrentResources.getCurrentGold() < goldRequired and not isFree:
             return False
-        elif self.mCurrentResources.getCurrentLumber() < lumberRequired:
+        elif self.mCurrentResources.getCurrentLumber() < lumberRequired and not isFree:
             return False
         elif max(self.mCurrentResources.mCurrentFoodMax - self.mCurrentResources.mCurrentFood, 0) < foodRequired:
             return False

@@ -18,9 +18,10 @@ class Action:
         #List of events
         self.mAssociatedEvents = events
 
-    def payForAction(self, currentResources):
-        currentResources.deductGold(self.mGoldCost)
-        currentResources.deductLumber(self.mLumberCost)
+    def payForAction(self, currentResources, isFree):
+        if not isFree:
+            currentResources.deductGold(self.mGoldCost)
+            currentResources.deductLumber(self.mLumberCost)
 
     def setStartTime(self, startTime):
         self.mStartTime = startTime
@@ -52,8 +53,8 @@ class BuildUnitAction(Action):
         super().__init__(goldCost, lumberCost, 0, startTime, duration, requiredTimelineType, events, actionName, True, False)
         self.mFoodCost = foodCost
 
-    def payForAction(self, currentResources):
-        super().payForAction(currentResources)
+    def payForAction(self, currentResources, isFree = False):
+        super().payForAction(currentResources, isFree)
         currentResources.increaseFoodUsed(self.mFoodCost)
 
 class BuildStructureAction(Action):
@@ -63,8 +64,8 @@ class BuildStructureAction(Action):
         self.mFoodProvided = foodProvided
         self.mConsumesWorker = consumesWorker
 
-    def payForAction(self, currentResources):
-        super().payForAction(currentResources)
+    def payForAction(self, currentResources, isFree = False):
+        super().payForAction(currentResources, isFree)
         if self.mConsumesWorker:
             currentResources.decreaseFoodUsedByOne()
         #Don't increase max food by food provided, since that only happens when a building is complete, not paid for

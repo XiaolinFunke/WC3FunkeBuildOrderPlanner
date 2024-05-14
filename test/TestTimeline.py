@@ -1,6 +1,7 @@
 import unittest
 
-from SimEngine.Timeline import Timeline, TimelineType
+from SimEngine.Timeline import Timeline 
+from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.Action import Action
 
 class TestTimeline(unittest.TestCase):

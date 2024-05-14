@@ -1,5 +1,7 @@
 from enum import Enum, auto
 
+from SimEngine.TimelineTypeEnum import TimelineType
+
 SECONDS_TO_SIMTIME = 10 #simtime is in deciseconds
 SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
 
@@ -104,14 +106,18 @@ class UnitType(Enum):
     CHIMAERA = auto()
 
 class UnitStats:
-    def __init__(self, goldCost, lumberCost, foodCost, timeToBuildSec):
+    def __init__(self, goldCost, lumberCost, foodCost, timeToBuildSec, timelineTypeNeeded, name):
+        self.mName = name
         self.mGoldCost = goldCost
         self.mLumberCost = lumberCost
         self.mFoodCost = foodCost
         self.mTimeToBuildSec = timeToBuildSec
+        self.mTimelineTypeNeeded = timelineTypeNeeded
 
 UNIT_STATS_MAP = {
-    UnitType.WISP: UnitStats(goldCost = 60, lumberCost = 0, foodCost = 1, timeToBuildSec = 14)
+    #Tree of life timeline represents all tiers of tree of life
+    UnitType.WISP: UnitStats(goldCost = 60, lumberCost = 0, foodCost = 1, timeToBuildSec = 14, timelineTypeNeeded = TimelineType.TREE_OF_LIFE, name = "Wisp"), 
+    UnitType.DEMON_HUNTER: UnitStats(goldCost = 400, lumberCost = 100, foodCost = 5, timeToBuildSec = 55, timelineTypeNeeded = TimelineType.ALTAR_OF_ELDERS, name = "Demon Hunter")
 }
 
 class StructureStats:

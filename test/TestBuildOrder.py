@@ -2,7 +2,8 @@ import unittest
 
 from SimEngine.BuildOrder import BuildOrder
 from SimEngine.SimulationConstants import Race
-from SimEngine.Timeline import Timeline, TimelineType
+from SimEngine.Timeline import Timeline 
+from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.Action import BuildUnitAction
 
 class TestBuildOrder(unittest.TestCase):

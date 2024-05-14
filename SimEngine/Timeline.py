@@ -2,37 +2,7 @@ from enum import Enum, auto
 from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP, WorkerTask, StructureType, STRUCTURE_STATS_MAP
 from SimEngine.EventHandler import Event
 from SimEngine.Action import BuildUnitAction, WorkerMovementAction, BuildStructureAction
-
-# Each building that can make units/upgrades has its own timeline
-# There are also timelines for constructing buildings, shops to buy/sell items and tavern
-class TimelineType(Enum):
-    #NEUTRAL
-    WORKER = auto()
-    TAVERN = auto()
-    GOBLIN_MERCHANT = auto()
-    GOLD_MINE = auto()
-    #HUMAN
-    #Represents all tiers of the town hall
-    TOWN_HALL = auto()
-    HUMAN_BARRACKS = auto()
-    LUMBER_MILL = auto()
-    BLACKSMITH = auto()
-    ALTAR_OF_KINGS = auto()
-    ARCANE_SANCTUM = auto()
-    WORKSHOP = auto()
-    SCOUT_TOWER = auto()
-    GRYPHON_AVIARY = auto()
-    ARCANE_VAULT = auto()
-    #NIGHT ELF
-    #Represents all tiers of the tree of life
-    TREE_OF_LIFE = auto()
-    ANCIENT_OF_WAR = auto()
-    HUNTERS_HALL = auto()
-    ALTAR_OF_ELDERS = auto()
-    ANCIENT_OF_LORE = auto()
-    ANCIENT_OF_WIND = auto()
-    CHIMAERA_ROOST = auto()
-    ANCIENT_OF_WONDERS = auto()
+from SimEngine.TimelineTypeEnum import TimelineType
 
 # Represents a single timeline on the planner. For example, the production queue of a barracks, or blacksmith, etc.
 class Timeline:
@@ -99,7 +69,7 @@ class Timeline:
     #Any actions with start times after this one will be removed from the Timeline as well
     #If currentResources is not passed in, Action will be assumed to not affect current resources
     #Returns False and won't add if overlaps with the Action before it in the Timeline
-    def addAction(self, newAction, currentResources = None):
+    def addAction(self, newAction, currentResources = None, isFree = False):
         i = self.findProperSpotForAction(newAction.getStartTime()) 
         prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 else 0
         if newAction.getStartTime() < prevActionEndTime:
@@ -110,7 +80,7 @@ class Timeline:
             #and we want to ensure the list still has no overlapping
             self.mActions = self.mActions[:i + 1]
             if currentResources:
-                newAction.payForAction(currentResources)
+                newAction.payForAction(currentResources, isFree)
             return True
 
     #Return the simtime when the given Action could be scheduled on this timeline
@@ -134,19 +104,21 @@ class Timeline:
             if i == len(self.mActions) or actionStartTime < self.mActions[i].mStartTime:
                 return i
 
-    def buildUnit(self, unitType, simTime, inactiveTimelines, getNextTimelineIDFunc, currentResources):
+    def buildUnit(self, unitType, simTime, inactiveTimelines, getNextTimelineIDFunc, currentResources, isFree = False):
+        success = False
+
+        unitStats = UNIT_STATS_MAP[unitType]
+        events = []
         if unitType == UnitType.WISP:
-            if not self.mTimelineType == TimelineType.TREE_OF_LIFE:
-                print("Timeline type is incorrect to build wisp")
-            else:
-                buildTime = UNIT_STATS_MAP[unitType].mTimeToBuildSec * SECONDS_TO_SIMTIME
-                events = [ Event(lambda: inactiveTimelines.append(WispTimeline(getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
-                                             0, self.mEventHandler.getNewEventID(), "Wisp produced") ]
-                self.mEventHandler.registerEvents(events)
-                buildWispAction = BuildUnitAction(goldCost = 60, lumberCost = 0, foodCost = 1, startTime = simTime, 
-                                         duration=buildTime, requiredTimelineType=TimelineType.TREE_OF_LIFE, events=events, actionName="Build wisp")
-                self.addAction(buildWispAction, currentResources)
-                pass
+            events = [ Event(lambda: inactiveTimelines.append(WispTimeline(getNextTimelineIDFunc(), self.mEventHandler)), simTime + (unitStats.mTimeToBuildSec * SECONDS_TO_SIMTIME), 
+                                            0, self.mEventHandler.getNewEventID(), "Wisp produced") ]
+            self.mEventHandler.registerEvents(events)
+
+        buildAction = BuildUnitAction(goldCost = unitStats.mGoldCost, lumberCost = unitStats.mLumberCost, foodCost = unitStats.mFoodCost, 
+                                      startTime = simTime, duration=unitStats.mTimeToBuildSec * SECONDS_TO_SIMTIME, requiredTimelineType=unitStats.mTimelineTypeNeeded, events=events, actionName="Build " + unitStats.mName)
+        success = self.addAction(buildAction, currentResources, isFree)
+
+        return success
 
     def printTimeline(self):
         print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)

@@ -1,19 +1,9 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.Timeline import TimelineType
+from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.SimulationConstants import Race, STRUCTURE_STATS_MAP, STARTING_GOLD, STARTING_LUMBER, STARTING_FOOD, STARTING_FOOD_MAX_MAP, SECONDS_TO_SIMTIME, StructureType, WorkerTask
-
-def buildStructureAndTestResources(testClass, buildOrder, structureType, travelTime, workerTask, prevFoodMax, prevGold = STARTING_GOLD, prevLumber = STARTING_LUMBER, prevFood = STARTING_FOOD):
-    testClass.assertEqual(True, buildOrder.buildStructure(structureType, travelTime, workerTask))
-
-    testClass.assertEqual(buildOrder.getCurrentResources().getCurrentGold(), prevGold - STRUCTURE_STATS_MAP[structureType].mGoldCost)
-    testClass.assertEqual(buildOrder.getCurrentResources().getCurrentLumber(), prevLumber - STRUCTURE_STATS_MAP[structureType].mLumberCost)
-    testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFood(), prevFood)
-
-    testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFoodMax(), prevFoodMax)
-    buildOrder.simulate(buildOrder.getCurrSimTime() + STRUCTURE_STATS_MAP[structureType].mTimeToBuildSec * SECONDS_TO_SIMTIME)
-    testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFoodMax(), prevFoodMax + STRUCTURE_STATS_MAP[structureType].mFoodProvided)
+from Test.TestUtilities import buildStructureAndTestResources
 
 class TestBuildingStructures(unittest.TestCase):
     def testCreateAltarOfElders(self):
@@ -23,7 +13,7 @@ class TestBuildingStructures(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
         buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
 
-        buildStructureAndTestResources(self, buildOrder, StructureType.ALTAR_OF_ELDERS, 0, WorkerTask.GOLD, buildOrder.getCurrentResources().getCurrentFoodMax())
+        buildStructureAndTestResources(self, buildOrder, StructureType.ALTAR_OF_ELDERS, 0, WorkerTask.GOLD)
 
     def testCreateMoonWell(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
@@ -32,4 +22,4 @@ class TestBuildingStructures(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
         buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
 
-        buildStructureAndTestResources(self, buildOrder, StructureType.MOON_WELL, 0, WorkerTask.GOLD, buildOrder.getCurrentResources().getCurrentFoodMax())
+        buildStructureAndTestResources(self, buildOrder, StructureType.MOON_WELL, 0, WorkerTask.GOLD)
