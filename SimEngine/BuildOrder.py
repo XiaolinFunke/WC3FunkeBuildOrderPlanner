@@ -17,7 +17,6 @@ class MapStartingPosition:
 
 class BuildOrder:
     def __init__(self, race):
-        #TODO: Should these instead be dictionaries of timeline type to a list of timelines?
         self.mActiveTimelines = []
         self.mInactiveTimelines = []
         self.mName = "Default_Build_Name"
@@ -59,7 +58,6 @@ class BuildOrder:
             #This will simulate until the next worker is built
             self.getNextBuiltWorkerTimelineID()
 
-        #TODO: Put the simulateUntilResourcesAvailable call here as well, so we do all the simulating here and then only call doThing() when we actually are at the time to do it
         #TODO: Mark a bunch of methods with _method() so we know they are 'private'
         action.setStartTime(self.mCurrentSimTime)
         if action.getActionType() == ActionType.BuildUnit:
@@ -233,7 +231,6 @@ class BuildOrder:
     #Return True if successful, False otherwise
     #Will be built with the most idle worker currently doing the workerTask passed in
     def buildStructure(self, action):
-        #TODO: This could maybe be pulled out. Actions that don't require any resources would just not simulate forward
         self.simulateUntilResourcesAvailable(goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=0)
 
         if action.mCurrentWorkerTask == WorkerTask.IDLE:
