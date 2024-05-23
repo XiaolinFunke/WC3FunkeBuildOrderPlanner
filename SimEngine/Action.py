@@ -1,33 +1,54 @@
+from enum import Enum, auto
+from SimEngine.SimulationConstants import UNIT_STATS_MAP, STRUCTURE_STATS_MAP, ITEM_STATS_MAP, UPGRADE_STATS_MAP
+from SimEngine.TimelineTypeEnum import TimelineType
+
+class ActionType(Enum):
+    BuildUnit = auto()
+    BuildStructure = auto()
+    Shop = auto()
+    WorkerMovement = auto()
+    BuildUpgrade = auto()
+
 class Action:
-    def __init__(self, goldCost, lumberCost, travelTime, startTime, duration, requiredTimelineType, events, actionName, isExecutedASAP = False, interruptable = False):
+    def __init__(self, goldCost, lumberCost, travelTime, trigger, duration, requiredTimelineType, interruptable = False, actionNote = ""):
+        #TODO: Don't necessarily need to set gold and lumber, etc. on this, since we have unitType, sctructureType, etc. Could just grab those values when we pay for the action
         self.mGoldCost = goldCost
         self.mLumberCost = lumberCost
+        #What triggers us to do this action (amount of gold, lumber, etc.)
+        self.mTrigger = trigger
         #Start time starts at the beginning of the travel time 
         #In simtime
-        self.mStartTime = startTime
+        self.mStartTime = -1 #Set to -1 so we know this is unscheduled as of yet
         #Travel time takes place at the very beginning of the action (start time)
         self.mTravelTime = travelTime
         #Duration does not include travel time - So full duration is duration + travel time
         self.mDuration = duration
         self.mRequiredTimelineType = requiredTimelineType
-        self.mActionName = actionName
+        self.mActionNote = actionNote
         #Some actions, such as mining actions, are interruptable, and can be overwritten by other actions
         self.mInterruptable = interruptable
-        #If True, we will execute this action as soon as possible after the previous one
-        self.mIsExecutedASAP = isExecutedASAP
         #List of events
-        self.mAssociatedEvents = events
+        self.mAssociatedEvents = []
 
-    def payForAction(self, currentResources, isFree):
-        if not isFree:
-            currentResources.deductGold(self.mGoldCost)
-            currentResources.deductLumber(self.mLumberCost)
+    def setCostToFree(self):
+        self.mGoldCost = 0
+        self.mLumberCost = 0
+
+    def getTrigger(self):
+        return self.mTrigger
+
+    def payForAction(self, currentResources):
+        currentResources.deductGold(self.mGoldCost)
+        currentResources.deductLumber(self.mLumberCost)
 
     def setStartTime(self, startTime):
         self.mStartTime = startTime
 
     def getStartTime(self):
         return self.mStartTime
+
+    def setAssociatedEvents(self, events):
+        self.mAssociatedEvents = events
 
     #If there is only one event, get it. Otherwise return None
     def getAssociatedEvent(self):
@@ -43,37 +64,71 @@ class Action:
         return self.mRequiredTimelineType
 
     def __str__(self):
-        return "Action:\"" + self.mActionName + "(" + str(self.getStartTime()) + " - " + str(self.getStartTime() + self.mDuration) + ") - " + str(len(self.mAssociatedEvents)) + " events"
+        return "Action:\"" + self.__class__.__name__ + "(" + str(self.getStartTime()) + " - " + str(self.getStartTime() + self.mDuration) + ") - " + str(len(self.mAssociatedEvents)) + " events"
 
     def __repr__(self):
         return self.__str__()
 
 class BuildUnitAction(Action):
-    def __init__(self, goldCost, lumberCost, foodCost, startTime, duration, requiredTimelineType, events, actionName):
-        super().__init__(goldCost, lumberCost, 0, startTime, duration, requiredTimelineType, events, actionName, True, False)
-        self.mFoodCost = foodCost
+    def __init__(self, trigger, unitType, actionNote = ""):
+        unitStats = UNIT_STATS_MAP[unitType]
+        super().__init__(unitStats.mGoldCost, unitStats.mLumberCost, 0, trigger, unitStats.mTimeToBuildSec, unitStats.mRequiredTimelineType, False, actionNote)
+        self.mFoodCost = unitStats.mFoodCost
+        self.mUnitType = unitType
 
-    def payForAction(self, currentResources, isFree = False):
-        super().payForAction(currentResources, isFree)
+    def payForAction(self, currentResources):
+        super().payForAction(currentResources)
         currentResources.increaseFoodUsed(self.mFoodCost)
 
-class BuildStructureAction(Action):
-    def __init__(self, goldCost, lumberCost, foodProvided, travelTime, startTime, duration, requiredTimelineType, events, actionName, isInterruptable, consumesWorker):
-        super().__init__(goldCost, lumberCost, travelTime, startTime, duration, requiredTimelineType, events, actionName, False, isInterruptable)
-        #TODO: Are some of these Action members even really necessary to track? Like, won't food provided really just be handled by the associated event?
-        self.mFoodProvided = foodProvided
-        self.mConsumesWorker = consumesWorker
+    def getActionType(self):
+        return ActionType.BuildUnit
 
-    def payForAction(self, currentResources, isFree = False):
-        super().payForAction(currentResources, isFree)
+class BuildStructureAction(Action):
+    def __init__(self, travelTime, trigger, currentWorkerTask, structureType, isInterruptable = False, consumesWorker = False, actionNote = ""):
+        structureStats = STRUCTURE_STATS_MAP[structureType]
+        super().__init__(structureStats.mGoldCost, structureStats.mLumberCost, travelTime, trigger, structureStats.mTimeToBuildSec, TimelineType.WORKER, isInterruptable, actionNote)
+        #TODO: Are some of these Action members even really necessary to track? Like, won't food provided really just be handled by the associated event?
+        self.mFoodProvided = structureStats.mFoodProvided
+        self.mConsumesWorker = consumesWorker
+        self.mCurrentWorkerTask = currentWorkerTask
+        self.mStructureType = structureType
+
+    def payForAction(self, currentResources):
+        super().payForAction(currentResources)
         if self.mConsumesWorker:
             currentResources.decreaseFoodUsedByOne()
         #Don't increase max food by food provided, since that only happens when a building is complete, not paid for
 
+    def getActionType(self):
+        return ActionType.BuildStructure
+
 class ShopAction(Action):
-    def __init__(self, goldCost, startTime, requiredTimelineType, events, actionName):
-        super().__init__(goldCost, 0, 0, startTime, 0, requiredTimelineType, events, actionName, True, False)
+    def __init__(self, trigger, itemType, actionNote = ""):
+        itemStats = ITEM_STATS_MAP[itemType]
+        super().__init__(itemStats.mGoldCost, 0, 0, trigger, 0, itemStats.requiredTimelineType, True, False, actionNote)
+
+    def getActionType(self):
+        return ActionType.Shop
 
 class WorkerMovementAction(Action):
-    def __init__(self, travelTime, startTime, requiredTimelineType, events, actionName):
-        super().__init__(0, 0, travelTime, startTime, 0, requiredTimelineType, events, actionName, False, True)
+    def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, workerTimelineID = None, actionNote = ""):
+        super().__init__(0, 0, travelTime, trigger, 0, TimelineType.WORKER, True, actionNote)
+        self.mCurrentWorkerTask = currentWorkerTask
+        self.mDesiredWorkerTask = desiredWorkerTask
+        self.mWorkerTimelineID = workerTimelineID
+
+    def getActionType(self):
+        return ActionType.WorkerMovement
+
+class BuildUpgradeAction(Action):
+    def __init__(self, trigger, upgradeType, actionNote = ""):
+        upgradeStats = UPGRADE_STATS_MAP[upgradeType]
+        super().__init__(upgradeStats.mGoldCost, upgradeStats.mLumberCost, 0, trigger, upgradeStats.mDuration, upgradeStats.mRequiredTimelineType, True, False, actionNote)
+
+    def getActionType(self):
+        return ActionType.BuildUpgrade
+
+#Represents an action that the user does not actually take, but is placed on the timeline by the simulation engine automatically
+class AutomaticAction(Action):
+    def __init__(self, actionNote = ""):
+        super().__init__(0, 0, 0, None, 0, None, False, actionNote)

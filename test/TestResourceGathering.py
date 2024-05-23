@@ -1,8 +1,9 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER, UnitType, UNIT_STATS_MAP
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER, UnitType, UNIT_STATS_MAP, WorkerTask, Trigger, TriggerType
 from SimEngine.TimelineTypeEnum import TimelineType
+from SimEngine.Action import WorkerMovementAction, BuildUnitAction
 
 #Checks the gold amount at the specified time BUT also
 #checks the simtime right before that time, to ensure that the gold was achieved at exactly that time
@@ -32,11 +33,11 @@ class TestResourceGathering(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
         #All workers mine immediately
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[4].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[4].getTimelineID()))
 
         timeSec = 3600
         expectedGoldAmount = STARTING_GOLD + (timeSec * 10)
@@ -48,11 +49,11 @@ class TestResourceGathering(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
         #Workers mine in a staggered fashion. More realistic
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=1.2 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=1.5 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=1.8 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[4].getTimelineID(), travelTime=2 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1.2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1.5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1.8 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[4].getTimelineID()))
 
         #It takes 5 wisp-seconds to make 10 gold
         #1 second of no money (0 progress to 10 gold)
@@ -76,7 +77,7 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
 
         #3601 so it's a multiple of 5 + 1, meaning we should gain gold right at that time
         timeSec = 3601
@@ -88,8 +89,8 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
 
         #3601 so it's a multiple of 5 + 1, meaning we should gain gold right at that time
         timeSec = 3601
@@ -101,9 +102,9 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
 
         #3601 so it's a multiple of 5 + 1, meaning we should gain gold right at that time
         timeSec = 3601
@@ -115,10 +116,10 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
 
         #3601 so it's a multiple of 5 + 1, meaning we should gain gold right at that time
         timeSec = 3601
@@ -131,34 +132,34 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
 
         #4 wisp-seconds of mining has been done, which is not enough to gain 10 gold
         buildOrder.simulate(3 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[1].getTimelineID()))
 
         #Progress toward the 10 gold should have been reset, so we won't gain any here either
         buildOrder.simulate(4 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
         buildOrder.simulate(7 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[0].getTimelineID()))
 
         #Progress toward the 10 gold should have been reset, so we won't gain any here either
         buildOrder.simulate(8 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
         buildOrder.simulate(10 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[2].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[3].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[3].getTimelineID()))
 
         buildOrder.simulate(11 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
         #Don't remove worker here, so we should finally gain our first 10 gold at 17 seconds
 
         timeSec = 17
@@ -172,41 +173,41 @@ class TestResourceGathering(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
         #Add one worker and have it get 10 gold
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
         timeSec = 6
         expectedGoldAmount = STARTING_GOLD + 10
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
         #Add a second worker for 1s and then remove it. Ensure the next 10 gold is at the right time
         buildOrder.simulate(6 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
         buildOrder.simulate(8 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[1].getTimelineID()))
         timeSec = 10
         expectedGoldAmount += 10
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
         #Add 2 workers (3 total)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
         timeSec = 12
         expectedGoldAmount += 10
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
         #Remove 1 (2 left)
         buildOrder.simulate(13 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[2].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[2].getTimelineID()))
         timeSec = 14
         expectedGoldAmount += 10
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
         #Add 3 more back in in a staggered fashion (5 total)
         #2.2 wisp-seconds toward 10 gold
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=1.1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1.1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
         #0.6 more wisp-seconds (2.8 total)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=1.3 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1.3 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
         #1.2 more wisp-seconds (4.0 total)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[4].getTimelineID(), travelTime=1.6 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1.6 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[4].getTimelineID()))
         #1.0 more wisp-seconds needed. so 1.0 /5 = 0.2 seconds more
         timeSec = 15.8
         expectedGoldAmount += 10
@@ -217,12 +218,12 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
         #0.4 wisp-seconds
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=1.2 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1.2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
         #0.3 wisp-seconds (0.7 total)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=1.3 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1.3 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
         #4.3 wisp-seconds remaining until next 10 gold
         #Time-wise, should be 4.3 / 4 seconds = 1.075 seconds from now, at time 1.375s
         #If our simuilation steps are only 10th of a second, we can't accurately simulate that
@@ -250,20 +251,20 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[0].getTimelineID()))
         #7 seconds of mining has been done, which is not enough to gain 5 lumber
         buildOrder.simulate(7 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
 
         buildOrder.simulate(10 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[0].getTimelineID()))
 
         #5 seconds of mining has been done, which is not enough to gain 5 lumber
         buildOrder.simulate(16 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
 
         buildOrder.simulate(18 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[0].getTimelineID()))
 
         #First 5 lumber should be mined at 27 seconds
         timeSec = 27
@@ -276,10 +277,10 @@ class TestResourceGathering(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
         #Workers all start mining at the exact same time
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[2].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[3].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[3].getTimelineID()))
 
         #3601 because it's 1 + a multiple of 8, so we should get lumber at that time
         timeSec = 3601
@@ -292,12 +293,12 @@ class TestResourceGathering(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
         #Worker mining is staggered
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[0].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1*SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[0].getTimelineID()))
         buildOrder.simulate(1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[1].getTimelineID(), travelTime=1 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[2].getTimelineID(), travelTime=2 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(1*SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(2*SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[2].getTimelineID()))
         buildOrder.simulate(2 * SECONDS_TO_SIMTIME)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[3].getTimelineID(), travelTime=2 * SECONDS_TO_SIMTIME)
+        buildOrder.simulateAction(WorkerMovementAction(2*SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[3].getTimelineID()))
 
         #3601 because it's 1 + a multiple of 8, so we should get lumber at that time from the first worker
         timeSec = 3601
@@ -314,17 +315,16 @@ class TestResourceGathering(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
         #All workers mine immediately
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[4].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[4].getTimelineID()))
 
         buildOrder.simulate(1 * SECONDS_TO_SIMTIME)
-        buildOrder.buildUnit(UnitType.WISP)
+        buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.WISP))
 
-        timelineID = buildOrder.getNextBuiltWorkerTimelineID()
-        buildOrder.sendWorkerToMine(timelineID=timelineID, travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.GOLD))
 
         #New worker should come out at 15 seconds and start mining gold
         #So, we have 4 workers mining for 15 seconds (120 gold)
@@ -338,15 +338,15 @@ class TestResourceGathering(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
         #All workers mine immediately
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[4].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[4].getTimelineID()))
 
         buildOrder.simulate(5 * SECONDS_TO_SIMTIME)
         #After 5 seconds, move the lumber worker to gold
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[4].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.LUMBER, WorkerTask.GOLD, workerTimelines[4].getTimelineID()))
 
         #We have 4 workers mining for 5 seconds (40 gold)
         #And then 5 workers mining for the rest
@@ -361,15 +361,15 @@ class TestResourceGathering(unittest.TestCase):
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
 
         #All workers mine immediately
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[0].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[1].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[2].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToMine(timelineID=workerTimelines[3].getTimelineID(), travelTime=0)
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[4].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[3].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[4].getTimelineID()))
 
         buildOrder.simulate(15 * SECONDS_TO_SIMTIME)
         #After 15 seconds, move a gold worker to lumber
-        buildOrder.sendWorkerToLumber(timelineID=workerTimelines[3].getTimelineID(), travelTime=0)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, workerTimelines[3].getTimelineID()))
 
         #We have 4 workers mining for 15 seconds (120 gold)
         #And then 3 workers mining for the rest

@@ -4,7 +4,7 @@ from SimEngine.BuildOrder import BuildOrder
 from SimEngine.SimulationConstants import Race
 from SimEngine.Timeline import Timeline 
 from SimEngine.TimelineTypeEnum import TimelineType
-from SimEngine.Action import BuildUnitAction
+from SimEngine.Action import AutomaticAction
 
 class TestBuildOrder(unittest.TestCase):
     def testFindMatchingTimeline(self):
@@ -54,13 +54,17 @@ class TestBuildOrder(unittest.TestCase):
         buildOrder.mInactiveTimelines.append(inactiveAltarTimeline)
         self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), inactiveAltarTimeline)
 
-        action = BuildUnitAction(goldCost=0, lumberCost=0, foodCost=0, startTime=10, duration=0, requiredTimelineType=TimelineType.ALTAR_OF_ELDERS, events=[], actionName="Test action")
+        action = AutomaticAction()
+        action.setStartTime(0)
+        action.mRequiredTimelineType = TimelineType.ALTAR_OF_ELDERS
         self.assertEqual(buildOrder.addActionToMatchingTimeline(action), True)
 
         self.assertEqual(inactiveAltarTimeline.getNextAction(0), action)
 
         #Should fail if timeline type doesn't exist
-        badAction = BuildUnitAction(goldCost=0, lumberCost=0, foodCost=0, startTime=10, duration=0, requiredTimelineType=TimelineType.ANCIENT_OF_LORE, events=[], actionName="Test action")
+        badAction = AutomaticAction()
+        badAction.setStartTime(0)
+        badAction.mRequiredTimelineType = TimelineType.ANCIENT_OF_LORE
         self.assertEqual(buildOrder.addActionToMatchingTimeline(badAction), False)
 
     def testStartingResources(self):

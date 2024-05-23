@@ -105,19 +105,34 @@ class UnitType(Enum):
     FAERIE_DRAGON = auto()
     CHIMAERA = auto()
 
+class Trigger():
+    def __init__(self, triggerType, triggerAmount = None):
+        self.mTriggerType = triggerType
+        #Not used for ASAP and NEXT_WORKER_BUILT trigger types
+        self.mTriggerAmount = triggerAmount
+
+class TriggerType(Enum):
+    ASAP = auto()
+    GOLD_AMOUNT = auto()
+    LUMBER_AMOUNT = auto()
+    FOOD_AMOUNT = auto()
+    NEXT_WORKER_BUILT = auto()
+    FRACTION_OF_ONGOING_ACTION = auto()
+
 class UnitStats:
-    def __init__(self, goldCost, lumberCost, foodCost, timeToBuildSec, timelineTypeNeeded, name):
+    def __init__(self, goldCost, lumberCost, foodCost, timeToBuildSec, requiredTimelineType, isHero, name):
         self.mName = name
+        self.mIsHero = isHero
         self.mGoldCost = goldCost
         self.mLumberCost = lumberCost
         self.mFoodCost = foodCost
         self.mTimeToBuildSec = timeToBuildSec
-        self.mTimelineTypeNeeded = timelineTypeNeeded
+        self.mRequiredTimelineType = requiredTimelineType
 
 UNIT_STATS_MAP = {
     #Tree of life timeline represents all tiers of tree of life
-    UnitType.WISP: UnitStats(goldCost = 60, lumberCost = 0, foodCost = 1, timeToBuildSec = 14, timelineTypeNeeded = TimelineType.TREE_OF_LIFE, name = "Wisp"), 
-    UnitType.DEMON_HUNTER: UnitStats(goldCost = 400, lumberCost = 100, foodCost = 5, timeToBuildSec = 55, timelineTypeNeeded = TimelineType.ALTAR_OF_ELDERS, name = "Demon Hunter")
+    UnitType.WISP: UnitStats(goldCost = 60, lumberCost = 0, foodCost = 1, timeToBuildSec = 14, requiredTimelineType = TimelineType.TREE_OF_LIFE, isHero = False, name = "Wisp"), 
+    UnitType.DEMON_HUNTER: UnitStats(goldCost = 400, lumberCost = 100, foodCost = 5, timeToBuildSec = 55, requiredTimelineType = TimelineType.ALTAR_OF_ELDERS, isHero = True, name = "Demon Hunter")
 }
 
 class StructureStats:
@@ -132,4 +147,12 @@ class StructureStats:
 STRUCTURE_STATS_MAP = {
     StructureType.ALTAR_OF_ELDERS: StructureStats(name = "Altar of Elders", goldCost = 180, lumberCost = 50, foodProvided = 0, timeToBuildSec = 60),
     StructureType.MOON_WELL: StructureStats(name = "Moon Well", goldCost = 180, lumberCost = 40, foodProvided = 10, timeToBuildSec = 50)
+}
+
+ITEM_STATS_MAP = {
+
+}
+
+UPGRADE_STATS_MAP = {
+
 }

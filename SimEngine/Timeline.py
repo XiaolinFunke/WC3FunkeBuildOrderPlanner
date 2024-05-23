@@ -1,7 +1,7 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP, WorkerTask, StructureType, STRUCTURE_STATS_MAP
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP, WorkerTask, StructureType, STRUCTURE_STATS_MAP, Trigger, TriggerType
 from SimEngine.EventHandler import Event
-from SimEngine.Action import BuildUnitAction, WorkerMovementAction, BuildStructureAction
+from SimEngine.Action import BuildUnitAction, WorkerMovementAction, AutomaticAction
 from SimEngine.TimelineTypeEnum import TimelineType
 
 # Represents a single timeline on the planner. For example, the production queue of a barracks, or blacksmith, etc.
@@ -69,10 +69,11 @@ class Timeline:
     #Any actions with start times after this one will be removed from the Timeline as well
     #If currentResources is not passed in, Action will be assumed to not affect current resources
     #Returns False and won't add if overlaps with the Action before it in the Timeline
-    def addAction(self, newAction, currentResources = None, isFree = False):
+    def addAction(self, newAction, currentResources = None):
         i = self.findProperSpotForAction(newAction.getStartTime()) 
         prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 else 0
         if newAction.getStartTime() < prevActionEndTime:
+            print("Action failed to add to timeline. Its start time is", newAction.getStartTime())
             return False
         else:
             self.mActions.insert(i, newAction)
@@ -80,7 +81,7 @@ class Timeline:
             #and we want to ensure the list still has no overlapping
             self.mActions = self.mActions[:i + 1]
             if currentResources:
-                newAction.payForAction(currentResources, isFree)
+                newAction.payForAction(currentResources)
             return True
 
     #Return the simtime when the given Action could be scheduled on this timeline
@@ -104,19 +105,16 @@ class Timeline:
             if i == len(self.mActions) or actionStartTime < self.mActions[i].mStartTime:
                 return i
 
-    def buildUnit(self, unitType, simTime, inactiveTimelines, getNextTimelineIDFunc, currentResources, isFree = False):
+    def buildUnit(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources):
         success = False
 
-        unitStats = UNIT_STATS_MAP[unitType]
         events = []
-        if unitType == UnitType.WISP:
-            events = [ Event(lambda: inactiveTimelines.append(WispTimeline(getNextTimelineIDFunc(), self.mEventHandler)), simTime + (unitStats.mTimeToBuildSec * SECONDS_TO_SIMTIME), 
+        if action.mUnitType == UnitType.WISP:
+            events = [ Event(lambda: inactiveTimelines.append(WispTimeline(getNextTimelineIDFunc(), self.mEventHandler)), action.getStartTime() + (action.mDuration * SECONDS_TO_SIMTIME), 
                                             0, self.mEventHandler.getNewEventID(), "Wisp produced") ]
             self.mEventHandler.registerEvents(events)
 
-        buildAction = BuildUnitAction(goldCost = unitStats.mGoldCost, lumberCost = unitStats.mLumberCost, foodCost = unitStats.mFoodCost, 
-                                      startTime = simTime, duration=unitStats.mTimeToBuildSec * SECONDS_TO_SIMTIME, requiredTimelineType=unitStats.mTimelineTypeNeeded, events=events, actionName="Build " + unitStats.mName)
-        success = self.addAction(buildAction, currentResources, isFree)
+        success = self.addAction(action, currentResources)
 
         return success
 
@@ -153,30 +151,30 @@ class WorkerTimeline(Timeline):
     def getCurrentTask(self):
         return self.mCurrentTask
 
-    def sendWorkerToMine(self, goldMineTimeline, currSimTime, travelTime):
+    def sendWorkerToMine(self, action, goldMineTimeline, currSimTime):
         self.changeTask(goldMineTimeline, currSimTime, WorkerTask.GOLD)
         #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
         #For example, a unit could be building a building, which w, timelineIDould be an uninteruptable task (for elf and orc at least)
-        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + travelTime), eventTime=currSimTime + travelTime, 
+        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + action.mTravelTime), eventTime=currSimTime + action.mTravelTime, 
                                recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
-        goToMineAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [enterMineEvent], actionName="Go to mine")
-        if not self.addAction(goToMineAction) :
+        action.setAssociatedEvents([enterMineEvent])
+        if not self.addAction(action):
             print("Failed to add go to mine action to timeline")
             return False
 
         self.mEventHandler.registerEvent(enterMineEvent)
         return True
 
-    def sendWorkerToLumber(self, goldMineTimeline, currSimTime, currentResources, travelTime):
+    def sendWorkerToLumber(self, action, goldMineTimeline, currSimTime, currentResources):
         def addLumberToCount(amount):
             currentResources.mCurrentLumber += amount
 
         self.changeTask(goldMineTimeline, currSimTime, WorkerTask.LUMBER)
-        gainLumberEvent = Event(eventFunction = lambda: addLumberToCount(self.mLumberGainPerCycle), eventTime=currSimTime + travelTime + (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), 
+        gainLumberEvent = Event(eventFunction = lambda: addLumberToCount(self.mLumberGainPerCycle), eventTime=currSimTime + action.mTravelTime + (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), 
                                 recurPeriodSimtime = (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), eventName = "Gain 5 lumber", eventID = self.mEventHandler.getNewEventID())
-        goToLumberAction = WorkerMovementAction(travelTime = travelTime, startTime = currSimTime, requiredTimelineType=TimelineType.WORKER, events = [gainLumberEvent], actionName="Go to lumber")
+        action.setAssociatedEvents([gainLumberEvent])
 
-        if not self.addAction(goToLumberAction):
+        if not self.addAction(action):
             print("Failed to add go to lumber action to timeline")
             return False
 
@@ -184,27 +182,21 @@ class WorkerTimeline(Timeline):
         return True
 
     #Return True if successful, False otherwise
-    def buildStructure(self, structureType, simTime, travelTime, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
-        structureStats = STRUCTURE_STATS_MAP[structureType]
-        buildTime = structureStats.mTimeToBuildSec * SECONDS_TO_SIMTIME
+    def buildStructure(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
+        structureStats = STRUCTURE_STATS_MAP[action.mStructureType]
 
         #TODO: Could refactor this to combine more cases
-        if structureType == StructureType.ALTAR_OF_ELDERS:
-            events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.ALTAR_OF_ELDERS, getNextTimelineIDFunc(), self.mEventHandler)), simTime + buildTime, 
+        if action.mStructureType == StructureType.ALTAR_OF_ELDERS:
+            events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.ALTAR_OF_ELDERS, getNextTimelineIDFunc(), self.mEventHandler)), action.mStartTime + action.mDuration * SECONDS_TO_SIMTIME, 
                                             0, self.mEventHandler.getNewEventID(), structureStats.mName + " finished") ]
             self.mEventHandler.registerEvents(events)
-        elif structureType == StructureType.MOON_WELL:
-            events = [ Event(lambda: currentResources.increaseMaxFood(10), simTime + buildTime, 
+        elif action.mStructureType == StructureType.MOON_WELL:
+            events = [ Event(lambda: currentResources.increaseMaxFood(10), action.mStartTime + action.mDuration * SECONDS_TO_SIMTIME, 
                                             0, self.mEventHandler.getNewEventID(), structureStats.mName + " finished") ]
             self.mEventHandler.registerEvents(events)
 
-        #TODO: A lot of the action stuff doesn't seem necessary anymore, like required timeline type... what is the role of Actions now? Doestn' seem like it's something we create beforehand that then
-        #is used to inform our timelines and events.. unless it should be? idk
-        buildAction = BuildStructureAction(goldCost = structureStats.mGoldCost, lumberCost = structureStats.mLumberCost, 
-                                                    foodProvided = structureStats.mFoodProvided, travelTime=travelTime, startTime = simTime, 
-                                        duration=buildTime, requiredTimelineType=TimelineType.WORKER, events=events, actionName="Build " + structureStats.mName, isInterruptable=False, consumesWorker=False)
-        self.addAction(buildAction, currentResources)
-        self.changeTask(goldMineTimeline, simTime, WorkerTask.CONSTRUCTING)
+        self.addAction(action, currentResources)
+        self.changeTask(goldMineTimeline, action.mStartTime, WorkerTask.CONSTRUCTING)
 
         return True
 
@@ -248,7 +240,10 @@ class GoldMineTimeline(Timeline):
             else:
                 gainGoldEvent = self.modifyGainGoldEvent(self.getNumWorkersInMine(), self.getNumWorkersInMine() + 1, simTime)
 
-            newWorkerInMineAction = WorkerMovementAction(travelTime = 0, startTime = simTime, requiredTimelineType = TimelineType.GOLD_MINE, events = [gainGoldEvent], actionName="New Worker in Mine")
+            newWorkerInMineAction = AutomaticAction()
+            newWorkerInMineAction.setStartTime(simTime)
+            newWorkerInMineAction.setAssociatedEvents([gainGoldEvent])
+
             if not self.addAction(newAction = newWorkerInMineAction):
                 print("Failed to add new worker action to mine timeline")
                 return False
@@ -270,7 +265,9 @@ class GoldMineTimeline(Timeline):
             #Don't bother adding a None event if the mine now has 0 workers
             if gainGoldEvent:
                 events = [gainGoldEvent]
-            removeWorkerFromMineAction = WorkerMovementAction(travelTime = 0, startTime = simTime, requiredTimelineType = TimelineType.GOLD_MINE, events = events, actionName="Remove Worker from Mine")
+            removeWorkerFromMineAction = AutomaticAction()
+            removeWorkerFromMineAction.setStartTime(simTime)
+            removeWorkerFromMineAction.setAssociatedEvents(events)
             if not self.addAction(newAction = removeWorkerFromMineAction):
                 print("Failed to add Remove Worker action from mine timeline")
                 return False

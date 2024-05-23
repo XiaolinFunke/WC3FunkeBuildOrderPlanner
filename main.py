@@ -3,7 +3,7 @@ from SimEngine.SimulationEngine import SimulationEngine
 
 def main():
     simEngine = SimulationEngine()
-    simEngine.newBuildOrder(Race.NIGHT_ELF)
+    simEngine.newBuildOrder([Race.NIGHT_ELF])
 
     for i in range(1, 121):
         simEngine.simulate(i * SECONDS_TO_SIMTIME)
