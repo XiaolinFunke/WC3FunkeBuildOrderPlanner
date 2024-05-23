@@ -12,24 +12,24 @@ class TestBuildOrder(unittest.TestCase):
 
         inactiveAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 0, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveAltarTimeline)
-        self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), inactiveAltarTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), inactiveAltarTimeline)
 
         activeAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 1, buildOrder.mEventHandler)
         buildOrder.mActiveTimelines.append(activeAltarTimeline)
         #Should find active one first
-        self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), activeAltarTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), activeAltarTimeline)
 
         inactiveLoreTimeline = Timeline(TimelineType.ANCIENT_OF_LORE, 2, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveLoreTimeline)
-        self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ANCIENT_OF_LORE), inactiveLoreTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ANCIENT_OF_LORE), inactiveLoreTimeline)
 
         #Can get specific timeline if multiple of same type by using ID
-        self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS, 0), inactiveAltarTimeline)
-        self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS, 1), activeAltarTimeline)
-        self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ANCIENT_OF_LORE, 2), inactiveLoreTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS, 0), inactiveAltarTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS, 1), activeAltarTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ANCIENT_OF_LORE, 2), inactiveLoreTimeline)
 
         #If ID and TimelineType don't match, should return none
-        self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ANCIENT_OF_LORE, 0), None)
+        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ANCIENT_OF_LORE, 0), None)
 
     def testFindAllMatchingTimelines(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
@@ -46,26 +46,6 @@ class TestBuildOrder(unittest.TestCase):
         buildOrder.mInactiveTimelines.append(inactiveLoreTimeline)
         self.assertEqual(len(buildOrder.findAllMatchingTimelines(TimelineType.ANCIENT_OF_LORE)), 1)
         self.assertEqual(len(buildOrder.findAllMatchingTimelines(TimelineType.ALTAR_OF_ELDERS)), 2)
-
-    def testAddActionToMatchingTimeline(self):
-        buildOrder = BuildOrder(Race.NIGHT_ELF)
-
-        inactiveAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 0, buildOrder.mEventHandler)
-        buildOrder.mInactiveTimelines.append(inactiveAltarTimeline)
-        self.assertEqual(buildOrder.findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), inactiveAltarTimeline)
-
-        action = AutomaticAction()
-        action.setStartTime(0)
-        action.mRequiredTimelineType = TimelineType.ALTAR_OF_ELDERS
-        self.assertEqual(buildOrder.addActionToMatchingTimeline(action), True)
-
-        self.assertEqual(inactiveAltarTimeline.getNextAction(0), action)
-
-        #Should fail if timeline type doesn't exist
-        badAction = AutomaticAction()
-        badAction.setStartTime(0)
-        badAction.mRequiredTimelineType = TimelineType.ANCIENT_OF_LORE
-        self.assertEqual(buildOrder.addActionToMatchingTimeline(badAction), False)
 
     def testStartingResources(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)

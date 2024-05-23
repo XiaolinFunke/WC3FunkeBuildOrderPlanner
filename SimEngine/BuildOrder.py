@@ -46,24 +46,23 @@ class BuildOrder:
 
     def simulateAction(self, action):
         if action.getTrigger().mTriggerType == TriggerType.GOLD_AMOUNT:
-            self.simulateUntilResourcesAvailable( action.getTrigger().mTriggerAmount, 0, 0 )
+            self._simulateUntilResourcesAvailable( action.getTrigger().mTriggerAmount, 0, 0 )
         elif action.getTrigger().mTriggerType == TriggerType.LUMBER_AMOUNT:
-            self.simulateUntilResourcesAvailable( 0, action.getTrigger().mTriggerAmount, 0 )
+            self._simulateUntilResourcesAvailable( 0, action.getTrigger().mTriggerAmount, 0 )
         elif action.getTrigger().mTriggerType == TriggerType.FOOD_AMOUNT:
-            self.simulateUntilResourcesAvailable( 0, 0, action.getTrigger().mTriggerAmount )
+            self._simulateUntilResourcesAvailable( 0, 0, action.getTrigger().mTriggerAmount )
         elif action.getTrigger().mTriggerType == TriggerType.FRACTION_OF_ONGOING_ACTION:
             #TODO:
             pass
         elif action.getTrigger().mTriggerType == TriggerType.NEXT_WORKER_BUILT:
             #This will simulate until the next worker is built
-            self.getNextBuiltWorkerTimelineID()
+            self._getNextBuiltWorkerTimelineID()
 
-        #TODO: Mark a bunch of methods with _method() so we know they are 'private'
         action.setStartTime(self.mCurrentSimTime)
         if action.getActionType() == ActionType.BuildUnit:
-            return self.buildUnit(action)
+            return self._buildUnit(action)
         elif action.getActionType() == ActionType.BuildStructure:
-            return self.buildStructure(action)
+            return self._buildStructure(action)
         elif action.getActionType() == ActionType.BuildUpgrade:
             #TODO:
             pass
@@ -71,7 +70,7 @@ class BuildOrder:
             #TODO:
             pass
         elif action.getActionType() == ActionType.WorkerMovement:
-            return self.moveWorker(action)
+            return self._moveWorker(action)
 
         #TODO: Now, make BuildOrder tests for using simulateOrderedActionList
 
@@ -100,25 +99,25 @@ class BuildOrder:
     def addLumberToCount(self, amount):
         self.mCurrentResources.mCurrentLumber += amount
 
-    def getWorkerTimelineForAction(self, action):
+    def _getWorkerTimelineForAction(self, action):
         if action.mWorkerTimelineID:
-            workerTimeline = self.findMatchingTimeline(TimelineType.WORKER, action.mWorkerTimelineID)
+            workerTimeline = self._findMatchingTimeline(TimelineType.WORKER, action.mWorkerTimelineID)
         elif action.mCurrentWorkerTask == WorkerTask.IDLE:
-            workerTimeline = self.getIdleWorker()
+            workerTimeline = self._getIdleWorker()
         elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
-            workerTimeline = self.getMostIdleWorkerOnResource(action.mCurrentWorkerTask == WorkerTask.GOLD)
+            workerTimeline = self._getMostIdleWorkerOnResource(action.mCurrentWorkerTask == WorkerTask.GOLD)
         elif action.mCurrentWorkerTask == WorkerTask.IN_PRODUCTION:
-            workerTimeline = self.findMatchingTimeline(TimelineType.WORKER, self.getLastBuiltWorkerTimelineID())
+            workerTimeline = self._findMatchingTimeline(TimelineType.WORKER, self._getLastBuiltWorkerTimelineID())
 
         return workerTimeline
 
-    def moveWorker(self, action):
-        workerTimeline = self.getWorkerTimelineForAction(action)
+    def _moveWorker(self, action):
+        workerTimeline = self._getWorkerTimelineForAction(action)
 
         if not workerTimeline:
             print("Could not get valid worker for moveWorker action!")
 
-        goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+        goldMineTimeline = self._findMatchingTimeline(TimelineType.GOLD_MINE)
         if action.mDesiredWorkerTask == WorkerTask.LUMBER:
             #TODO: A little bit odd that we need to pass the goldmine here (it's because we might be moving a worker OFF of gold. But if we store it on the timeline, then we need to pass the goldmine to buildUnit just in case the unit is a wisp)
             workerTimeline.sendWorkerToLumber(action, goldMineTimeline, self.mCurrentSimTime, self.mCurrentResources)
@@ -128,27 +127,9 @@ class BuildOrder:
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
         self.simulate(self.mCurrentSimTime)
 
-    #Return True if successfully added, False otherwise
-    #If timeline ID is not passed in, ignore it
-    def addActionToMatchingTimeline(self, action, timelineID = -1):
-        for timeline in self.mActiveTimelines:
-            if action.getRequiredTimelineType() == timeline.getTimelineType() and (timelineID == -1 or timelineID == timeline.getTimelineID()) and timeline.addAction(action, self.mCurrentResources):
-                return True
-
-        #If none of the active timelines work, try inactive
-        i = 0
-        while i < len(self.mInactiveTimelines):
-            if action.getRequiredTimelineType() == self.mInactiveTimelines[i].getTimelineType() and (timelineID == -1 or timelineID == self.mInactiveTimelines[i].getTimelineID()) and self.mInactiveTimelines[i].addAction(action, self.mCurrentResources):
-                #Now that this timeline has an item on it, it should be considered an 'active' timeline
-                self.mActiveTimelines.append(self.mInactiveTimelines.pop(i))
-                return True
-            else:
-                i += 1
-        return False
-
     #Will return the first matching timeline (active first)
     #If timeline ID is not passed in, ignore it
-    def findMatchingTimeline(self, timelineType, timelineID = -1):
+    def _findMatchingTimeline(self, timelineType, timelineID = -1):
         for timeline in self.mActiveTimelines:
             if timelineType == timeline.getTimelineType() and (timelineID == -1 or timeline.getTimelineID() == timelineID):
                 return timeline
@@ -174,20 +155,20 @@ class BuildOrder:
         return matchingTimelines
 
     #Return True if successful, False otherwise
-    def buildUnit(self, action):
+    def _buildUnit(self, action):
         if UNIT_STATS_MAP[action.mUnitType].mIsHero:
             return self._buildHero(action)
         else:
             return self._doBuildUnit(action)
 
-    def simulateUntilResourcesAvailable(self, goldAmount, lumberAmount, foodAmount):
-        #TODO: Have a check to make sure this will eventually be true so we don't simiulate into infinity
-        while not self.areRequiredResourcesAvailable(goldAmount, lumberAmount, foodAmount):
+    def _simulateUntilResourcesAvailable(self, goldAmount, lumberAmount, foodAmount):
+        #TODO: Have a check to make sure this will eventually be true so we don't simulate into infinity
+        while not self._areRequiredResourcesAvailable(goldAmount, lumberAmount, foodAmount):
             self.simulate(self.mCurrentSimTime + 1)
 
     #Return True if successful, False otherwise
     def _doBuildUnit(self, action):
-        self.simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=action.mFoodCost )
+        self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=action.mFoodCost )
 
         #TODO: Need to account for if a new Timeline is scheduled to be added in the future that can handle this request
         matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
@@ -230,17 +211,17 @@ class BuildOrder:
 
     #Return True if successful, False otherwise
     #Will be built with the most idle worker currently doing the workerTask passed in
-    def buildStructure(self, action):
-        self.simulateUntilResourcesAvailable(goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=0)
+    def _buildStructure(self, action):
+        self._simulateUntilResourcesAvailable(goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=0)
 
         if action.mCurrentWorkerTask == WorkerTask.IDLE:
-            workerTimeline = self.getIdleWorker()
+            workerTimeline = self._getIdleWorker()
         elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
-            workerTimeline = self.getMostIdleWorkerOnResource(action.mCurrentWorkerTask == WorkerTask.GOLD)
+            workerTimeline = self._getMostIdleWorkerOnResource(action.mCurrentWorkerTask == WorkerTask.GOLD)
         elif action.mCurrentWorkerTask == WorkerTask.IN_PRODUCTION:
-            workerTimeline = self.findMatchingTimeline(TimelineType.WORKER, self.getNextBuiltWorkerTimelineID())
+            workerTimeline = self._findMatchingTimeline(TimelineType.WORKER, self._getNextBuiltWorkerTimelineID())
         
-        goldMineTimeline = self.findMatchingTimeline(TimelineType.GOLD_MINE)
+        goldMineTimeline = self._findMatchingTimeline(TimelineType.GOLD_MINE)
         if not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline):
             return False
 
@@ -248,7 +229,7 @@ class BuildOrder:
         self.simulate(self.mCurrentSimTime)
         return True
 
-    def getIdleWorker(self):
+    def _getIdleWorker(self):
         workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
 
         idleWorkerTimelines = []
@@ -263,7 +244,7 @@ class BuildOrder:
     
     #Get the timeline of the 'most idle' worker on a given resource
     #@param onGold - True if the worker should be taken from gold. If false, from lumber
-    def getMostIdleWorkerOnResource(self, onGold):
+    def _getMostIdleWorkerOnResource(self, onGold):
         workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
 
         correctTaskWorkerTimelines = []
@@ -281,7 +262,7 @@ class BuildOrder:
         return correctTaskWorkerTimelines[0]
 
     #Return the timeline ID of the most recently built worker
-    def getLastBuiltWorkerTimelineID(self):
+    def _getLastBuiltWorkerTimelineID(self):
         #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
         highestTimelineID = float('-inf')
@@ -292,7 +273,7 @@ class BuildOrder:
         return highestTimelineID
 
     #Simulates until the next worker will be built and returns its timeline ID
-    def getNextBuiltWorkerTimelineID(self): 
+    def _getNextBuiltWorkerTimelineID(self): 
         #TODO: This function could be optimized if it's a performance issue
         initialNumWorkerTimelines = len(self.findAllMatchingTimelines(TimelineType.WORKER))
 
@@ -316,7 +297,7 @@ class BuildOrder:
         return highestTimelineID
 
     #Return True if we have the gold, lumber, and food required to build a unit/building
-    def areRequiredResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):
+    def _areRequiredResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):
         if self.mCurrentResources.getCurrentGold() < goldRequired:
             return False
         elif self.mCurrentResources.getCurrentLumber() < lumberRequired:
