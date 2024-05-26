@@ -38,6 +38,3 @@ class TestBuildingUnits(unittest.TestCase):
 
         #Should be no cost, since it's the first hero
         buildHeroAndTestResources(self, buildOrder, UnitType.DEMON_HUNTER)
-
-
-

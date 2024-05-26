@@ -1,10 +1,10 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import Race
+from SimEngine.SimulationConstants import Race, Trigger, TriggerType, UnitType, StructureType, WorkerTask
 from SimEngine.Timeline import Timeline 
 from SimEngine.TimelineTypeEnum import TimelineType
-from SimEngine.Action import AutomaticAction
+from SimEngine.Action import BuildUnitAction, BuildStructureAction
 
 class TestBuildOrder(unittest.TestCase):
     def testFindMatchingTimeline(self):
@@ -53,3 +53,18 @@ class TestBuildOrder(unittest.TestCase):
         currentResources = buildOrder.getCurrentResources()
         self.assertEqual(currentResources.mCurrentGold, 500)
         self.assertEqual(currentResources.mCurrentLumber, 150)
+
+    #Test that we can execute actions from an ordered list
+    def testSimulateOrderedActionList(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+
+        orderedActionList = []
+
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.WISP))
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, StructureType.ALTAR_OF_ELDERS))
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, StructureType.MOON_WELL))
+
+        #Should be no cost, since it's the first hero
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.DEMON_HUNTER))
+
+        self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), True) 

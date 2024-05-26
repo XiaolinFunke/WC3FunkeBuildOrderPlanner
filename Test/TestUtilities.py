@@ -6,9 +6,15 @@ from SimEngine.Action import BuildStructureAction, BuildUnitAction
 
 #Builds a unit and tests that the resources are spent properly
 def buildUnitAndTestResources(testClass, buildOrder, unitType):
+    action = BuildUnitAction(Trigger(TriggerType.ASAP), unitType)
+    #Mark as not executing, so we simulate right up until when we would do that action but don't actually do it
+    #This way, we nkow what the resources are just before the action
+    action.mDontExecute = True
+    #Should return False because we aren't actually executing the action
+    testClass.assertEqual(False, buildOrder.simulateAction(action))
     prevResources = copy.deepcopy(buildOrder.getCurrentResources()) 
 
-    action = BuildUnitAction(Trigger(TriggerType.ASAP), unitType)
+    action.mDontExecute = False
     testClass.assertEqual(True, buildOrder.simulateAction(action))
 
     testClass.assertEqual(buildOrder.getCurrentResources().getCurrentGold(), prevResources.getCurrentGold() - UNIT_STATS_MAP[unitType].mGoldCost)
@@ -18,9 +24,15 @@ def buildUnitAndTestResources(testClass, buildOrder, unitType):
 
 #Builds a hero and tests that the resources are spent properly
 def buildHeroAndTestResources(testClass, buildOrder, unitType):
+    action = BuildUnitAction(Trigger(TriggerType.ASAP), unitType)
+    #Mark as not executing, so we simulate right up until when we would do that action but don't actually do it
+    #This way, we nkow what the resources are just before the action
+    action.mDontExecute = True
+    testClass.assertEqual(False, buildOrder.simulateAction(action))
     prevResources = copy.deepcopy(buildOrder.getCurrentResources()) 
 
-    action = BuildUnitAction(Trigger(TriggerType.ASAP), unitType)
+    #Now actually execute the action
+    action.mDontExecute = False
     testClass.assertEqual(True, buildOrder.simulateAction(action))
 
     #First hero is free, for others we should check that resources are properly spent
@@ -35,9 +47,15 @@ def buildHeroAndTestResources(testClass, buildOrder, unitType):
 
 #Builds a structure and tests that the resources are spent properly
 def buildStructureAndTestResources(testClass, buildOrder, structureType, travelTime, workerTask):
+    #Mark as not executing, so we simulate right up until when we would do that action but don't actually do it
+    #This way, we nkow what the resources are just before the action
+    action = BuildStructureAction(travelTime, Trigger(TriggerType.ASAP), workerTask, structureType)
+    action.mDontExecute = True
+
+    testClass.assertEqual(False, buildOrder.simulateAction(action))
     prevResources = copy.deepcopy(buildOrder.getCurrentResources()) 
 
-    action = BuildStructureAction(travelTime, Trigger(TriggerType.ASAP), workerTask, structureType)
+    action.mDontExecute = False
     testClass.assertEqual(True, buildOrder.simulateAction(action))
 
     testClass.assertEqual(buildOrder.getCurrentResources().getCurrentGold(), prevResources.getCurrentGold() - STRUCTURE_STATS_MAP[structureType].mGoldCost)
@@ -45,5 +63,4 @@ def buildStructureAndTestResources(testClass, buildOrder, structureType, travelT
     testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFood(), prevResources.getCurrentFood())
 
     testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFoodMax(), prevResources.getCurrentFoodMax())
-    buildOrder.simulate(buildOrder.getCurrSimTime() + STRUCTURE_STATS_MAP[structureType].mTimeToBuildSec * SECONDS_TO_SIMTIME)
-    testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFoodMax(), prevResources.getCurrentFoodMax() + STRUCTURE_STATS_MAP[structureType].mFoodProvided)
+    #Can't test that it provides the correct amount of food here, since it won't provide taht until it's done and we don't want to simulate forward in this function in case we need to do other stuff first

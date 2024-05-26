@@ -110,7 +110,7 @@ class Timeline:
 
         events = []
         if action.mUnitType == UnitType.WISP:
-            events = [ Event(lambda: inactiveTimelines.append(WispTimeline(getNextTimelineIDFunc(), self.mEventHandler)), action.getStartTime() + (action.mDuration * SECONDS_TO_SIMTIME), 
+            events = [ Event(lambda: inactiveTimelines.append(WispTimeline(getNextTimelineIDFunc(), self.mEventHandler)), action.getStartTime() + (action.mDuration), 
                                             0, self.mEventHandler.getNewEventID(), "Wisp produced") ]
             self.mEventHandler.registerEvents(events)
 
@@ -185,16 +185,18 @@ class WorkerTimeline(Timeline):
     def buildStructure(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
         structureStats = STRUCTURE_STATS_MAP[action.mStructureType]
 
+        events = []
         #TODO: Could refactor this to combine more cases
         if action.mStructureType == StructureType.ALTAR_OF_ELDERS:
-            events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.ALTAR_OF_ELDERS, getNextTimelineIDFunc(), self.mEventHandler)), action.mStartTime + action.mDuration * SECONDS_TO_SIMTIME, 
+            events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.ALTAR_OF_ELDERS, getNextTimelineIDFunc(), self.mEventHandler)), action.mStartTime + action.mDuration, 
                                             0, self.mEventHandler.getNewEventID(), structureStats.mName + " finished") ]
             self.mEventHandler.registerEvents(events)
         elif action.mStructureType == StructureType.MOON_WELL:
-            events = [ Event(lambda: currentResources.increaseMaxFood(10), action.mStartTime + action.mDuration * SECONDS_TO_SIMTIME, 
+            events = [ Event(lambda: currentResources.increaseMaxFood(10), action.mStartTime + action.mDuration, 
                                             0, self.mEventHandler.getNewEventID(), structureStats.mName + " finished") ]
             self.mEventHandler.registerEvents(events)
 
+        action.setAssociatedEvents(events)
         self.addAction(action, currentResources)
         self.changeTask(goldMineTimeline, action.mStartTime, WorkerTask.CONSTRUCTING)
 

@@ -16,3 +16,5 @@ class TestBuildingStructures(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
         buildStructureAndTestResources(self, buildOrder, StructureType.MOON_WELL, 0, WorkerTask.IDLE)
+        buildOrder.simulate(buildOrder.getCurrentSimTime() + (STRUCTURE_STATS_MAP[StructureType.MOON_WELL].mTimeToBuildSec * SECONDS_TO_SIMTIME))
+        self.assertEqual(buildOrder.getCurrentResources().getCurrentFoodMax(), STARTING_FOOD_MAX_MAP[Race.NIGHT_ELF] + STRUCTURE_STATS_MAP[StructureType.MOON_WELL].mFoodProvided)
