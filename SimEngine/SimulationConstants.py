@@ -109,7 +109,15 @@ class Trigger():
     def __init__(self, triggerType, triggerAmount = None):
         self.mTriggerType = triggerType
         #Not used for ASAP and NEXT_WORKER_BUILT trigger types
-        self.mTriggerAmount = triggerAmount
+        self.mValue = triggerAmount
+
+    #Get as dict for JSON encoding
+    def getAsDictForSerialization(self):
+        dict = {
+            'mTriggerType' : self.mTriggerType.name,
+            'mValue' : self.mValue
+        }
+        return dict
 
 class TriggerType(Enum):
     ASAP = auto()
@@ -117,7 +125,7 @@ class TriggerType(Enum):
     LUMBER_AMOUNT = auto()
     FOOD_AMOUNT = auto()
     NEXT_WORKER_BUILT = auto()
-    FRACTION_OF_ONGOING_ACTION = auto()
+    PERCENT_OF_ONGOING_ACTION = auto()
 
 class UnitStats:
     def __init__(self, goldCost, lumberCost, foodCost, timeToBuildSec, requiredTimelineType, isHero, name):
@@ -132,7 +140,8 @@ class UnitStats:
 UNIT_STATS_MAP = {
     #Tree of life timeline represents all tiers of tree of life
     UnitType.WISP: UnitStats(goldCost = 60, lumberCost = 0, foodCost = 1, timeToBuildSec = 14, requiredTimelineType = TimelineType.TREE_OF_LIFE, isHero = False, name = "Wisp"), 
-    UnitType.DEMON_HUNTER: UnitStats(goldCost = 400, lumberCost = 100, foodCost = 5, timeToBuildSec = 55, requiredTimelineType = TimelineType.ALTAR_OF_ELDERS, isHero = True, name = "Demon Hunter")
+    UnitType.DEMON_HUNTER: UnitStats(goldCost = 400, lumberCost = 100, foodCost = 5, timeToBuildSec = 55, requiredTimelineType = TimelineType.ALTAR_OF_ELDERS, isHero = True, name = "Demon Hunter"),
+    UnitType.KEEPER_OF_THE_GROVE: UnitStats(goldCost = 400, lumberCost = 100, foodCost = 5, timeToBuildSec = 55, requiredTimelineType = TimelineType.ALTAR_OF_ELDERS, isHero = True, name = "Keeper of the Grove")
 }
 
 class StructureStats:
@@ -146,13 +155,25 @@ class StructureStats:
 
 STRUCTURE_STATS_MAP = {
     StructureType.ALTAR_OF_ELDERS: StructureStats(name = "Altar of Elders", goldCost = 180, lumberCost = 50, foodProvided = 0, timeToBuildSec = 60),
-    StructureType.MOON_WELL: StructureStats(name = "Moon Well", goldCost = 180, lumberCost = 40, foodProvided = 10, timeToBuildSec = 50)
+    StructureType.MOON_WELL: StructureStats(name = "Moon Well", goldCost = 180, lumberCost = 40, foodProvided = 10, timeToBuildSec = 50),
+    StructureType.HUNTERS_HALL: StructureStats(name = "Hunter's Hall", goldCost = 210, lumberCost = 100, foodProvided = 0, timeToBuildSec = 60)
 }
 
 ITEM_STATS_MAP = {
 
 }
 
-UPGRADE_STATS_MAP = {
+class UpgradeStats:
+    def __init__(self, goldCost, lumberCost, timeToBuildSec, requiredTimelineType, name):
+        self.mName = name
+        self.mGoldCost = goldCost
+        self.mLumberCost = lumberCost
+        self.mTimeToBuildSec = timeToBuildSec
+        self.mRequiredTimelineType = requiredTimelineType
 
+class UpgradeType(Enum):
+    STRENGTH_OF_THE_MOON1 = auto()
+
+UPGRADE_STATS_MAP = {
+    UpgradeType.STRENGTH_OF_THE_MOON1: UpgradeStats(goldCost = 125, lumberCost = 75, timeToBuildSec = 60, requiredTimelineType = TimelineType.HUNTERS_HALL, name = "Strength of the Moon"), 
 }

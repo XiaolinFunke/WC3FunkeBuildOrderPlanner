@@ -1,6 +1,7 @@
 from enum import Enum, auto
 from SimEngine.SimulationConstants import UNIT_STATS_MAP, STRUCTURE_STATS_MAP, ITEM_STATS_MAP, UPGRADE_STATS_MAP, SECONDS_TO_SIMTIME
 from SimEngine.TimelineTypeEnum import TimelineType
+from json import JSONEncoder
 
 class ActionType(Enum):
     BuildUnit = auto()
@@ -33,6 +34,17 @@ class Action:
         #If True, simulate up to when the action would need to be taken, but don't actually execute it
         #Just used for testing at the moment
         self.mDontExecute = False
+
+    #TODO: Any fancy way we could mark variables as ones that should be serialized rather than having to specify here?
+    #Pare down to only relevant fields for JSON encoding and get as dict
+    def getAsDictForSerialization(self):
+        dict = {
+            'mType' : self.__class__.__name__,
+            'mTrigger' : self.mTrigger.getAsDictForSerialization(),
+            'mTravelTime' : self.mTravelTime,
+            'mActionNote' : self.mActionNote
+        }
+        return dict
 
     def setCostToFree(self):
         self.mGoldCost = 0
@@ -93,6 +105,12 @@ class BuildUnitAction(Action):
     def getActionType(self):
         return ActionType.BuildUnit
 
+    def getAsDictForSerialization(self):
+        dict = super().getAsDictForSerialization()
+        dict['mUnitType'] = self.mUnitType.name
+
+        return dict
+
 class BuildStructureAction(Action):
     def __init__(self, travelTime, trigger, currentWorkerTask, structureType, isInterruptable = False, consumesWorker = False, actionNote = ""):
         structureStats = STRUCTURE_STATS_MAP[structureType]
@@ -115,17 +133,33 @@ class BuildStructureAction(Action):
     def getActionType(self):
         return ActionType.BuildStructure
 
+    def getAsDictForSerialization(self):
+        dict = super().getAsDictForSerialization()
+        dict['mCurrentWorkerTask'] = self.mCurrentWorkerTask.name
+        dict['mStructureType'] = self.mStructureType.name
+
+        return dict
+
 class ShopAction(Action):
     def __init__(self, trigger, itemType, actionNote = ""):
         itemStats = ITEM_STATS_MAP[itemType]
         super().__init__(itemStats.mGoldCost, 0, 0, trigger, 0, itemStats.requiredTimelineType, True, False, actionNote)
         self.mItemType = itemType
+        #If True, we are selling the item, if False, buying it
+        self.mIsBeingSold
 
     def getActionTypeStr(self):
         return str(self.mItemType)
 
     def getActionType(self):
         return ActionType.Shop
+
+    def getAsDictForSerialization(self):
+        dict = super().getAsDictForSerialization()
+        dict['mItemType'] = self.mItemType.name
+        dict['mIsBeingSold'] = self.mIsBeingSold
+
+        return dict
 
 class WorkerMovementAction(Action):
     def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, workerTimelineID = None, actionNote = ""):
@@ -140,10 +174,18 @@ class WorkerMovementAction(Action):
     def getActionType(self):
         return ActionType.WorkerMovement
 
+    def getAsDictForSerialization(self):
+        dict = super().getAsDictForSerialization()
+        dict['mCurrentWorkerTask'] = self.mCurrentWorkerTask.name
+        dict['mDesiredWorkerTask'] = self.mDesiredWorkerTask.name
+        dict['mWorkerTimelineID'] = self.mWorkerTimelineID
+
+        return dict
+
 class BuildUpgradeAction(Action):
     def __init__(self, trigger, upgradeType, actionNote = ""):
         upgradeStats = UPGRADE_STATS_MAP[upgradeType]
-        super().__init__(upgradeStats.mGoldCost, upgradeStats.mLumberCost, 0, trigger, upgradeStats.mDuration, upgradeStats.mRequiredTimelineType, True, False, actionNote)
+        super().__init__(upgradeStats.mGoldCost, upgradeStats.mLumberCost, 0, trigger, upgradeStats.mTimeToBuildSec * SECONDS_TO_SIMTIME, upgradeStats.mRequiredTimelineType, False, actionNote)
         self.mUpgradeType = upgradeType
 
     def getActionTypeStr(self):
@@ -151,6 +193,12 @@ class BuildUpgradeAction(Action):
 
     def getActionType(self):
         return ActionType.BuildUpgrade
+
+    def getAsDictForSerialization(self):
+        dict = super().getAsDictForSerialization()
+        dict['mUpgradeType'] = self.mUpgradeType.name
+
+        return dict
 
 #Represents an action that the user does not actually take, but is placed on the timeline by the simulation engine automatically
 class AutomaticAction(Action):

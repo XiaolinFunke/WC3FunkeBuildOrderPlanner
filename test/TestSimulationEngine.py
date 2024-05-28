@@ -1,35 +1,39 @@
 import unittest
 
 from SimEngine.SimulationEngine import SimulationEngine
-from SimEngine.SimulationConstants import Race, UnitType, StructureType, WorkerTask, TimelineType, SECONDS_TO_SIMTIME, Trigger, TriggerType
-from SimEngine.Action import WorkerMovementAction, BuildUnitAction, BuildStructureAction
+from SimEngine.SimulationConstants import Race, UnitType, StructureType, WorkerTask, TimelineType, SECONDS_TO_SIMTIME, Trigger, TriggerType, UpgradeType
+from SimEngine.Action import WorkerMovementAction, BuildUnitAction, BuildStructureAction, BuildUpgradeAction
 
 class TestSimulationEngine(unittest.TestCase):
-    def testGetState(self):
+    def testGetJSONStateAsActionLists(self):
         simEngine = SimulationEngine() 
 
-        simEngine.newBuildOrder([Race.NIGHT_ELF])
+        simEngine.newBuildOrder([Race.NIGHT_ELF, Race.NIGHT_ELF])
 
-    def testSaveStateToFile(self):
-        simEngine = SimulationEngine() 
+        actionList1 = []
+        actionList1.append(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.WISP, "Build this wisp fast!"))
+        actionList1.append(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD))
+        actionList1.append(WorkerMovementAction(1.2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD))
+        actionList1.append(WorkerMovementAction(1.4 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD))
+        actionList1.append(WorkerMovementAction(1.6 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER))
+        actionList1.append(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, StructureType.ALTAR_OF_ELDERS))
+        actionList1.append(BuildStructureAction(1.5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, StructureType.MOON_WELL))
+        actionList1.append(BuildStructureAction(0, Trigger(TriggerType.GOLD_AMOUNT, 300), WorkerTask.GOLD, StructureType.HUNTERS_HALL))
+        actionList1.append(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.DEMON_HUNTER, "Skill mana burn and run to opponent's base"))
+        actionList1.append(BuildUpgradeAction(Trigger(TriggerType.LUMBER_AMOUNT, 100), UpgradeType.STRENGTH_OF_THE_MOON1))
 
-        simEngine.newBuildOrder([Race.NIGHT_ELF])
+        actionList2 = []
+        actionList2.append(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.WISP, "Build this wisp VERY fast!"))
+        actionList2.append(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD))
+        actionList2.append(WorkerMovementAction(1.2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD))
+        actionList2.append(WorkerMovementAction(1.4 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER))
+        actionList2.append(WorkerMovementAction(1.6 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER))
+        actionList2.append(BuildUnitAction(Trigger(TriggerType.NEXT_WORKER_BUILT), UnitType.WISP))
+        actionList2.append(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, StructureType.ALTAR_OF_ELDERS))
+        actionList2.append(BuildStructureAction(1.5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, StructureType.MOON_WELL))
+        actionList2.append(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.KEEPER_OF_THE_GROVE, "Skill entangle and go with Demon Hunter to opponent's base"))
 
-        simEngine.saveStateToFile(r"D:\Visual Studio Code\ForFun\WC3BuildOrderPlanner\Test\TestOutput\testSaveStartingStateToFile.json")
+        simEngine.getTeamBuildOrders()[0].simulateOrderedActionList(actionList1)
+        simEngine.getTeamBuildOrders()[1].simulateOrderedActionList(actionList2)
 
-        buildOrder = simEngine.getTeamBuildOrders()[0]
-
-        workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)
-        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[0].getTimelineID()))
-        buildOrder.simulateAction(WorkerMovementAction(1.5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, workerTimelines[1].getTimelineID()))
-        buildOrder.simulateAction(WorkerMovementAction(1.5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, workerTimelines[2].getTimelineID()))
-
-        buildOrder.simulate(1 * SECONDS_TO_SIMTIME)
-        buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.WISP))
-        buildOrder.simulate(2 * SECONDS_TO_SIMTIME)
-        buildOrder.simulateAction(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, StructureType.ALTAR_OF_ELDERS))
-        buildOrder.simulate(3 * SECONDS_TO_SIMTIME)
-        buildOrder.simulateAction(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, StructureType.MOON_WELL))
-
-        simEngine.saveStateToFile(r"D:\Visual Studio Code\ForFun\WC3BuildOrderPlanner\Test\TestOutput\testSaveBuildDemonHunterStateToFile.json")
-
+        self.assertTrue(simEngine.getJSONStateAsActionLists)
