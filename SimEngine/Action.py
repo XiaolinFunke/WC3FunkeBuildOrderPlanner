@@ -31,19 +31,28 @@ class Action:
         #List of events
         self.mAssociatedEvents = []
 
+        #Some Actions shouldn't be shown to the user and shouldn't make a timeline 'Active'
+        self.mIsInvisibleToUser = False
+
         #If True, simulate up to when the action would need to be taken, but don't actually execute it
         #Just used for testing at the moment
         self.mDontExecute = False
 
     #TODO: Any fancy way we could mark variables as ones that should be serialized rather than having to specify here?
     #Pare down to only relevant fields for JSON encoding and get as dict
-    def getAsDictForSerialization(self):
+    #@param isOnTimeline - If True, include stuff like start time and duration (needed for when we're printing the Timelines as JSON, but not for ordered action list)
+    def getAsDictForSerialization(self, isOnTimeline = True):
         dict = {
             'mType' : self.__class__.__name__,
             'mTrigger' : self.mTrigger.getAsDictForSerialization(),
             'mTravelTime' : self.mTravelTime,
             'mActionNote' : self.mActionNote
         }
+
+        if isOnTimeline:
+            dict['mStartTime'] = self.mStartTime
+            dict['mDuration'] = self.mDuration
+
         return dict
 
     def setCostToFree(self):
@@ -105,8 +114,8 @@ class BuildUnitAction(Action):
     def getActionType(self):
         return ActionType.BuildUnit
 
-    def getAsDictForSerialization(self):
-        dict = super().getAsDictForSerialization()
+    def getAsDictForSerialization(self, isOnTimeline = True):
+        dict = super().getAsDictForSerialization(isOnTimeline)
         dict['mUnitType'] = self.mUnitType.name
 
         return dict
@@ -133,8 +142,8 @@ class BuildStructureAction(Action):
     def getActionType(self):
         return ActionType.BuildStructure
 
-    def getAsDictForSerialization(self):
-        dict = super().getAsDictForSerialization()
+    def getAsDictForSerialization(self, isOnTimeline = True):
+        dict = super().getAsDictForSerialization(isOnTimeline)
         dict['mCurrentWorkerTask'] = self.mCurrentWorkerTask.name
         dict['mStructureType'] = self.mStructureType.name
 
@@ -154,8 +163,8 @@ class ShopAction(Action):
     def getActionType(self):
         return ActionType.Shop
 
-    def getAsDictForSerialization(self):
-        dict = super().getAsDictForSerialization()
+    def getAsDictForSerialization(self, isOnTimeline = True):
+        dict = super().getAsDictForSerialization(isOnTimeline)
         dict['mItemType'] = self.mItemType.name
         dict['mIsBeingSold'] = self.mIsBeingSold
 
@@ -174,11 +183,13 @@ class WorkerMovementAction(Action):
     def getActionType(self):
         return ActionType.WorkerMovement
 
-    def getAsDictForSerialization(self):
-        dict = super().getAsDictForSerialization()
+    def getAsDictForSerialization(self, isOnTimeline = True):
+        dict = super().getAsDictForSerialization(isOnTimeline)
         dict['mCurrentWorkerTask'] = self.mCurrentWorkerTask.name
         dict['mDesiredWorkerTask'] = self.mDesiredWorkerTask.name
-        dict['mWorkerTimelineID'] = self.mWorkerTimelineID
+
+        if not isOnTimeline:
+            dict['mWorkerTimelineID'] = self.mWorkerTimelineID
 
         return dict
 
@@ -194,13 +205,19 @@ class BuildUpgradeAction(Action):
     def getActionType(self):
         return ActionType.BuildUpgrade
 
-    def getAsDictForSerialization(self):
-        dict = super().getAsDictForSerialization()
+    def getAsDictForSerialization(self, isOnTimeline = True):
+        dict = super().getAsDictForSerialization(isOnTimeline)
         dict['mUpgradeType'] = self.mUpgradeType.name
 
         return dict
 
 #Represents an action that the user does not actually take, but is placed on the timeline by the simulation engine automatically
+#For example, adding and removing a worker from a mine
 class AutomaticAction(Action):
     def __init__(self, actionNote = ""):
         super().__init__(0, 0, 0, None, 0, None, False, actionNote)
+        self.mIsInvisibleToUser = True
+
+    #Automatic actions don't concern the user and won't be serialized
+    def getAsDictForSerialization(self, isOnTimeline = True):
+        return None

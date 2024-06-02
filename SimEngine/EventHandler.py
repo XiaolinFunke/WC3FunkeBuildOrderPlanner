@@ -1,6 +1,6 @@
 class EventHandler:
     def __init__(self):
-        #Simtime -> list of functions to execute at that time
+        #Simtime -> list of events (functions to execute at that time)
         self.mEvents = {}
         self.mNextEventID = 0
         #The Event ID of the last event executed

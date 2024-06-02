@@ -18,11 +18,15 @@ class SimulationEngine:
     def loadStateFromActionLists(self, stateJSON):
         pass
 
-    #Returns the JSON of the current state as timelines
+    #Returns the JSON of the current build order states as timelines
     def getJSONStateAsTimelines(self):
-        pass
+        list = [] 
+        for buildOrder in self.mTeamBuildOrders:
+            list.append(buildOrder.getSimTimeAndTimelinesAsDictForSerialization())
 
-    #Returns the JSON of the current build order states as a list
+        return json.dumps(list, indent = 2)
+
+    #Returns the JSON of the current build order states as action lists
     def getJSONStateAsActionLists(self):
         list = [] 
         for buildOrder in self.mTeamBuildOrders:

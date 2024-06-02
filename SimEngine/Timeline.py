@@ -82,6 +82,7 @@ class Timeline:
             self.mActions = self.mActions[:i + 1]
             if currentResources:
                 newAction.payForAction(currentResources)
+            self.mIsActive = True
             return True
 
     #Return the simtime when the given Action could be scheduled on this timeline
@@ -117,6 +118,21 @@ class Timeline:
         success = self.addAction(action, currentResources)
 
         return success
+
+    def getAsDictForSerialization(self):
+        dict = {
+            'mTimelineType' : self.mTimelineType.name,
+            'mTimelineID' : self.mTimelineID,
+            'mActions' : []
+        }
+
+        for action in self.mActions:
+            actionDict = action.getAsDictForSerialization()
+            #Actions that don't concern the user will return None here and won't be serialized
+            if actionDict != None:
+                dict['mActions'].append(actionDict)
+
+        return dict
 
     def printTimeline(self):
         print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)

@@ -21,7 +21,6 @@ class BuildOrder:
         self.mOrderedActionList = []
         self.mActiveTimelines = []
         self.mInactiveTimelines = []
-        self.mName = "Default_Build_Name"
         self.mRace = race
         self.mMapStartingPosition = MapStartingPosition(name = "Ideal_Map_Ideal_Position", lumberTripTravelTimeSec=15, goldTripTravelTimeSec=5) 
 
@@ -66,17 +65,20 @@ class BuildOrder:
             self._getNextBuiltWorkerTimelineID()
 
         if action.getActionType() == ActionType.BuildUnit:
-            return self._buildUnit(action)
+            success = self._buildUnit(action)
         elif action.getActionType() == ActionType.BuildStructure:
-            return self._buildStructure(action)
+            success = self._buildStructure(action)
         elif action.getActionType() == ActionType.BuildUpgrade:
             #TODO:
-            pass
+            success = True
         elif action.getActionType() == ActionType.Shop:
             #TODO:
             pass
         elif action.getActionType() == ActionType.WorkerMovement:
-            return self._moveWorker(action)
+            success = self._moveWorker(action)
+
+        self._moveTimelinesToActiveList()
+        return success
 
     #Will simulate up to specified simtime
     def simulate(self, untilSimTime):
@@ -166,9 +168,24 @@ class BuildOrder:
         dict = { 
             'mRace' : self.mRace.name,
             'mOrderedActionList' : []
-                 }
+        }
         for action in self.mOrderedActionList:
-            dict['mOrderedActionList'].append(action.getAsDictForSerialization())
+            dict['mOrderedActionList'].append(action.getAsDictForSerialization(False))
+
+        return dict
+
+    #Get this build order's current simtime and timelines as dicts to easily serialize to JSON
+    def getSimTimeAndTimelinesAsDictForSerialization(self):
+        dict = { 
+            'mCurrentSimTime' : self.mCurrentSimTime,
+            'mActiveTimelines' : [],
+            'mInactiveTimelines' : [],
+            'mCurrentResources' : self.mCurrentResources.getAsDictForSerialization()
+        }
+        for timeline in self.mActiveTimelines:
+            dict['mActiveTimelines'].append(timeline.getAsDictForSerialization())
+        for timeline in self.mInactiveTimelines:
+            dict['mInactiveTimelines'].append(timeline.getAsDictForSerialization())
 
         return dict
 
@@ -328,6 +345,20 @@ class BuildOrder:
 
         return highestTimelineID
 
+    #Checks inactive timelines and determines if any should be moved to the active list
+    def _moveTimelinesToActiveList(self):
+        #TODO: This could be more performant, if performance is an issue
+        i = 0
+        while i < len(self.mInactiveTimelines):
+            for action in self.mInactiveTimelines[i].mActions:
+                if not action.mIsInvisibleToUser:
+                    #Timeline should be active now, since it has a visible Action on it
+                    self.mActiveTimelines.append(self.mInactiveTimelines.pop(i))
+                    #Don't increment i, since we just removed an element from the list
+                    break
+            else:
+                i += 1
+
     #Return True if we have the gold, lumber, and food required to build a unit/building
     def _areRequiredResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):
         if self.mCurrentResources.getCurrentGold() < goldRequired:
@@ -353,6 +384,16 @@ class CurrentResources:
         self.mCurrentFood = 5
 
         self.mCurrentFoodMax = STARTING_FOOD_MAX_MAP[race]
+
+    def getAsDictForSerialization(self):
+        dict = {
+            'mCurrentGold' : self.mCurrentGold,
+            'mCurrentLumber' : self.mCurrentLumber,
+            'mCurrentFood' : self.mCurrentFood,
+            'mCurrentFoodMax' : self.mCurrentFoodMax
+        }
+
+        return dict
 
     def deductGold(self, amount):
         if amount > self.mCurrentGold:
