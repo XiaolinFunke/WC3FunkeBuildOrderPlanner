@@ -15,8 +15,17 @@ class SimulationEngine:
             self.mTeamBuildOrders.append(BuildOrder(race))
 
     #Takes JSON of ordered action list for team build orders and simulate from scratch
-    def loadStateFromActionLists(self, stateJSON):
-        pass
+    def loadStateFromActionListsJSON(self, stateJSON):
+        teamBuildOrdersList = json.loads(stateJSON)
+
+        self.mTeamBuildOrders = []
+        for buildOrderDict in teamBuildOrdersList:
+           self.mTeamBuildOrders.append(BuildOrder.simulateBuildOrderFromDict(buildOrderDict))
+
+        if (len(self.mTeamBuildOrders)) == 0:
+            return False
+        else:
+            return True
 
     #Returns the JSON of the current build order states as timelines
     def getJSONStateAsTimelines(self):

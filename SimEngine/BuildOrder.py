@@ -4,7 +4,7 @@ from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP,
 from SimEngine.EventHandler import EventHandler
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline
 from SimEngine.TimelineTypeEnum import TimelineType
-from SimEngine.Action import ActionType
+from SimEngine.Action import ActionType, Action
 
 class MapStartingPosition:
     def __init__(self, name, lumberTripTravelTimeSec, goldTripTravelTimeSec):
@@ -188,6 +188,21 @@ class BuildOrder:
             dict['mInactiveTimelines'].append(timeline.getAsDictForSerialization())
 
         return dict
+
+    #Used to deserialize JSON (after converting the JSON to dict)
+    #Returns the build order object after simulating the specified ordered action list
+    @staticmethod
+    def simulateBuildOrderFromDict(buildOrderDict):
+        buildOrder = BuildOrder(Race[buildOrderDict['mRace']])
+
+        orderedActionList = []
+        for actionDict in buildOrderDict['mOrderedActionList']:
+            orderedActionList.append( Action.getActionFromDict(actionDict) )
+
+        buildOrder.simulateOrderedActionList(orderedActionList)
+
+        return buildOrder
+
 
     #Return True if successful, False otherwise
     def _buildUnit(self, action):

@@ -1,7 +1,7 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import UNIT_STATS_MAP, STRUCTURE_STATS_MAP, ITEM_STATS_MAP, UPGRADE_STATS_MAP, SECONDS_TO_SIMTIME
+from SimEngine.SimulationConstants import UNIT_STATS_MAP, STRUCTURE_STATS_MAP, ITEM_STATS_MAP, UPGRADE_STATS_MAP, SECONDS_TO_SIMTIME, Trigger, UnitType, StructureType, WorkerTask, ItemType, UpgradeType
 from SimEngine.TimelineTypeEnum import TimelineType
-from json import JSONEncoder
+from pydoc import locate
 
 class ActionType(Enum):
     BuildUnit = auto()
@@ -54,6 +54,19 @@ class Action:
             dict['mDuration'] = self.mDuration
 
         return dict
+
+    #Used to deserialize JSON (after converting the JSON to dict)
+    #This base class method just gets action arguments that are common to all actions and then determines which sub-class method to call
+    @staticmethod
+    def getActionFromDict(actionDict):
+        #See https://stackoverflow.com/questions/11775460/lexical-cast-from-string-to-type - locate is used to find the type
+        actionType = locate('SimEngine.Action.' + actionDict['mType'])
+
+        trigger = Trigger.getTriggerFromDict(actionDict['mTrigger'])
+        actionNote = actionDict['mActionNote']
+        action = actionType.getActionFromDict(actionDict, trigger, actionNote)
+
+        return action
 
     def setCostToFree(self):
         self.mGoldCost = 0
@@ -120,11 +133,21 @@ class BuildUnitAction(Action):
 
         return dict
 
+    #Used to deserialize JSON (after converting the JSON to dict)
+    @staticmethod
+    def getActionFromDict(actionDict, trigger, actionNote):
+        #TODO: We aren't using travel time here (and in other places). Should we also not bother to serialize that to avoid confusion? (Since it's always 0)
+        unitType = UnitType[actionDict['mUnitType']]
+        action = BuildUnitAction(trigger, unitType, actionNote)
+
+        return action
+
 class BuildStructureAction(Action):
     def __init__(self, travelTime, trigger, currentWorkerTask, structureType, isInterruptable = False, consumesWorker = False, actionNote = ""):
         structureStats = STRUCTURE_STATS_MAP[structureType]
         super().__init__(structureStats.mGoldCost, structureStats.mLumberCost, travelTime, trigger, structureStats.mTimeToBuildSec * SECONDS_TO_SIMTIME, TimelineType.WORKER, isInterruptable, actionNote)
         #TODO: Are some of these Action members even really necessary to track? Like, won't food provided really just be handled by the associated event?
+        #TODO: Shouldn't need to pass isInteruruptable or consumesWorker, we can get that from the structure type
         self.mFoodProvided = structureStats.mFoodProvided
         self.mConsumesWorker = consumesWorker
         self.mCurrentWorkerTask = currentWorkerTask
@@ -149,13 +172,23 @@ class BuildStructureAction(Action):
 
         return dict
 
+    #Used to deserialize JSON (after converting the JSON to dict)
+    @staticmethod
+    def getActionFromDict(actionDict, trigger, actionNote):
+        travelTime = int(actionDict['mTravelTime'])
+        currentWorkerTask = WorkerTask[actionDict['mCurrentWorkerTask']]
+        structureType = StructureType[actionDict['mStructureType']]
+        action = BuildStructureAction(travelTime, trigger, currentWorkerTask, structureType, False, False, actionNote)
+
+        return action
+
 class ShopAction(Action):
-    def __init__(self, trigger, itemType, actionNote = ""):
+    def __init__(self, trigger, itemType, isBeingSold, actionNote = ""):
         itemStats = ITEM_STATS_MAP[itemType]
         super().__init__(itemStats.mGoldCost, 0, 0, trigger, 0, itemStats.requiredTimelineType, True, False, actionNote)
         self.mItemType = itemType
         #If True, we are selling the item, if False, buying it
-        self.mIsBeingSold
+        self.mIsBeingSold = isBeingSold
 
     def getActionTypeStr(self):
         return str(self.mItemType)
@@ -169,6 +202,15 @@ class ShopAction(Action):
         dict['mIsBeingSold'] = self.mIsBeingSold
 
         return dict
+
+    #Used to deserialize JSON (after converting the JSON to dict)
+    @staticmethod
+    def getActionFromDict(actionDict, trigger, actionNote):
+        itemType = ItemType[actionDict['mItemType']]
+        isBeingSold = bool(actionDict['mIsBeingSold'])
+        action = ShopAction(trigger, itemType, isBeingSold, actionNote)
+
+        return action
 
 class WorkerMovementAction(Action):
     def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, workerTimelineID = None, actionNote = ""):
@@ -193,6 +235,18 @@ class WorkerMovementAction(Action):
 
         return dict
 
+    #Used to deserialize JSON (after converting the JSON to dict)
+    @staticmethod
+    def getActionFromDict(actionDict, trigger, actionNote):
+        travelTime = int(actionDict['mTravelTime'])
+        currentWorkerTask = WorkerTask[actionDict['mCurrentWorkerTask']]
+        desiredWorkerTask = WorkerTask[actionDict['mDesiredWorkerTask']]
+        strTimelineID = actionDict['mWorkerTimelineID']
+        workerTimelineID = None if strTimelineID == None else int(strTimelineID)
+        action =WorkerMovementAction(travelTime, trigger, currentWorkerTask, desiredWorkerTask, workerTimelineID, actionNote)
+
+        return action
+
 class BuildUpgradeAction(Action):
     def __init__(self, trigger, upgradeType, actionNote = ""):
         upgradeStats = UPGRADE_STATS_MAP[upgradeType]
@@ -211,6 +265,14 @@ class BuildUpgradeAction(Action):
 
         return dict
 
+    #Used to deserialize JSON (after converting the JSON to dict)
+    @staticmethod
+    def getActionFromDict(actionDict, trigger, actionNote):
+        upgradeType = UpgradeType[actionDict['mUpgradeType']]
+        action = BuildUpgradeAction(trigger, upgradeType, actionNote)
+
+        return action
+
 #Represents an action that the user does not actually take, but is placed on the timeline by the simulation engine automatically
 #For example, adding and removing a worker from a mine
 class AutomaticAction(Action):
@@ -220,4 +282,9 @@ class AutomaticAction(Action):
 
     #Automatic actions don't concern the user and won't be serialized
     def getAsDictForSerialization(self, isOnTimeline = True):
+        return None
+
+    #Automatic actions don't concern the user and won't be deserialized
+    @staticmethod
+    def getActionFromDict(actionDict, trigger, actionNote):
         return None

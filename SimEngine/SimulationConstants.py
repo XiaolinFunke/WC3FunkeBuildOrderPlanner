@@ -111,6 +111,16 @@ class Trigger():
         #Not used for ASAP and NEXT_WORKER_BUILT trigger types
         self.mValue = triggerAmount
 
+    #Used for deserializing JSON
+    @staticmethod
+    def getTriggerFromDict(triggerDict):
+        triggerType = TriggerType[triggerDict['mTriggerType']]
+
+        triggerValue = None if triggerDict['mValue'] == None else int(triggerDict['mValue'])
+        triggerObj = Trigger(triggerType, triggerValue)
+
+        return triggerObj
+
     #Get as dict for JSON encoding
     def getAsDictForSerialization(self):
         dict = {
@@ -158,6 +168,9 @@ STRUCTURE_STATS_MAP = {
     StructureType.MOON_WELL: StructureStats(name = "Moon Well", goldCost = 180, lumberCost = 40, foodProvided = 10, timeToBuildSec = 50),
     StructureType.HUNTERS_HALL: StructureStats(name = "Hunter's Hall", goldCost = 210, lumberCost = 100, foodProvided = 0, timeToBuildSec = 60)
 }
+
+class ItemType(Enum):
+    DUST_OF_APPEARANCE = auto()
 
 ITEM_STATS_MAP = {
 
