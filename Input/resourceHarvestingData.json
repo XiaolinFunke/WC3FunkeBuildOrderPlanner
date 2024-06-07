@@ -1,0 +1,32 @@
+{
+    "Wisp": {
+        "lumberCycleTimeSec": "8",
+        "lumberGainPerCycle": "5",
+        "goldCycleTimeSec": "5",
+        "goldGainPerCycle": "10"
+    },
+    "Peasant" : {
+        "lumberCycleTimeSec": null,
+        "lumberGainPerCycle": "10",
+        "goldCycleTimeSec": null,
+        "goldGainPerCycle": "10"
+    },
+    "Peon" : {
+        "lumberCycleTimeSec": null,
+        "lumberGainPerCycle": "10",
+        "goldCycleTimeSec": null,
+        "goldGainPerCycle": "10"
+    },
+    "Acolyte" : {
+        "lumberCycleTimeSec": null,
+        "lumberGainPerCycle": null,
+        "goldCycleTimeSec": "5",
+        "goldGainPerCycle": "10"
+    },
+    "Ghoul" : {
+        "lumberCycleTimeSec": null,
+        "lumberGainPerCycle": "20",
+        "goldCycleTimeSec": null,
+        "goldGainPerCycle": null
+    }
+}

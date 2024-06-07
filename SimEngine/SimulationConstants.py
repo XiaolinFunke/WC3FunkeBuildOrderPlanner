@@ -1,4 +1,5 @@
 from enum import Enum, auto
+import json
 
 from SimEngine.TimelineTypeEnum import TimelineType
 
@@ -136,6 +137,22 @@ class TriggerType(Enum):
     FOOD_AMOUNT = auto()
     NEXT_WORKER_BUILT = auto()
     PERCENT_OF_ONGOING_ACTION = auto()
+
+class StatsHandler:
+    def __init__(self, statsFilePath = './Input/liquipediaStats.json'):
+        with open(statsFilePath) as jsonFile:
+            self.mStatsDict = json.load(jsonFile)
+
+    def getUnitStats(self, raceStr, structureStr, unitStr):
+        unitList = self.mStatsDict[raceStr]["buildings"][structureStr]["builds"]
+
+
+        for unitDict in unitList:
+            if unitDict["name"] == unitStr:
+                isHero = structureStr.startwith('Altar')
+                requiredTimelineType = TimelineType[structureStr]
+                unitStats = UnitStats(unitDict["gold"], unitDict["lumber"], unitDict["food"], unitDict["build_time"], requiredTimelineType, isHero)
+                return unitStats
 
 class UnitStats:
     def __init__(self, goldCost, lumberCost, foodCost, timeToBuildSec, requiredTimelineType, isHero, name):
