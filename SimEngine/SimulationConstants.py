@@ -1,10 +1,27 @@
 from enum import Enum, auto
-import json
 
 from SimEngine.TimelineTypeEnum import TimelineType
 
 SECONDS_TO_SIMTIME = 10 #simtime is in deciseconds
 SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
+
+TIMELINE_TYPE_WORKER = "Worker"
+TIMELINE_TYPE_GOLD_MINE = "Gold Mine"
+
+class Worker(Enum):
+    #Note: These names must be spelled like this to match the liquipedia data for when we build units that happen to be workers
+    Wisp = auto() 
+    Acolyte = auto()
+    Peasant = auto()
+    Peon = auto()
+    Ghoul = auto()
+
+def isUnitWorker(unitName):
+    for workerName in Worker:
+        if unitName == workerName.name:
+            return True
+
+    return False
 
 class Race(Enum):
     HUMAN = auto()
@@ -34,78 +51,6 @@ class WorkerTask(Enum):
     IN_PRODUCTION = auto()
     IDLE = auto()
 
-class StructureType(Enum):
-    #HUMAN
-    #Represents all tiers of the town hall
-    TOWN_HALL = auto()
-    FARM = auto()
-    HUMAN_BARRACKS = auto()
-    LUMBER_MILL = auto()
-    BLACKSMITH = auto()
-    ALTAR_OF_KINGS = auto()
-    ARCANE_SANCTUM = auto()
-    WORKSHOP = auto()
-    SCOUT_TOWER = auto()
-    GRYPHON_AVIARY = auto()
-    ARCANE_VAULT = auto()
-    #NIGHT ELF
-    #Represents all tiers of the tree of life
-    TREE_OF_LIFE = auto()
-    #TODO: How do we handle entangle gold mine? -- kind of like an upgrade?
-    ENTANGLED_GOLD_MINE = auto()
-    MOON_WELL = auto()
-    ANCIENT_OF_WAR = auto()
-    ANCIENT_PROTECTOR = auto()
-    HUNTERS_HALL = auto()
-    ALTAR_OF_ELDERS = auto()
-    ANCIENT_OF_LORE = auto()
-    ANCIENT_OF_WIND = auto()
-    CHIMAERA_ROOST = auto()
-    ANCIENT_OF_WONDERS = auto()
-
-class UnitType(Enum):
-    #NEUTRAL
-    NAGA_SEA_WITCH = auto()
-    DARK_RANGER = auto()
-    PANDAREN_BREWMASTER = auto()
-    BEASTMASTER = auto()
-    PIT_LORD = auto()
-    GOBLIN_TINKER = auto()
-    FIRELORD = auto()
-    GOBLIN_ALCHEMIST = auto()
-    #HUMAN
-    PALADIN = auto()
-    ARCHMAGE = auto()
-    MOUNTAIN_KING = auto()
-    BLOOD_MAGE = auto()
-    PEASANT = auto()
-    FOOTMAN = auto()
-    KNIGHT = auto()
-    PRIEST = auto()
-    SORCERESS = auto()
-    SPELL_BREAKER = auto()
-    FLYING_MACHINE = auto()
-    MORTAR_TEAM = auto()
-    SIEGE_ENGINE = auto()
-    GRYPHON_RIDER = auto()
-    DRAGONHAWK_RIDER = auto()
-    #NIGHT ELF
-    DEMON_HUNTER = auto()
-    KEEPER_OF_THE_GROVE = auto()
-    PRIESTESS_OF_THE_MOON = auto()
-    WARDEN = auto()
-    WISP = auto()
-    ARCHER = auto()
-    HUNTRESS = auto()
-    GLAIVE_THROWER = auto()
-    DRYAD = auto()
-    DRUID_OF_THE_CLAW = auto()
-    MOUNTAIN_GIANT = auto()
-    HIPPOGRYPH = auto()
-    DRUID_OF_THE_TALON = auto()
-    FAERIE_DRAGON = auto()
-    CHIMAERA = auto()
-
 class Trigger():
     def __init__(self, triggerType, triggerAmount = None):
         self.mTriggerType = triggerType
@@ -115,9 +60,9 @@ class Trigger():
     #Used for deserializing JSON
     @staticmethod
     def getTriggerFromDict(triggerDict):
-        triggerType = TriggerType[triggerDict['mTriggerType']]
+        triggerType = TriggerType[triggerDict['triggerType']]
 
-        triggerValue = None if triggerDict['mValue'] == None else int(triggerDict['mValue'])
+        triggerValue = None if triggerDict['value'] == None else int(triggerDict['value'])
         triggerObj = Trigger(triggerType, triggerValue)
 
         return triggerObj
@@ -125,8 +70,8 @@ class Trigger():
     #Get as dict for JSON encoding
     def getAsDictForSerialization(self):
         dict = {
-            'mTriggerType' : self.mTriggerType.name,
-            'mValue' : self.mValue
+            'triggerType' : self.mTriggerType.name,
+            'value' : self.mValue
         }
         return dict
 
@@ -137,73 +82,3 @@ class TriggerType(Enum):
     FOOD_AMOUNT = auto()
     NEXT_WORKER_BUILT = auto()
     PERCENT_OF_ONGOING_ACTION = auto()
-
-class StatsHandler:
-    def __init__(self, statsFilePath = './Input/liquipediaStats.json'):
-        with open(statsFilePath) as jsonFile:
-            self.mStatsDict = json.load(jsonFile)
-
-    def getUnitStats(self, raceStr, structureStr, unitStr):
-        unitList = self.mStatsDict[raceStr]["buildings"][structureStr]["builds"]
-
-
-        for unitDict in unitList:
-            if unitDict["name"] == unitStr:
-                isHero = structureStr.startwith('Altar')
-                requiredTimelineType = TimelineType[structureStr]
-                unitStats = UnitStats(unitDict["gold"], unitDict["lumber"], unitDict["food"], unitDict["build_time"], requiredTimelineType, isHero)
-                return unitStats
-
-class UnitStats:
-    def __init__(self, goldCost, lumberCost, foodCost, timeToBuildSec, requiredTimelineType, isHero, name):
-        self.mName = name
-        self.mIsHero = isHero
-        self.mGoldCost = goldCost
-        self.mLumberCost = lumberCost
-        self.mFoodCost = foodCost
-        self.mTimeToBuildSec = timeToBuildSec
-        self.mRequiredTimelineType = requiredTimelineType
-
-UNIT_STATS_MAP = {
-    #Tree of life timeline represents all tiers of tree of life
-    UnitType.WISP: UnitStats(goldCost = 60, lumberCost = 0, foodCost = 1, timeToBuildSec = 14, requiredTimelineType = TimelineType.TREE_OF_LIFE, isHero = False, name = "Wisp"), 
-    UnitType.DEMON_HUNTER: UnitStats(goldCost = 400, lumberCost = 100, foodCost = 5, timeToBuildSec = 55, requiredTimelineType = TimelineType.ALTAR_OF_ELDERS, isHero = True, name = "Demon Hunter"),
-    UnitType.KEEPER_OF_THE_GROVE: UnitStats(goldCost = 400, lumberCost = 100, foodCost = 5, timeToBuildSec = 55, requiredTimelineType = TimelineType.ALTAR_OF_ELDERS, isHero = True, name = "Keeper of the Grove")
-}
-
-class StructureStats:
-    def __init__(self, name, goldCost, lumberCost, foodProvided, timeToBuildSec):
-        self.mName = name
-        self.mGoldCost = goldCost
-        self.mLumberCost = lumberCost
-        self.mFoodProvided = foodProvided
-        self.mTimeToBuildSec = timeToBuildSec
-    
-
-STRUCTURE_STATS_MAP = {
-    StructureType.ALTAR_OF_ELDERS: StructureStats(name = "Altar of Elders", goldCost = 180, lumberCost = 50, foodProvided = 0, timeToBuildSec = 60),
-    StructureType.MOON_WELL: StructureStats(name = "Moon Well", goldCost = 180, lumberCost = 40, foodProvided = 10, timeToBuildSec = 50),
-    StructureType.HUNTERS_HALL: StructureStats(name = "Hunter's Hall", goldCost = 210, lumberCost = 100, foodProvided = 0, timeToBuildSec = 60)
-}
-
-class ItemType(Enum):
-    DUST_OF_APPEARANCE = auto()
-
-ITEM_STATS_MAP = {
-
-}
-
-class UpgradeStats:
-    def __init__(self, goldCost, lumberCost, timeToBuildSec, requiredTimelineType, name):
-        self.mName = name
-        self.mGoldCost = goldCost
-        self.mLumberCost = lumberCost
-        self.mTimeToBuildSec = timeToBuildSec
-        self.mRequiredTimelineType = requiredTimelineType
-
-class UpgradeType(Enum):
-    STRENGTH_OF_THE_MOON1 = auto()
-
-UPGRADE_STATS_MAP = {
-    UpgradeType.STRENGTH_OF_THE_MOON1: UpgradeStats(goldCost = 125, lumberCost = 75, timeToBuildSec = 60, requiredTimelineType = TimelineType.HUNTERS_HALL, name = "Strength of the Moon"), 
-}

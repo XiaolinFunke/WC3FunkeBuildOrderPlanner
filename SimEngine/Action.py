@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import UNIT_STATS_MAP, STRUCTURE_STATS_MAP, ITEM_STATS_MAP, UPGRADE_STATS_MAP, SECONDS_TO_SIMTIME, Trigger, UnitType, StructureType, WorkerTask, ItemType, UpgradeType
+from SimEngine.SimulationConstants import SECONDS_TO_SIMTIME, Trigger, WorkerTask
 from SimEngine.TimelineTypeEnum import TimelineType
 from pydoc import locate
 
@@ -11,8 +11,8 @@ class ActionType(Enum):
     BuildUpgrade = auto()
 
 class Action:
-    def __init__(self, goldCost, lumberCost, travelTime, trigger, duration, requiredTimelineType, interruptable = False, actionNote = ""):
-        #TODO: Don't necessarily need to set gold and lumber, etc. on this, since we have unitType, sctructureType, etc. Could just grab those values when we pay for the action
+    def __init__(self, name, goldCost, lumberCost, trigger, duration, requiredTimelineType, travelTime, interruptable = False, actionNote = ""):
+        self.mName = name
         self.mGoldCost = goldCost
         self.mLumberCost = lumberCost
         #What triggers us to do this action (amount of gold, lumber, etc.)
@@ -20,10 +20,10 @@ class Action:
         #Start time starts at the beginning of the travel time 
         #In simtime
         self.mStartTime = -1 #Set to -1 so we know this is unscheduled as of yet
-        #Travel time takes place at the very beginning of the action (start time)
-        self.mTravelTime = travelTime
         #Duration does not include travel time - So full duration is duration + travel time
         self.mDuration = duration
+        #Travel time takes place at the very beginning of the action (start time)
+        self.mTravelTime = travelTime
         self.mRequiredTimelineType = requiredTimelineType
         self.mActionNote = actionNote
         #Some actions, such as mining actions, are interruptable, and can be overwritten by other actions
@@ -43,15 +43,22 @@ class Action:
     #@param isOnTimeline - If True, include stuff like start time and duration (needed for when we're printing the Timelines as JSON, but not for ordered action list)
     def getAsDictForSerialization(self, isOnTimeline = True):
         dict = {
-            'mType' : self.__class__.__name__,
-            'mTrigger' : self.mTrigger.getAsDictForSerialization(),
-            'mTravelTime' : self.mTravelTime,
-            'mActionNote' : self.mActionNote
+            'actionType' : self.__class__.__name__,
+            'trigger' : self.mTrigger.getAsDictForSerialization(),
+            'actionNote' : self.mActionNote,
         }
+        #Many common variables aren't used by all sub-classes. Don't bother serializing them if they aren't used (are set to None)
+        if self.mName != None: dict['name'] = self.mName
+        if self.mDuration != None: dict['duration'] = self.mDuration
+        if self.mTravelTime != None: dict['travelTime'] = self.mTravelTime
 
+        #The info we need to know about is different depending on whether we've already placed it on a timeline or have yet to
         if isOnTimeline:
-            dict['mStartTime'] = self.mStartTime
-            dict['mDuration'] = self.mDuration
+            dict['startTime'] = self.mStartTime
+        else:
+            if self.mGoldCost != None: dict['goldCost'] = self.mGoldCost
+            if self.mLumberCost != None: dict['lumberCost'] = self.mLumberCost
+            dict['requiredTimelineType'] = self.mRequiredTimelineType
 
         return dict
 
@@ -60,11 +67,20 @@ class Action:
     @staticmethod
     def getActionFromDict(actionDict):
         #See https://stackoverflow.com/questions/11775460/lexical-cast-from-string-to-type - locate is used to find the type
-        actionType = locate('SimEngine.Action.' + actionDict['mType'])
+        actionType = locate('SimEngine.Action.' + actionDict['actionType'])
 
-        trigger = Trigger.getTriggerFromDict(actionDict['mTrigger'])
-        actionNote = actionDict['mActionNote']
-        action = actionType.getActionFromDict(actionDict, trigger, actionNote)
+        trigger = Trigger.getTriggerFromDict(actionDict['trigger'])
+
+        #Use get instead of operator [], since these may not exist for all subclasses and we don't want a KeyError
+        name = actionDict.get('name')
+        goldCost = actionDict.get('goldCost')
+        lumberCost = actionDict.get('lumberCost')
+        actionNote = actionDict.get('actionNote')
+        duration = actionDict.get('duration')
+        travelTime = actionDict.get('travelTime')
+        requiredTimelineType = actionDict.get('requiredTimelineType')
+        
+        action = actionType.getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote)
 
         return action
 
@@ -101,24 +117,24 @@ class Action:
     def getRequiredTimelineType(self):
         return self.mRequiredTimelineType
 
-    def getActionTypeStr(self):
-        return ""
-
     def __str__(self):
-        return "Action:\"" + self.__class__.__name__ + " : " + self.getActionTypeStr() + " (" + str(self.getStartTime()) + " - " + str(self.getStartTime() + self.mDuration) + ") - " + str(len(self.mAssociatedEvents)) + " events"
+        duration = self.mDuration
+        if self.mDuration == None:
+            duration = 0
+        name = self.mName
+        if self.mName == None:
+            name = "Unnamed"
+        
+        return "Action:\"" + self.__class__.__name__ + " : " + name + " (" + str(self.getStartTime()) + " - " + str(self.getStartTime() + duration) + ") - " + str(len(self.mAssociatedEvents)) + " events"
 
     def __repr__(self):
         return self.__str__()
 
 class BuildUnitAction(Action):
-    def __init__(self, trigger, unitType, actionNote = ""):
-        unitStats = UNIT_STATS_MAP[unitType]
-        super().__init__(unitStats.mGoldCost, unitStats.mLumberCost, 0, trigger, unitStats.mTimeToBuildSec * SECONDS_TO_SIMTIME, unitStats.mRequiredTimelineType, False, actionNote)
-        self.mFoodCost = unitStats.mFoodCost
-        self.mUnitType = unitType
-
-    def getActionTypeStr(self):
-        return str(self.mUnitType)
+    def __init__(self, trigger, name, goldCost, lumberCost, foodCost, duration, requiredTimelineType, isHero = False, actionNote = ""):
+        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, None, False, actionNote)
+        self.mFoodCost = foodCost
+        self.mIsHero = isHero
 
     def payForAction(self, currentResources):
         super().payForAction(currentResources)
@@ -129,32 +145,30 @@ class BuildUnitAction(Action):
 
     def getAsDictForSerialization(self, isOnTimeline = True):
         dict = super().getAsDictForSerialization(isOnTimeline)
-        dict['mUnitType'] = self.mUnitType.name
+
+        if not isOnTimeline:
+            dict['foodCost'] = self.mFoodCost
+            dict['isHero'] = self.mIsHero
 
         return dict
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, actionNote):
-        #TODO: We aren't using travel time here (and in other places). Should we also not bother to serialize that to avoid confusion? (Since it's always 0)
-        unitType = UnitType[actionDict['mUnitType']]
-        action = BuildUnitAction(trigger, unitType, actionNote)
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+        foodCost = int(actionDict['foodCost'])
+        isHero = bool(actionDict['isHero'])
+
+        action = BuildUnitAction(trigger, name, goldCost, lumberCost, foodCost, duration, requiredTimelineType, isHero, actionNote)
 
         return action
 
 class BuildStructureAction(Action):
-    def __init__(self, travelTime, trigger, currentWorkerTask, structureType, isInterruptable = False, consumesWorker = False, actionNote = ""):
-        structureStats = STRUCTURE_STATS_MAP[structureType]
-        super().__init__(structureStats.mGoldCost, structureStats.mLumberCost, travelTime, trigger, structureStats.mTimeToBuildSec * SECONDS_TO_SIMTIME, TimelineType.WORKER, isInterruptable, actionNote)
+    def __init__(self, travelTime, trigger, currentWorkerTask, name, goldCost, lumberCost, foodProvided, duration, requiredTimelineType, consumesWorker = False, isInterruptable = False, actionNote = ""):
+        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, travelTime, isInterruptable, actionNote)
         #TODO: Are some of these Action members even really necessary to track? Like, won't food provided really just be handled by the associated event?
-        #TODO: Shouldn't need to pass isInteruruptable or consumesWorker, we can get that from the structure type
-        self.mFoodProvided = structureStats.mFoodProvided
+        self.mFoodProvided = foodProvided
         self.mConsumesWorker = consumesWorker
         self.mCurrentWorkerTask = currentWorkerTask
-        self.mStructureType = structureType
-
-    def getActionTypeStr(self):
-        return str(self.mStructureType)
 
     def payForAction(self, currentResources):
         super().payForAction(currentResources)
@@ -167,109 +181,91 @@ class BuildStructureAction(Action):
 
     def getAsDictForSerialization(self, isOnTimeline = True):
         dict = super().getAsDictForSerialization(isOnTimeline)
-        dict['mCurrentWorkerTask'] = self.mCurrentWorkerTask.name
-        dict['mStructureType'] = self.mStructureType.name
+        
+        dict['currentWorkerTask'] = self.mCurrentWorkerTask.name
+
+        if not isOnTimeline:
+            dict['foodProvided'] = self.mFoodProvided
+            dict['consumesWorker'] = self.mConsumesWorker
 
         return dict
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, actionNote):
-        travelTime = int(actionDict['mTravelTime'])
-        currentWorkerTask = WorkerTask[actionDict['mCurrentWorkerTask']]
-        structureType = StructureType[actionDict['mStructureType']]
-        action = BuildStructureAction(travelTime, trigger, currentWorkerTask, structureType, False, False, actionNote)
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+        currentWorkerTask = WorkerTask[actionDict['currentWorkerTask']]
+        foodProvided = int(actionDict['foodProvided'])
+        consumesWorker = bool(actionDict['consumesWorker'])
+        action = BuildStructureAction(travelTime, trigger, currentWorkerTask, name, goldCost, lumberCost, foodProvided, duration, requiredTimelineType, consumesWorker, False, actionNote)
 
         return action
 
 class ShopAction(Action):
-    def __init__(self, trigger, itemType, isBeingSold, actionNote = ""):
-        itemStats = ITEM_STATS_MAP[itemType]
-        super().__init__(itemStats.mGoldCost, 0, 0, trigger, 0, itemStats.requiredTimelineType, True, False, actionNote)
-        self.mItemType = itemType
+    def __init__(self, name, goldCost, trigger, requiredTimelineType, travelTime, isBeingSold, actionNote = ""):
+        super().__init__(name, goldCost, None, trigger, None, requiredTimelineType, travelTime, False, actionNote)
         #If True, we are selling the item, if False, buying it
         self.mIsBeingSold = isBeingSold
-
-    def getActionTypeStr(self):
-        return str(self.mItemType)
 
     def getActionType(self):
         return ActionType.Shop
 
     def getAsDictForSerialization(self, isOnTimeline = True):
         dict = super().getAsDictForSerialization(isOnTimeline)
-        dict['mItemType'] = self.mItemType.name
-        dict['mIsBeingSold'] = self.mIsBeingSold
+
+        dict['isBeingSold'] = self.mIsBeingSold
 
         return dict
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, actionNote):
-        itemType = ItemType[actionDict['mItemType']]
-        isBeingSold = bool(actionDict['mIsBeingSold'])
-        action = ShopAction(trigger, itemType, isBeingSold, actionNote)
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+        isBeingSold = bool(actionDict['isBeingSold'])
+        action = ShopAction(name, goldCost, trigger, requiredTimelineType, travelTime, isBeingSold, actionNote)
 
         return action
 
 class WorkerMovementAction(Action):
-    def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, workerTimelineID = None, actionNote = ""):
-        super().__init__(0, 0, travelTime, trigger, 0, TimelineType.WORKER, True, actionNote)
+    def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, workerTimelineID = None, actionNote = ""):
+        super().__init__(None, None, None, trigger, None, requiredTimelineType, travelTime, True, actionNote)
         self.mCurrentWorkerTask = currentWorkerTask
         self.mDesiredWorkerTask = desiredWorkerTask
         self.mWorkerTimelineID = workerTimelineID
-
-    def getActionTypeStr(self):
-        return "to" + str(self.mDesiredWorkerTask)
 
     def getActionType(self):
         return ActionType.WorkerMovement
 
     def getAsDictForSerialization(self, isOnTimeline = True):
         dict = super().getAsDictForSerialization(isOnTimeline)
-        dict['mCurrentWorkerTask'] = self.mCurrentWorkerTask.name
-        dict['mDesiredWorkerTask'] = self.mDesiredWorkerTask.name
+        dict['currentWorkerTask'] = self.mCurrentWorkerTask.name
+        dict['desiredWorkerTask'] = self.mDesiredWorkerTask.name
 
         if not isOnTimeline:
-            dict['mWorkerTimelineID'] = self.mWorkerTimelineID
+            dict['workerTimelineID'] = self.mWorkerTimelineID
 
         return dict
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, actionNote):
-        travelTime = int(actionDict['mTravelTime'])
-        currentWorkerTask = WorkerTask[actionDict['mCurrentWorkerTask']]
-        desiredWorkerTask = WorkerTask[actionDict['mDesiredWorkerTask']]
-        strTimelineID = actionDict['mWorkerTimelineID']
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+        currentWorkerTask = WorkerTask[actionDict['currentWorkerTask']]
+        desiredWorkerTask = WorkerTask[actionDict['desiredWorkerTask']]
+        strTimelineID = actionDict['workerTimelineID']
         workerTimelineID = None if strTimelineID == None else int(strTimelineID)
-        action =WorkerMovementAction(travelTime, trigger, currentWorkerTask, desiredWorkerTask, workerTimelineID, actionNote)
+        action = WorkerMovementAction(travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, workerTimelineID, actionNote)
 
         return action
 
 class BuildUpgradeAction(Action):
-    def __init__(self, trigger, upgradeType, actionNote = ""):
-        upgradeStats = UPGRADE_STATS_MAP[upgradeType]
-        super().__init__(upgradeStats.mGoldCost, upgradeStats.mLumberCost, 0, trigger, upgradeStats.mTimeToBuildSec * SECONDS_TO_SIMTIME, upgradeStats.mRequiredTimelineType, False, actionNote)
-        self.mUpgradeType = upgradeType
-
-    def getActionTypeStr(self):
-        return str(self.mUpgradeType)
+    def __init__(self, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionNote = ""):
+        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, None, False, actionNote)
 
     def getActionType(self):
         return ActionType.BuildUpgrade
 
-    def getAsDictForSerialization(self, isOnTimeline = True):
-        dict = super().getAsDictForSerialization(isOnTimeline)
-        dict['mUpgradeType'] = self.mUpgradeType.name
-
-        return dict
-
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, actionNote):
-        upgradeType = UpgradeType[actionDict['mUpgradeType']]
-        action = BuildUpgradeAction(trigger, upgradeType, actionNote)
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+        action = BuildUpgradeAction(trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionNote)
 
         return action
 
@@ -286,5 +282,5 @@ class AutomaticAction(Action):
 
     #Automatic actions don't concern the user and won't be deserialized
     @staticmethod
-    def getActionFromDict(actionDict, trigger, actionNote):
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
         return None

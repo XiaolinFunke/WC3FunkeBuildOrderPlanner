@@ -2,7 +2,7 @@ import unittest
 
 from SimEngine.BuildOrder import BuildOrder
 from SimEngine.TimelineTypeEnum import TimelineType
-from SimEngine.SimulationConstants import Race, UnitType, UNIT_STATS_MAP, STARTING_GOLD, STARTING_LUMBER, STARTING_FOOD, STARTING_FOOD_MAX_MAP, SECONDS_TO_SIMTIME, StructureType, WorkerTask
+from SimEngine.SimulationConstants import Race, STARTING_GOLD, STARTING_LUMBER, STARTING_FOOD, STARTING_FOOD_MAX_MAP, SECONDS_TO_SIMTIME, WorkerTask
 from Test.TestUtilities import buildStructureAndTestResources, buildUnitAndTestResources, buildHeroAndTestResources
 
 class TestBuildingUnits(unittest.TestCase):
@@ -14,12 +14,12 @@ class TestBuildingUnits(unittest.TestCase):
 
         simTime = 0
         #This is number of wisps we can build by resources, but food will be the limit first
-        #numWorkersCanBuild = math.floor(STARTING_GOLD / UNIT_STATS_MAP[UnitType.WISP].mGoldCost)
         numWorkersCanBuild = 5
         for i in range(numWorkersCanBuild):
             buildUnitAndTestResources(self, buildOrder, UnitType.WISP)
 
-            simTime += UNIT_STATS_MAP[UnitType.WISP].mTimeToBuildSec * SECONDS_TO_SIMTIME
+            timeToBuildSec = 14
+            simTime += timeToBuildSec * SECONDS_TO_SIMTIME
             buildOrder.simulate(simTime)
             #Now should be one more worker timeline
             self.assertEqual(len(buildOrder.findAllMatchingTimelines(timelineType=TimelineType.WORKER)), 6 + i)

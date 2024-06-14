@@ -1,9 +1,8 @@
 import json
 
-from SimEngine.SimulationConstants import Race, UnitType, STARTING_FOOD_MAX_MAP, StructureType, WorkerTask, STRUCTURE_STATS_MAP, UNIT_STATS_MAP, TriggerType
+from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TriggerType, TIMELINE_TYPE_GOLD_MINE, TIMELINE_TYPE_WORKER
 from SimEngine.EventHandler import EventHandler
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline
-from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.Action import ActionType, Action
 
 class MapStartingPosition:
@@ -35,11 +34,11 @@ class BuildOrder:
 
         #Give initial starting units
         if self.mRace == Race.NIGHT_ELF:
-            goldMineTimeline = GoldMineTimeline(timelineType = TimelineType.GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler)
+            goldMineTimeline = GoldMineTimeline(timelineType = TIMELINE_TYPE_GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler)
             self.mInactiveTimelines.append(goldMineTimeline)
             for i in range(5):
                 self.mInactiveTimelines.append(WispTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
-            self.mInactiveTimelines.append(Timeline(timelineType = TimelineType.TREE_OF_LIFE, timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
+            self.mInactiveTimelines.append(Timeline(timelineType = "Tree of Life", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
 
     def simulateOrderedActionList(self, orderedActionList):
         for action in orderedActionList:
@@ -73,7 +72,7 @@ class BuildOrder:
             success = True
         elif action.getActionType() == ActionType.Shop:
             #TODO:
-            pass
+            success = True
         elif action.getActionType() == ActionType.WorkerMovement:
             success = self._moveWorker(action)
 
@@ -107,7 +106,7 @@ class BuildOrder:
 
     def _getWorkerTimelineForAction(self, action):
         if action.mWorkerTimelineID:
-            workerTimeline = self._findMatchingTimeline(TimelineType.WORKER, action.mWorkerTimelineID)
+            workerTimeline = self._findMatchingTimeline(TIMELINE_TYPE_WORKER, action.mWorkerTimelineID)
         elif action.mCurrentWorkerTask == WorkerTask.IDLE:
             workerTimeline = self._getIdleWorker()
         elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
@@ -124,7 +123,7 @@ class BuildOrder:
         if not workerTimeline:
             print("Could not get valid worker for moveWorker action!")
 
-        goldMineTimeline = self._findMatchingTimeline(TimelineType.GOLD_MINE)
+        goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
         action.setStartTime(self.mCurrentSimTime)
         if action.mDesiredWorkerTask == WorkerTask.LUMBER:
             #TODO: A little bit odd that we need to pass the goldmine here (it's because we might be moving a worker OFF of gold. But if we store it on the timeline, then we need to pass the goldmine to buildUnit just in case the unit is a wisp)
@@ -166,26 +165,26 @@ class BuildOrder:
     #Get this build order's race and ordered action list as dicts to easily serialize to JSON
     def getRaceAndActionListAsDictForSerialization(self):
         dict = { 
-            'mRace' : self.mRace.name,
-            'mOrderedActionList' : []
+            'race' : self.mRace.name,
+            'orderedActionList' : []
         }
         for action in self.mOrderedActionList:
-            dict['mOrderedActionList'].append(action.getAsDictForSerialization(False))
+            dict['orderedActionList'].append(action.getAsDictForSerialization(False))
 
         return dict
 
     #Get this build order's current simtime and timelines as dicts to easily serialize to JSON
     def getSimTimeAndTimelinesAsDictForSerialization(self):
         dict = { 
-            'mCurrentSimTime' : self.mCurrentSimTime,
-            'mActiveTimelines' : [],
-            'mInactiveTimelines' : [],
-            'mCurrentResources' : self.mCurrentResources.getAsDictForSerialization()
+            'currentSimTime' : self.mCurrentSimTime,
+            'activeTimelines' : [],
+            'inactiveTimelines' : [],
+            'currentResources' : self.mCurrentResources.getAsDictForSerialization()
         }
         for timeline in self.mActiveTimelines:
-            dict['mActiveTimelines'].append(timeline.getAsDictForSerialization())
+            dict['activeTimelines'].append(timeline.getAsDictForSerialization())
         for timeline in self.mInactiveTimelines:
-            dict['mInactiveTimelines'].append(timeline.getAsDictForSerialization())
+            dict['inactiveTimelines'].append(timeline.getAsDictForSerialization())
 
         return dict
 
@@ -193,10 +192,10 @@ class BuildOrder:
     #Returns the build order object after simulating the specified ordered action list
     @staticmethod
     def simulateBuildOrderFromDict(buildOrderDict):
-        buildOrder = BuildOrder(Race[buildOrderDict['mRace']])
+        buildOrder = BuildOrder(Race[buildOrderDict['race']])
 
         orderedActionList = []
-        for actionDict in buildOrderDict['mOrderedActionList']:
+        for actionDict in buildOrderDict['orderedActionList']:
             orderedActionList.append( Action.getActionFromDict(actionDict) )
 
         buildOrder.simulateOrderedActionList(orderedActionList)
@@ -206,7 +205,7 @@ class BuildOrder:
 
     #Return True if successful, False otherwise
     def _buildUnit(self, action):
-        if UNIT_STATS_MAP[action.mUnitType].mIsHero:
+        if action.mIsHero:
             return self._buildHero(action)
         else:
             return self._doBuildUnit(action)
@@ -228,7 +227,7 @@ class BuildOrder:
 
         matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
         if not matchingTimelines:
-            print("Tried to build " + UNIT_STATS_MAP[action.mUnitType].mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
+            print("Tried to build " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
             return False
 
         minAvailableTime = float('inf')
@@ -245,7 +244,7 @@ class BuildOrder:
         if action.mDontExecute == True:
             return False 
         elif not nextAvailableTimeline.buildUnit(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources):
-            print("Failed to build", UNIT_STATS_MAP[action.mUnitType].mName)
+            print("Failed to build", action.mName)
             return False
 
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
@@ -281,12 +280,12 @@ class BuildOrder:
             #We should have already simulated up until the worker was built, since the Trigger Type would be NEXT_WORKER_BUILT
             workerTimeline = self._getLastBuiltWorkerTimeline()
         
-        goldMineTimeline = self._findMatchingTimeline(TimelineType.GOLD_MINE)
+        goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
         action.setStartTime(self.mCurrentSimTime)
         if action.mDontExecute == True:
             return False
         elif not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline):
-            print("Failed to build", STRUCTURE_STATS_MAP[action.mStructureType].mName)
+            print("Failed to build", action.mName)
             return False
 
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
@@ -294,7 +293,7 @@ class BuildOrder:
         return True
 
     def _getIdleWorker(self):
-        workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
+        workerTimelines = self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER)
 
         idleWorkerTimelines = []
         for timeline in workerTimelines:
@@ -309,7 +308,7 @@ class BuildOrder:
     #Get the timeline of the 'most idle' worker on a given resource
     #@param onGold - True if the worker should be taken from gold. If false, from lumber
     def _getMostIdleWorkerOnResource(self, onGold):
-        workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
+        workerTimelines = self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER)
 
         correctTaskWorkerTimelines = []
         correctTask = WorkerTask.GOLD if onGold else WorkerTask.LUMBER
@@ -330,7 +329,7 @@ class BuildOrder:
         #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
         highestTimelineID = float('-inf')
-        for timeline in self.findAllMatchingTimelines(TimelineType.WORKER):
+        for timeline in self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER):
             if timeline.getTimelineID() > highestTimelineID:
                 highestTimelineID = timeline.getTimelineID()
                 newestTimeline = timeline
@@ -340,12 +339,12 @@ class BuildOrder:
     #Simulates until the next worker will be built and returns its timeline ID
     def _getNextBuiltWorkerTimelineID(self): 
         #TODO: This function could be optimized if it's a performance issue
-        initialNumWorkerTimelines = len(self.findAllMatchingTimelines(TimelineType.WORKER))
+        initialNumWorkerTimelines = len(self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER))
 
         #TODO: Have some way to ensure a worker is being built, so that we know we won't simulate forever here
         while True:
             self.simulate(self.mCurrentSimTime + 1)   
-            workerTimelines = self.findAllMatchingTimelines(TimelineType.WORKER)
+            workerTimelines = self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER)
             #Number of worker timelines has changed. This means a worker was built
             if initialNumWorkerTimelines != len(workerTimelines):
                 break
@@ -353,7 +352,7 @@ class BuildOrder:
         #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
         highestTimelineID = float('-inf')
-        for timeline in self.findAllMatchingTimelines(TimelineType.WORKER):
+        for timeline in self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER):
             highestTimelineID = max(highestTimelineID, timeline.getTimelineID())
             #TODO: Could just track the timeline of the highest here as well and return that instead of the ID - worker movement 
             #functions could call this automatically instead of needing to call this from outside
@@ -402,10 +401,10 @@ class CurrentResources:
 
     def getAsDictForSerialization(self):
         dict = {
-            'mCurrentGold' : self.mCurrentGold,
-            'mCurrentLumber' : self.mCurrentLumber,
-            'mCurrentFood' : self.mCurrentFood,
-            'mCurrentFoodMax' : self.mCurrentFoodMax
+            'currentGold' : self.mCurrentGold,
+            'currentLumber' : self.mCurrentLumber,
+            'currentFood' : self.mCurrentFood,
+            'currentFoodMax' : self.mCurrentFoodMax
         }
 
         return dict

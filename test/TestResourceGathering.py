@@ -1,7 +1,7 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER, UnitType, UNIT_STATS_MAP, WorkerTask, Trigger, TriggerType
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER, WorkerTask, Trigger, TriggerType
 from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.Action import WorkerMovementAction, BuildUnitAction
 
@@ -330,7 +330,8 @@ class TestResourceGathering(unittest.TestCase):
         #So, we have 4 workers mining for 15 seconds (120 gold)
         #And then 5 workers mining for the rest
         timeSec = 3600
-        expectedGoldAmount = (STARTING_GOLD - UNIT_STATS_MAP[UnitType.WISP].mGoldCost) + 120 + ((timeSec - 15) * 10)
+        wispGoldCost = 60
+        expectedGoldAmount = (STARTING_GOLD - wispGoldCost) + 120 + ((timeSec - 15) * 10)
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
     def testElfSwitchingWorkerLumberToGold(self):

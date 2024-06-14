@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, UnitType, UNIT_STATS_MAP, WorkerTask, StructureType, STRUCTURE_STATS_MAP, Trigger, TriggerType
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, WorkerTask, Trigger, TriggerType, isUnitWorker, Worker, TIMELINE_TYPE_WORKER
 from SimEngine.EventHandler import Event
 from SimEngine.Action import BuildUnitAction, WorkerMovementAction, AutomaticAction
 from SimEngine.TimelineTypeEnum import TimelineType
@@ -71,7 +71,7 @@ class Timeline:
     #Returns False and won't add if overlaps with the Action before it in the Timeline
     def addAction(self, newAction, currentResources = None):
         i = self.findProperSpotForAction(newAction.getStartTime()) 
-        prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 else 0
+        prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 and self.mActions[i-1].mDuration else 0
         if newAction.getStartTime() < prevActionEndTime:
             print("Action failed to add to timeline. Its start time is", newAction.getStartTime())
             return False
@@ -110,9 +110,9 @@ class Timeline:
         success = False
 
         events = []
-        if action.mUnitType == UnitType.WISP:
-            events = [ Event(lambda: inactiveTimelines.append(WispTimeline(getNextTimelineIDFunc(), self.mEventHandler)), action.getStartTime() + (action.mDuration), 
-                                            0, self.mEventHandler.getNewEventID(), "Wisp produced") ]
+        if isUnitWorker(action.mName):
+            events = [ Event(lambda: inactiveTimelines.append(WorkerTimeline.getNewWorkerTimeline(action.mName, getNextTimelineIDFunc(), self.mEventHandler)), action.getStartTime() + (action.mDuration), 
+                                            0, self.mEventHandler.getNewEventID(), "Worker " + action.mName + " produced") ]
             self.mEventHandler.registerEvents(events)
 
         success = self.addAction(action, currentResources)
@@ -121,21 +121,27 @@ class Timeline:
 
     def getAsDictForSerialization(self):
         dict = {
-            'mTimelineType' : self.mTimelineType.name,
-            'mTimelineID' : self.mTimelineID,
-            'mActions' : []
+            'timelineType' : self.mTimelineType,
+            'timelineID' : self.mTimelineID,
+            'actions' : []
         }
 
         for action in self.mActions:
             actionDict = action.getAsDictForSerialization()
             #Actions that don't concern the user will return None here and won't be serialized
             if actionDict != None:
-                dict['mActions'].append(actionDict)
+                dict['actions'].append(actionDict)
 
         return dict
 
     def printTimeline(self):
         print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)
+
+    def __str__(self):
+        return "Timeline: " + self.mTimelineType + " (ID:" + str(self.mTimelineID) + ")"
+
+    def __repr__(self):
+        return self.__str__()
 
 class WorkerTimeline(Timeline):
     def __init__(self, timelineType, timelineID, eventHandler, lumberCycleTimeSec, lumberGainPerCycle, goldCycleTimeSec, goldGainPerCycle):
@@ -150,6 +156,23 @@ class WorkerTimeline(Timeline):
 
         self.mTimeAtCurrentTaskSec = 0
         self.mProductiveTimeAtCurrentTaskSec = 0
+
+    @staticmethod
+    def getNewWorkerTimeline(workerName, timelineID, eventHandler):
+        if not isUnitWorker(workerName):
+            print("Tried to get new worker timeline for unit that isn't a worker!")
+            return None
+        
+        if workerName == Worker.Acolyte.name:
+            return AcolyteTimeline(timelineID, eventHandler)
+        elif workerName == Worker.Ghoul.name:
+            return GhoulTimeline(timelineID, eventHandler)
+        elif workerName == Worker.Peasant.name:
+            return PeasantTimeline(timelineID, eventHandler)
+        elif workerName == Worker.Peon.name:
+            return PeonTimeline(timelineID, eventHandler)
+        elif workerName == Worker.Wisp.name:
+            return WispTimeline(timelineID, eventHandler)
 
     def changeTask(self, goldMineTimeline, currSimTime, newTask):
         if self.mCurrentTask == newTask:
@@ -199,18 +222,17 @@ class WorkerTimeline(Timeline):
 
     #Return True if successful, False otherwise
     def buildStructure(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
-        structureStats = STRUCTURE_STATS_MAP[action.mStructureType]
+        #TODO: I think this event is somehow appending a None Timeline to the inactive timeline list
+        newTimelineEvent = Event(lambda: inactiveTimelines.append(Timeline(action.mName, getNextTimelineIDFunc(), self.mEventHandler)), action.mTravelTime + action.mStartTime + action.mDuration, 
+                                            0, self.mEventHandler.getNewEventID(), "Create timeline for " + action.mName)
+        events = [ newTimelineEvent ]
 
-        events = []
-        #TODO: Could refactor this to combine more cases
-        if action.mStructureType == StructureType.ALTAR_OF_ELDERS:
-            events = [ Event(lambda: inactiveTimelines.append(Timeline(TimelineType.ALTAR_OF_ELDERS, getNextTimelineIDFunc(), self.mEventHandler)), action.mStartTime + action.mDuration, 
-                                            0, self.mEventHandler.getNewEventID(), structureStats.mName + " finished") ]
-            self.mEventHandler.registerEvents(events)
-        elif action.mStructureType == StructureType.MOON_WELL:
-            events = [ Event(lambda: currentResources.increaseMaxFood(10), action.mStartTime + action.mDuration, 
-                                            0, self.mEventHandler.getNewEventID(), structureStats.mName + " finished") ]
-            self.mEventHandler.registerEvents(events)
+        increaseFoodMaxEvent = Event(lambda: currentResources.increaseMaxFood(action.mFoodProvided), action.mTravelTime + action.mStartTime + action.mDuration, 
+                                            0, self.mEventHandler.getNewEventID(), "Add max food for " + action.mName)
+        if action.mFoodProvided != 0:
+            events.append(increaseFoodMaxEvent)
+
+        self.mEventHandler.registerEvents(events)
 
         action.setAssociatedEvents(events)
         self.addAction(action, currentResources)
@@ -223,8 +245,28 @@ class WorkerTimeline(Timeline):
 
 class WispTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
-        super().__init__(timelineType = TimelineType.WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = 8, lumberGainPerCycle = 5, goldCycleTimeSec = 5, goldGainPerCycle = 10)
+
+class AcolyteTimeline(WorkerTimeline):
+    def __init__(self, timelineID, eventHandler):
+        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+                         lumberCycleTimeSec = None, lumberGainPerCycle = None, goldCycleTimeSec = 5, goldGainPerCycle = 10)
+
+class GhoulTimeline(WorkerTimeline):
+    def __init__(self, timelineID, eventHandler):
+        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+                         lumberCycleTimeSec = None, lumberGainPerCycle = 20, goldCycleTimeSec = None, goldGainPerCycle = None)
+
+class PeasantTimeline(WorkerTimeline):
+    def __init__(self, timelineID, eventHandler):
+        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+                         lumberCycleTimeSec = None, lumberGainPerCycle = 10, goldCycleTimeSec = None, goldGainPerCycle = 10)
+
+class PeonTimeline(WorkerTimeline):
+    def __init__(self, timelineID, eventHandler):
+        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+                         lumberCycleTimeSec = None, lumberGainPerCycle = 10, goldCycleTimeSec = None, goldGainPerCycle = 10)
 
 class GoldMineTimeline(Timeline):
     def __init__(self, timelineType, timelineID, eventHandler, race, currentResources):

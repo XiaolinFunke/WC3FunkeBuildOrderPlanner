@@ -1,7 +1,7 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import Race, Trigger, TriggerType, UnitType, StructureType, WorkerTask
+from SimEngine.SimulationConstants import Race, Trigger, TriggerType, WorkerTask
 from SimEngine.Timeline import Timeline 
 from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.Action import BuildUnitAction, BuildStructureAction
