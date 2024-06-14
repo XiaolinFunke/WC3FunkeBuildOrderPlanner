@@ -29,9 +29,6 @@ class BuildOrder:
         self.mEventHandler = EventHandler()
         self.mCurrentSimTime = 0
 
-        #Track number of heroes built, so we can know if it's the first free one, or if we already have 3 and can't build more
-        self.mHeroesBuilt = 0
-
         #Give initial starting units
         if self.mRace == Race.NIGHT_ELF:
             goldMineTimeline = GoldMineTimeline(timelineType = TIMELINE_TYPE_GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler)
@@ -268,13 +265,6 @@ class BuildOrder:
         self.simulate(self.mCurrentSimTime)
         return True
 
-    #Return True if successful, False otherwise
-    def _buildUnit(self, action):
-        if action.mIsHero:
-            return self._buildHero(action)
-        else:
-            return self._doBuildUnit(action)
-
     def _simulateUntilResourcesAvailable(self, goldAmount, lumberAmount, foodAmount):
         #TODO: Have a check to make sure this will eventually be true so we don't simulate into infinity
         while not self._areRequiredResourcesAvailable(goldAmount, lumberAmount, foodAmount):
@@ -286,7 +276,7 @@ class BuildOrder:
             self.simulate(self.mCurrentSimTime + 1)
 
     #Return True if action executed successfully, False if didn't execute or failed to execute
-    def _doBuildUnit(self, action):
+    def _buildUnit(self, action):
         self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=action.mFoodCost )
         self._simulateUntilTimelineExists(action.getRequiredTimelineType())
 
@@ -316,21 +306,22 @@ class BuildOrder:
         self.simulate(self.mCurrentSimTime)
         return True
 
-    def _buildHero(self, action):
-        #TODO: Enforce not building same hero twice as well
-        #Can't build any more heroes after the third one
-        if self.mHeroesBuilt >= 3:
-            return False
+    #Commented out -- will rely on front-end for hero handling unless we eventually want to double-check it here
+    # def _buildHero(self, action):
+    #     #TODO: Enforce not building same hero twice as well
+    #     #Can't build any more heroes after the third one
+    #     if self.mHeroesBuilt >= 3:
+    #         return False
 
-        if self.mHeroesBuilt == 0:
-            #First hero doesn't cost gold or lumber
-            action.setCostToFree()
+    #     if self.mHeroesBuilt == 0:
+    #         #First hero doesn't cost gold or lumber
+    #         action.setCostToFree()
 
-        if self._doBuildUnit(action):
-            self.mHeroesBuilt += 1
-            return True
-        else:
-            return False
+    #     if self._doBuildUnit(action):
+    #         self.mHeroesBuilt += 1
+    #         return True
+    #     else:
+    #         return False
 
     #Return True if executed the action successfully, False if didn't execute or failed to execute
     #Will be built with the most idle worker currently doing the workerTask passed in

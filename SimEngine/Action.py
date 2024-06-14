@@ -131,10 +131,9 @@ class Action:
         return self.__str__()
 
 class BuildUnitAction(Action):
-    def __init__(self, trigger, name, goldCost, lumberCost, foodCost, duration, requiredTimelineType, isHero = False, actionNote = ""):
+    def __init__(self, trigger, name, goldCost, lumberCost, foodCost, duration, requiredTimelineType, actionNote = ""):
         super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, None, False, actionNote)
         self.mFoodCost = foodCost
-        self.mIsHero = isHero
 
     def payForAction(self, currentResources):
         super().payForAction(currentResources)
@@ -148,7 +147,6 @@ class BuildUnitAction(Action):
 
         if not isOnTimeline:
             dict['foodCost'] = self.mFoodCost
-            dict['isHero'] = self.mIsHero
 
         return dict
 
@@ -156,9 +154,8 @@ class BuildUnitAction(Action):
     @staticmethod
     def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
         foodCost = int(actionDict['foodCost'])
-        isHero = bool(actionDict['isHero'])
 
-        action = BuildUnitAction(trigger, name, goldCost, lumberCost, foodCost, duration, requiredTimelineType, isHero, actionNote)
+        action = BuildUnitAction(trigger, name, goldCost, lumberCost, foodCost, duration, requiredTimelineType, actionNote)
 
         return action
 
