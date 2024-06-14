@@ -119,6 +119,16 @@ class Timeline:
 
         return success
 
+    def buildUpgrade(self, action, currentResources):
+        success = self.addAction(action, currentResources)
+
+        return success
+
+    def executeShopAction(self, action, currentResources):
+        success = self.addAction(action, currentResources)
+
+        return success
+
     def getAsDictForSerialization(self):
         dict = {
             'timelineType' : self.mTimelineType,

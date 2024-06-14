@@ -39,6 +39,9 @@ class BuildOrder:
             for i in range(5):
                 self.mInactiveTimelines.append(WispTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
             self.mInactiveTimelines.append(Timeline(timelineType = "Tree of Life", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
+            #TODO: Adding these always for now, but later can have them only on some maps
+            self.mInactiveTimelines.append(Timeline(timelineType = "Tavern", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
+            self.mInactiveTimelines.append(Timeline(timelineType = "Goblin Merchant", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
 
     def simulateOrderedActionList(self, orderedActionList):
         for action in orderedActionList:
@@ -68,11 +71,9 @@ class BuildOrder:
         elif action.getActionType() == ActionType.BuildStructure:
             success = self._buildStructure(action)
         elif action.getActionType() == ActionType.BuildUpgrade:
-            #TODO:
-            success = True
+            success = self._buildUpgrade(action)
         elif action.getActionType() == ActionType.Shop:
-            #TODO:
-            success = True
+            success = self._executeShopAction(action)
         elif action.getActionType() == ActionType.WorkerMovement:
             success = self._moveWorker(action)
 
@@ -202,6 +203,70 @@ class BuildOrder:
 
         return buildOrder
 
+    #Return True if action executed successfully, False if didn't execute or failed to execute
+    def _buildUpgrade(self, action):
+        #TODO: This and _doBuildUnit have a ton of shared code we could refactor. Only difference if foodAmount = 0 on this line and buildUpgrade call for timeline below
+        self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=0 )
+        self._simulateUntilTimelineExists(action.getRequiredTimelineType())
+
+        matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
+        if not matchingTimelines:
+            print("Tried to build " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
+            return False
+
+        minAvailableTime = float('inf')
+        for timeline in matchingTimelines:
+            prevMinAvailableTime = minAvailableTime
+            minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
+            if minAvailableTime != prevMinAvailableTime:
+                nextAvailableTimeline = timeline
+
+        #TODO: This doesn't account for the fact that there could be a new timeline that would have an earlier time available
+        self.simulate(minAvailableTime)
+
+        action.setStartTime(self.mCurrentSimTime)
+        if action.mDontExecute == True:
+            return False 
+        elif not nextAvailableTimeline.buildUpgrade(action, self.mCurrentResources):
+            print("Failed to build", action.mName)
+            return False
+
+        #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
+        self.simulate(self.mCurrentSimTime)
+        return True
+
+    #Return True if action executed successfully, False if didn't execute or failed to execute
+    def _executeShopAction(self, action):
+        #TODO: This and _doBuildUnit have a ton of shared code we could refactor. Only difference if lumberAmount = 0 on this line and executeShopAction call for timeline below
+        #TODO: Also changed print lines to purchase/sell
+        self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=0, foodAmount=0 )
+        self._simulateUntilTimelineExists(action.getRequiredTimelineType())
+
+        matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
+        if not matchingTimelines:
+            print("Tried to purchase/sell " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
+            return False
+
+        minAvailableTime = float('inf')
+        for timeline in matchingTimelines:
+            prevMinAvailableTime = minAvailableTime
+            minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
+            if minAvailableTime != prevMinAvailableTime:
+                nextAvailableTimeline = timeline
+
+        #TODO: This doesn't account for the fact that there could be a new timeline that would have an earlier time available
+        self.simulate(minAvailableTime)
+
+        action.setStartTime(self.mCurrentSimTime)
+        if action.mDontExecute == True:
+            return False 
+        elif not nextAvailableTimeline.executeShopAction(action, self.mCurrentResources):
+            print("Failed to purchase/sell", action.mName)
+            return False
+
+        #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
+        self.simulate(self.mCurrentSimTime)
+        return True
 
     #Return True if successful, False otherwise
     def _buildUnit(self, action):

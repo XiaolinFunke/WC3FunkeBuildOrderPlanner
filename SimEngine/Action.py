@@ -92,8 +92,8 @@ class Action:
         return self.mTrigger
 
     def payForAction(self, currentResources):
-        currentResources.deductGold(self.mGoldCost)
-        currentResources.deductLumber(self.mLumberCost)
+        if self.mGoldCost: currentResources.deductGold(self.mGoldCost)
+        if self.mLumberCost: currentResources.deductLumber(self.mLumberCost)
 
     def setStartTime(self, startTime):
         self.mStartTime = startTime

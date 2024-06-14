@@ -62,7 +62,8 @@ class Trigger():
     def getTriggerFromDict(triggerDict):
         triggerType = TriggerType[triggerDict['triggerType']]
 
-        triggerValue = None if triggerDict['value'] == None else int(triggerDict['value'])
+        #Use get instead of [] because it will return None if there is no trigger value
+        triggerValue = triggerDict.get('value')
         triggerObj = Trigger(triggerType, triggerValue)
 
         return triggerObj
@@ -71,8 +72,10 @@ class Trigger():
     def getAsDictForSerialization(self):
         dict = {
             'triggerType' : self.mTriggerType.name,
-            'value' : self.mValue
         }
+        if self.mValue != None:
+            dict['value'] = self.mValue
+
         return dict
 
 class TriggerType(Enum):
