@@ -162,7 +162,6 @@ class BuildUnitAction(Action):
 class BuildStructureAction(Action):
     def __init__(self, travelTime, trigger, currentWorkerTask, name, goldCost, lumberCost, foodProvided, duration, requiredTimelineType, actionID, consumesWorker = False, isInterruptable = False):
         super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, travelTime, actionID, isInterruptable)
-        #TODO: Are some of these Action members even really necessary to track? Like, won't food provided really just be handled by the associated event?
         self.mFoodProvided = foodProvided
         self.mConsumesWorker = consumesWorker
         self.mCurrentWorkerTask = currentWorkerTask

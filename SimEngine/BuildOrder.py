@@ -1,8 +1,8 @@
 import json
 
-from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TriggerType, TIMELINE_TYPE_GOLD_MINE
-from SimEngine.EventHandler import EventHandler
-from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline
+from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TriggerType, TIMELINE_TYPE_GOLD_MINE, isUnitWorker
+from SimEngine.EventHandler import EventHandler, Event
+from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline, WorkerTimeline
 from SimEngine.Action import ActionType, Action
 
 class MapStartingPosition:
@@ -63,14 +63,10 @@ class BuildOrder:
             #This will simulate until the next worker is built
             self._getNextBuiltWorkerTimelineID(action.getTrigger().mValue)
 
-        if action.getActionType() == ActionType.BuildUnit:
-            success = self._buildUnit(action)
+        if action.getActionType() == ActionType.BuildUnit or action.getActionType() == ActionType.BuildUpgrade or action.getActionType() == ActionType.Shop:
+            success = self._executeAction(action)
         elif action.getActionType() == ActionType.BuildStructure:
             success = self._buildStructure(action)
-        elif action.getActionType() == ActionType.BuildUpgrade:
-            success = self._buildUpgrade(action)
-        elif action.getActionType() == ActionType.Shop:
-            success = self._executeShopAction(action)
         elif action.getActionType() == ActionType.WorkerMovement:
             success = self._moveWorker(action)
 
@@ -201,14 +197,14 @@ class BuildOrder:
         return buildOrder
 
     #Return True if action executed successfully, False if didn't execute or failed to execute
-    def _buildUpgrade(self, action):
-        #TODO: This and _doBuildUnit have a ton of shared code we could refactor. Only difference if foodAmount = 0 on this line and buildUpgrade call for timeline below
-        self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=0 )
+    def _executeAction(self, action):
+        #Get lumber + food cost if they exist and aren't None, else default them to 0
+        self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost if action.mLumberCost != None else 0, foodAmount=getattr(action, 'mFoodCost', 0) )
         self._simulateUntilTimelineExists(action.getRequiredTimelineType())
 
         matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
         if not matchingTimelines:
-            print("Tried to build " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
+            print("Tried to execute action", action.__class__.__name__ + " - " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
             return False
 
         minAvailableTime = float('inf')
@@ -222,43 +218,17 @@ class BuildOrder:
         self.simulate(minAvailableTime)
 
         action.setStartTime(self.mCurrentSimTime)
+
         if action.mDontExecute == True:
             return False 
-        elif not nextAvailableTimeline.buildUpgrade(action, self.mCurrentResources):
-            print("Failed to build", action.mName)
-            return False
 
-        #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
-        self.simulate(self.mCurrentSimTime)
-        return True
+        if isUnitWorker(action.mName):
+            events = [ Event(lambda: self.mInactiveTimelines.append(WorkerTimeline.getNewWorkerTimeline(action.mName, self.getNextTimelineID(), self.mEventHandler)), action.getStartTime() + action.mDuration, 
+                                            0, self.mEventHandler.getNewEventID(), "Worker " + action.mName + " produced") ]
+            self.mEventHandler.registerEvents(events)
 
-    #Return True if action executed successfully, False if didn't execute or failed to execute
-    def _executeShopAction(self, action):
-        #TODO: This and _doBuildUnit have a ton of shared code we could refactor. Only difference if lumberAmount = 0 on this line and executeShopAction call for timeline below
-        #TODO: Also changed print lines to purchase/sell
-        self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=0, foodAmount=0 )
-        self._simulateUntilTimelineExists(action.getRequiredTimelineType())
-
-        matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
-        if not matchingTimelines:
-            print("Tried to purchase/sell " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
-            return False
-
-        minAvailableTime = float('inf')
-        for timeline in matchingTimelines:
-            prevMinAvailableTime = minAvailableTime
-            minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
-            if minAvailableTime != prevMinAvailableTime:
-                nextAvailableTimeline = timeline
-
-        #TODO: This doesn't account for the fact that there could be a new timeline that would have an earlier time available
-        self.simulate(minAvailableTime)
-
-        action.setStartTime(self.mCurrentSimTime)
-        if action.mDontExecute == True:
-            return False 
-        elif not nextAvailableTimeline.executeShopAction(action, self.mCurrentResources):
-            print("Failed to purchase/sell", action.mName)
+        if not nextAvailableTimeline.addAction(action, self.mCurrentResources):
+            print("Failed to execute action", action.__class__.__name__ + " - " + action.mName)
             return False
 
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
@@ -274,37 +244,6 @@ class BuildOrder:
         #TODO: Have a check to make sure this will eventually be true so we don't simulate into infinity
         while self._findMatchingTimeline(timelineType) == None:
             self.simulate(self.mCurrentSimTime + 1)
-
-    #Return True if action executed successfully, False if didn't execute or failed to execute
-    def _buildUnit(self, action):
-        self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=action.mFoodCost )
-        self._simulateUntilTimelineExists(action.getRequiredTimelineType())
-
-        matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
-        if not matchingTimelines:
-            print("Tried to build " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
-            return False
-
-        minAvailableTime = float('inf')
-        for timeline in matchingTimelines:
-            prevMinAvailableTime = minAvailableTime
-            minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
-            if minAvailableTime != prevMinAvailableTime:
-                nextAvailableTimeline = timeline
-
-        #TODO: This doesn't account for the fact that there could be a new timeline that would have an earlier time available
-        self.simulate(minAvailableTime)
-
-        action.setStartTime(self.mCurrentSimTime)
-        if action.mDontExecute == True:
-            return False 
-        elif not nextAvailableTimeline.buildUnit(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources):
-            print("Failed to build", action.mName)
-            return False
-
-        #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
-        self.simulate(self.mCurrentSimTime)
-        return True
 
     #Commented out -- will rely on front-end for hero handling unless we eventually want to double-check it here
     # def _buildHero(self, action):
@@ -349,6 +288,10 @@ class BuildOrder:
         return True
 
     def _getIdleWorker(self, workerType):
+        if not isUnitWorker(workerType):
+            print("Tried to get an idle worker, but worker type of", workerType, " is not the type of a worker!")
+            return None
+
         workerTimelines = self.findAllMatchingTimelines(workerType)
 
         idleWorkerTimelines = []
@@ -364,6 +307,10 @@ class BuildOrder:
     #Get the timeline of the 'most idle' worker on a given resource
     #@param onGold - True if the worker should be taken from gold. If false, from lumber
     def _getMostIdleWorkerOnResource(self, workerType, onGold):
+        if not isUnitWorker(workerType):
+            print("Tried to get most idle worker on resource, but worker type of", workerType, " is not the type of a worker!")
+            return None
+
         workerTimelines = self.findAllMatchingTimelines(workerType)
 
         correctTaskWorkerTimelines = []
@@ -382,6 +329,10 @@ class BuildOrder:
 
     #Return the timeline of the most recently built worker
     def _getLastBuiltWorkerTimeline(self, workerType):
+        if not isUnitWorker(workerType):
+            print("Tried to get last built worker timeline, but worker type of", workerType, " is not the type of a worker!")
+            return None
+
         #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
         highestTimelineID = float('-inf')
@@ -394,6 +345,10 @@ class BuildOrder:
 
     #Simulates until the next worker will be built and returns its timeline ID
     def _getNextBuiltWorkerTimelineID(self, workerType): 
+        if not isUnitWorker(workerType):
+            print("Tried to get next built worker timeline, but worker type of", workerType, " is not the type of a worker!")
+            return None
+
         #TODO: This function could be optimized if it's a performance issue
         initialNumWorkerTimelines = len(self.findAllMatchingTimelines(workerType))
 

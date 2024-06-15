@@ -104,29 +104,6 @@ class Timeline:
             if i == len(self.mActions) or actionStartTime < self.mActions[i].mStartTime:
                 return i
 
-    def buildUnit(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources):
-        success = False
-
-        events = []
-        if isUnitWorker(action.mName):
-            events = [ Event(lambda: inactiveTimelines.append(WorkerTimeline.getNewWorkerTimeline(action.mName, getNextTimelineIDFunc(), self.mEventHandler)), action.getStartTime() + (action.mDuration), 
-                                            0, self.mEventHandler.getNewEventID(), "Worker " + action.mName + " produced") ]
-            self.mEventHandler.registerEvents(events)
-
-        success = self.addAction(action, currentResources)
-
-        return success
-
-    def buildUpgrade(self, action, currentResources):
-        success = self.addAction(action, currentResources)
-
-        return success
-
-    def executeShopAction(self, action, currentResources):
-        success = self.addAction(action, currentResources)
-
-        return success
-
     def getAsDictForSerialization(self):
         dict = {
             'timelineType' : self.mTimelineType,
