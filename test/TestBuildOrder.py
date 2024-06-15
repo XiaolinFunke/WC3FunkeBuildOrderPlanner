@@ -1,7 +1,7 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import Race, Trigger, TriggerType, WorkerTask
+from SimEngine.SimulationConstants import Race, Trigger, TriggerType, WorkerTask, Worker, SECONDS_TO_SIMTIME
 from SimEngine.Timeline import Timeline 
 from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.Action import BuildUnitAction, BuildStructureAction
@@ -60,11 +60,11 @@ class TestBuildOrder(unittest.TestCase):
 
         orderedActionList = []
 
-        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.WISP))
-        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, StructureType.ALTAR_OF_ELDERS))
-        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, StructureType.MOON_WELL))
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 1))
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Moon Well", 180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 2))
 
         #Should be no cost, since it's the first hero
-        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), UnitType.DEMON_HUNTER))
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), "Demon Hunter", 0, 0, 5, 55 * SECONDS_TO_SIMTIME, 3, "Altar of Elders"))
 
         self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), True) 

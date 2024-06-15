@@ -5,7 +5,6 @@ from SimEngine.TimelineTypeEnum import TimelineType
 SECONDS_TO_SIMTIME = 10 #simtime is in deciseconds
 SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
 
-TIMELINE_TYPE_WORKER = "Worker"
 TIMELINE_TYPE_GOLD_MINE = "Gold Mine"
 
 class Worker(Enum):
@@ -52,10 +51,11 @@ class WorkerTask(Enum):
     IDLE = auto()
 
 class Trigger():
-    def __init__(self, triggerType, triggerAmount = None):
+    def __init__(self, triggerType, triggerValue = None):
         self.mTriggerType = triggerType
-        #Not used for ASAP and NEXT_WORKER_BUILT trigger types
-        self.mValue = triggerAmount
+        #Not used for ASAP trigger type
+        #Integer for other types, except NEXT_WORKER, for which its a string designating the worker type
+        self.mValue = triggerValue
 
     #Used for deserializing JSON
     @staticmethod

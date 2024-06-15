@@ -1,8 +1,6 @@
-from enum import Enum, auto
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, WorkerTask, Trigger, TriggerType, isUnitWorker, Worker, TIMELINE_TYPE_WORKER
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, WorkerTask, isUnitWorker, Worker
 from SimEngine.EventHandler import Event
-from SimEngine.Action import BuildUnitAction, WorkerMovementAction, AutomaticAction
-from SimEngine.TimelineTypeEnum import TimelineType
+from SimEngine.Action import AutomaticAction
 
 # Represents a single timeline on the planner. For example, the production queue of a barracks, or blacksmith, etc.
 class Timeline:
@@ -90,7 +88,7 @@ class Timeline:
     #However, if it would overlap with an earlier Action, will return a later time when it can actually be scheduled
     def getNextPossibleTimeForAction(self, actionStartTime):
         i = self.findProperSpotForAction(actionStartTime)
-        prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 else 0
+        prevActionEndTime = self.mActions[i-1].mStartTime + self.mActions[i-1].mDuration if i != 0 and self.mActions[i-1].mDuration else 0
         newStartTime = max(actionStartTime, prevActionEndTime)
         return newStartTime
 
@@ -255,27 +253,27 @@ class WorkerTimeline(Timeline):
 
 class WispTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
-        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+        super().__init__(timelineType = Worker.Wisp.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = 8, lumberGainPerCycle = 5, goldCycleTimeSec = 5, goldGainPerCycle = 10)
 
 class AcolyteTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
-        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+        super().__init__(timelineType = Worker.Acolyte.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = None, lumberGainPerCycle = None, goldCycleTimeSec = 5, goldGainPerCycle = 10)
 
 class GhoulTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
-        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+        super().__init__(timelineType = Worker.Ghoul.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = None, lumberGainPerCycle = 20, goldCycleTimeSec = None, goldGainPerCycle = None)
 
 class PeasantTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
-        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+        super().__init__(timelineType = Worker.Peasant.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = None, lumberGainPerCycle = 10, goldCycleTimeSec = None, goldGainPerCycle = 10)
 
 class PeonTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
-        super().__init__(timelineType = TIMELINE_TYPE_WORKER, timelineID = timelineID, eventHandler=eventHandler, 
+        super().__init__(timelineType = Worker.Peon.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = None, lumberGainPerCycle = 10, goldCycleTimeSec = None, goldGainPerCycle = 10)
 
 class GoldMineTimeline(Timeline):

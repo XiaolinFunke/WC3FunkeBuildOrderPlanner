@@ -11,7 +11,7 @@ class ActionType(Enum):
     BuildUpgrade = auto()
 
 class Action:
-    def __init__(self, name, goldCost, lumberCost, trigger, duration, requiredTimelineType, travelTime, interruptable = False, actionNote = ""):
+    def __init__(self, name, goldCost, lumberCost, trigger, duration, requiredTimelineType, travelTime, actionID, interruptable = False):
         self.mName = name
         self.mGoldCost = goldCost
         self.mLumberCost = lumberCost
@@ -25,7 +25,7 @@ class Action:
         #Travel time takes place at the very beginning of the action (start time)
         self.mTravelTime = travelTime
         self.mRequiredTimelineType = requiredTimelineType
-        self.mActionNote = actionNote
+        self.mActionID = actionID
         #Some actions, such as mining actions, are interruptable, and can be overwritten by other actions
         self.mInterruptable = interruptable
         #List of events
@@ -45,7 +45,7 @@ class Action:
         dict = {
             'actionType' : self.__class__.__name__,
             'trigger' : self.mTrigger.getAsDictForSerialization(),
-            'actionNote' : self.mActionNote,
+            'actionID' : self.mActionID
         }
         #Many common variables aren't used by all sub-classes. Don't bother serializing them if they aren't used (are set to None)
         if self.mName != None: dict['name'] = self.mName
@@ -75,12 +75,12 @@ class Action:
         name = actionDict.get('name')
         goldCost = actionDict.get('goldCost')
         lumberCost = actionDict.get('lumberCost')
-        actionNote = actionDict.get('actionNote')
+        actionID = actionDict.get('actionID')
         duration = actionDict.get('duration')
         travelTime = actionDict.get('travelTime')
         requiredTimelineType = actionDict.get('requiredTimelineType')
         
-        action = actionType.getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote)
+        action = actionType.getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionID, travelTime)
 
         return action
 
@@ -131,8 +131,8 @@ class Action:
         return self.__str__()
 
 class BuildUnitAction(Action):
-    def __init__(self, trigger, name, goldCost, lumberCost, foodCost, duration, requiredTimelineType, actionNote = ""):
-        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, None, False, actionNote)
+    def __init__(self, trigger, name, goldCost, lumberCost, foodCost, duration, actionID, requiredTimelineType):
+        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, None, actionID, False)
         self.mFoodCost = foodCost
 
     def payForAction(self, currentResources):
@@ -152,16 +152,16 @@ class BuildUnitAction(Action):
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionID, travelTime):
         foodCost = int(actionDict['foodCost'])
 
-        action = BuildUnitAction(trigger, name, goldCost, lumberCost, foodCost, duration, requiredTimelineType, actionNote)
+        action = BuildUnitAction(trigger, name, goldCost, lumberCost, foodCost, duration, actionID, requiredTimelineType)
 
         return action
 
 class BuildStructureAction(Action):
-    def __init__(self, travelTime, trigger, currentWorkerTask, name, goldCost, lumberCost, foodProvided, duration, requiredTimelineType, consumesWorker = False, isInterruptable = False, actionNote = ""):
-        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, travelTime, isInterruptable, actionNote)
+    def __init__(self, travelTime, trigger, currentWorkerTask, name, goldCost, lumberCost, foodProvided, duration, requiredTimelineType, actionID, consumesWorker = False, isInterruptable = False):
+        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, travelTime, actionID, isInterruptable)
         #TODO: Are some of these Action members even really necessary to track? Like, won't food provided really just be handled by the associated event?
         self.mFoodProvided = foodProvided
         self.mConsumesWorker = consumesWorker
@@ -189,17 +189,17 @@ class BuildStructureAction(Action):
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionID, travelTime):
         currentWorkerTask = WorkerTask[actionDict['currentWorkerTask']]
         foodProvided = int(actionDict['foodProvided'])
         consumesWorker = bool(actionDict['consumesWorker'])
-        action = BuildStructureAction(travelTime, trigger, currentWorkerTask, name, goldCost, lumberCost, foodProvided, duration, requiredTimelineType, consumesWorker, False, actionNote)
+        action = BuildStructureAction(travelTime, trigger, currentWorkerTask, name, goldCost, lumberCost, foodProvided, duration, requiredTimelineType, actionID, consumesWorker, False)
 
         return action
 
 class ShopAction(Action):
-    def __init__(self, name, goldCost, trigger, requiredTimelineType, travelTime, isBeingSold, actionNote = ""):
-        super().__init__(name, goldCost, None, trigger, None, requiredTimelineType, travelTime, False, actionNote)
+    def __init__(self, name, goldCost, trigger, requiredTimelineType, travelTime, actionID, isBeingSold):
+        super().__init__(name, goldCost, None, trigger, None, requiredTimelineType, travelTime, actionID, False)
         #If True, we are selling the item, if False, buying it
         self.mIsBeingSold = isBeingSold
 
@@ -215,15 +215,15 @@ class ShopAction(Action):
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionID, travelTime):
         isBeingSold = bool(actionDict['isBeingSold'])
-        action = ShopAction(name, goldCost, trigger, requiredTimelineType, travelTime, isBeingSold, actionNote)
+        action = ShopAction(name, goldCost, trigger, requiredTimelineType, travelTime, actionID, isBeingSold)
 
         return action
 
 class WorkerMovementAction(Action):
-    def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, workerTimelineID = None, actionNote = ""):
-        super().__init__(None, None, None, trigger, None, requiredTimelineType, travelTime, True, actionNote)
+    def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, actionID, workerTimelineID = None):
+        super().__init__(None, None, None, trigger, None, requiredTimelineType, travelTime, actionID, True)
         self.mCurrentWorkerTask = currentWorkerTask
         self.mDesiredWorkerTask = desiredWorkerTask
         self.mWorkerTimelineID = workerTimelineID
@@ -243,34 +243,34 @@ class WorkerMovementAction(Action):
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionID, travelTime):
         currentWorkerTask = WorkerTask[actionDict['currentWorkerTask']]
         desiredWorkerTask = WorkerTask[actionDict['desiredWorkerTask']]
         strTimelineID = actionDict['workerTimelineID']
         workerTimelineID = None if strTimelineID == None else int(strTimelineID)
-        action = WorkerMovementAction(travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, workerTimelineID, actionNote)
+        action = WorkerMovementAction(travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, actionID, workerTimelineID)
 
         return action
 
 class BuildUpgradeAction(Action):
-    def __init__(self, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionNote = ""):
-        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, None, False, actionNote)
+    def __init__(self, trigger, name, goldCost, lumberCost, duration, actionID, requiredTimelineType):
+        super().__init__(name, goldCost, lumberCost, trigger, duration, requiredTimelineType, None, actionID, False)
 
     def getActionType(self):
         return ActionType.BuildUpgrade
 
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
-    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
-        action = BuildUpgradeAction(trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionNote)
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionID, travelTime):
+        action = BuildUpgradeAction(trigger, name, goldCost, lumberCost, duration, actionID, requiredTimelineType)
 
         return action
 
 #Represents an action that the user does not actually take, but is placed on the timeline by the simulation engine automatically
 #For example, adding and removing a worker from a mine
 class AutomaticAction(Action):
-    def __init__(self, actionNote = ""):
-        super().__init__(0, 0, 0, None, 0, None, False, actionNote)
+    def __init__(self):
+        super().__init__(0, 0, 0, None, 0, None, -1, False)
         self.mIsInvisibleToUser = True
 
     #Automatic actions don't concern the user and won't be serialized
@@ -279,5 +279,5 @@ class AutomaticAction(Action):
 
     #Automatic actions don't concern the user and won't be deserialized
     @staticmethod
-    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, travelTime, actionNote):
+    def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionID, travelTime):
         return None

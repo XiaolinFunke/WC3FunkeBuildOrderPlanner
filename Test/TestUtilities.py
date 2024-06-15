@@ -1,12 +1,11 @@
 import copy
 
-from SimEngine.SimulationConstants import Race, STARTING_GOLD, STARTING_LUMBER, STARTING_FOOD, STARTING_FOOD_MAX_MAP, SECONDS_TO_SIMTIME, TriggerType, Trigger
-from SimEngine.BuildOrder import CurrentResources
+from SimEngine.SimulationConstants import TriggerType, Trigger
 from SimEngine.Action import BuildStructureAction, BuildUnitAction
 
 #Builds a unit and tests that the resources are spent properly
 def buildUnitAndTestResources(testClass, buildOrder, goldCost, lumberCost, foodCost, duration, requiredTimelineType):
-    action = BuildUnitAction(Trigger(TriggerType.ASAP), "", goldCost, lumberCost, foodCost, duration, requiredTimelineType, False)
+    action = BuildUnitAction(Trigger(TriggerType.ASAP), "", goldCost, lumberCost, foodCost, duration, requiredTimelineType)
     #Mark as not executing, so we simulate right up until when we would do that action but don't actually do it
     #This way, we know what the resources are just before the action
     action.mDontExecute = True
@@ -22,34 +21,11 @@ def buildUnitAndTestResources(testClass, buildOrder, goldCost, lumberCost, foodC
     testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFood(), prevResources.getCurrentFood() + foodCost)
     testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFoodMax(), prevResources.getCurrentFoodMax())
 
-#Builds a hero and tests that the resources are spent properly
-def buildHeroAndTestResources(testClass, buildOrder, goldCost, lumberCost, foodCost, duration, requiredTimelineType):
-    action = BuildUnitAction(Trigger(TriggerType.ASAP), "", goldCost, lumberCost, foodCost, duration, requiredTimelineType, True)
-    #Mark as not executing, so we simulate right up until when we would do that action but don't actually do it
-    #This way, we nkow what the resources are just before the action
-    action.mDontExecute = True
-    testClass.assertEqual(False, buildOrder.simulateAction(action))
-    prevResources = copy.deepcopy(buildOrder.getCurrentResources()) 
-
-    #Now actually execute the action
-    action.mDontExecute = False
-    testClass.assertEqual(True, buildOrder.simulateAction(action))
-
-    #First hero is free, for others we should check that resources are properly spent
-    if buildOrder.mHeroesBuilt != 1:
-        testClass.assertEqual(buildOrder.getCurrentResources().getCurrentGold(), prevResources.getCurrentGold() - goldCost)
-        testClass.assertEqual(buildOrder.getCurrentResources().getCurrentLumber(), prevResources.getCurrentLumber() - lumberCost)
-    else:
-        testClass.assertEqual(buildOrder.getCurrentResources().getCurrentGold(), prevResources.getCurrentGold())
-        testClass.assertEqual(buildOrder.getCurrentResources().getCurrentLumber(), prevResources.getCurrentLumber())
-    testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFood(), prevResources.getCurrentFood() + foodCost)
-    testClass.assertEqual(buildOrder.getCurrentResources().getCurrentFoodMax(), prevResources.getCurrentFoodMax())
-
 #Builds a structure and tests that the resources are spent properly
-def buildStructureAndTestResources(testClass, buildOrder, travelTime, workerTask, goldCost, lumberCost, foodProvided, duration, consumesWorker):
+def buildStructureAndTestResources(testClass, buildOrder, travelTime, workerTask, goldCost, lumberCost, foodProvided, duration, requiredTimelineType, consumesWorker):
     #Mark as not executing, so we simulate right up until when we would do that action but don't actually do it
     #This way, we nkow what the resources are just before the action
-    action = BuildStructureAction(travelTime, Trigger(TriggerType.ASAP), workerTask, "", goldCost, lumberCost, foodProvided, duration, consumesWorker)
+    action = BuildStructureAction(travelTime, Trigger(TriggerType.ASAP), workerTask, "", goldCost, lumberCost, foodProvided, duration, requiredTimelineType, consumesWorker)
     action.mDontExecute = True
 
     testClass.assertEqual(False, buildOrder.simulateAction(action))

@@ -1,6 +1,6 @@
 import json
 
-from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TriggerType, TIMELINE_TYPE_GOLD_MINE, TIMELINE_TYPE_WORKER
+from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TriggerType, TIMELINE_TYPE_GOLD_MINE
 from SimEngine.EventHandler import EventHandler
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline
 from SimEngine.Action import ActionType, Action
@@ -61,7 +61,7 @@ class BuildOrder:
             pass
         elif action.getTrigger().mTriggerType == TriggerType.NEXT_WORKER_BUILT:
             #This will simulate until the next worker is built
-            self._getNextBuiltWorkerTimelineID()
+            self._getNextBuiltWorkerTimelineID(action.getTrigger().mValue)
 
         if action.getActionType() == ActionType.BuildUnit:
             success = self._buildUnit(action)
@@ -104,14 +104,14 @@ class BuildOrder:
 
     def _getWorkerTimelineForAction(self, action):
         if action.mWorkerTimelineID:
-            workerTimeline = self._findMatchingTimeline(TIMELINE_TYPE_WORKER, action.mWorkerTimelineID)
+            workerTimeline = self._findMatchingTimeline(action.mRequiredTimelineType, action.mWorkerTimelineID)
         elif action.mCurrentWorkerTask == WorkerTask.IDLE:
-            workerTimeline = self._getIdleWorker()
+            workerTimeline = self._getIdleWorker(action.mRequiredTimelineType)
         elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
-            workerTimeline = self._getMostIdleWorkerOnResource(action.mCurrentWorkerTask == WorkerTask.GOLD)
+            workerTimeline = self._getMostIdleWorkerOnResource(action.mRequiredTimelineType, action.mCurrentWorkerTask == WorkerTask.GOLD)
         elif action.mCurrentWorkerTask == WorkerTask.IN_PRODUCTION:
             #We already simulated ahead, to when the worker is made, so now we must get that worker
-            workerTimeline = self._getLastBuiltWorkerTimeline()
+            workerTimeline = self._getLastBuiltWorkerTimeline(action.mRequiredTimelineType)
 
         return workerTimeline
 
@@ -329,12 +329,12 @@ class BuildOrder:
         self._simulateUntilResourcesAvailable(goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=0)
 
         if action.mCurrentWorkerTask == WorkerTask.IDLE:
-            workerTimeline = self._getIdleWorker()
+            workerTimeline = self._getIdleWorker(action.mRequiredTimelineType)
         elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
-            workerTimeline = self._getMostIdleWorkerOnResource(action.mCurrentWorkerTask == WorkerTask.GOLD)
+            workerTimeline = self._getMostIdleWorkerOnResource(action.mRequiredTimelineType, action.mCurrentWorkerTask == WorkerTask.GOLD)
         elif action.mCurrentWorkerTask == WorkerTask.IN_PRODUCTION:
             #We should have already simulated up until the worker was built, since the Trigger Type would be NEXT_WORKER_BUILT
-            workerTimeline = self._getLastBuiltWorkerTimeline()
+            workerTimeline = self._getLastBuiltWorkerTimeline(action.mRequiredTimelineType)
         
         goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
         action.setStartTime(self.mCurrentSimTime)
@@ -348,8 +348,8 @@ class BuildOrder:
         self.simulate(self.mCurrentSimTime)
         return True
 
-    def _getIdleWorker(self):
-        workerTimelines = self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER)
+    def _getIdleWorker(self, workerType):
+        workerTimelines = self.findAllMatchingTimelines(workerType)
 
         idleWorkerTimelines = []
         for timeline in workerTimelines:
@@ -363,8 +363,8 @@ class BuildOrder:
     
     #Get the timeline of the 'most idle' worker on a given resource
     #@param onGold - True if the worker should be taken from gold. If false, from lumber
-    def _getMostIdleWorkerOnResource(self, onGold):
-        workerTimelines = self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER)
+    def _getMostIdleWorkerOnResource(self, workerType, onGold):
+        workerTimelines = self.findAllMatchingTimelines(workerType)
 
         correctTaskWorkerTimelines = []
         correctTask = WorkerTask.GOLD if onGold else WorkerTask.LUMBER
@@ -381,11 +381,11 @@ class BuildOrder:
         return correctTaskWorkerTimelines[0]
 
     #Return the timeline of the most recently built worker
-    def _getLastBuiltWorkerTimeline(self):
+    def _getLastBuiltWorkerTimeline(self, workerType):
         #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
         highestTimelineID = float('-inf')
-        for timeline in self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER):
+        for timeline in self.findAllMatchingTimelines(workerType):
             if timeline.getTimelineID() > highestTimelineID:
                 highestTimelineID = timeline.getTimelineID()
                 newestTimeline = timeline
@@ -393,14 +393,14 @@ class BuildOrder:
         return newestTimeline
 
     #Simulates until the next worker will be built and returns its timeline ID
-    def _getNextBuiltWorkerTimelineID(self): 
+    def _getNextBuiltWorkerTimelineID(self, workerType): 
         #TODO: This function could be optimized if it's a performance issue
-        initialNumWorkerTimelines = len(self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER))
+        initialNumWorkerTimelines = len(self.findAllMatchingTimelines(workerType))
 
         #TODO: Have some way to ensure a worker is being built, so that we know we won't simulate forever here
         while True:
             self.simulate(self.mCurrentSimTime + 1)   
-            workerTimelines = self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER)
+            workerTimelines = self.findAllMatchingTimelines(workerType)
             #Number of worker timelines has changed. This means a worker was built
             if initialNumWorkerTimelines != len(workerTimelines):
                 break
@@ -408,7 +408,7 @@ class BuildOrder:
         #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
         highestTimelineID = float('-inf')
-        for timeline in self.findAllMatchingTimelines(TIMELINE_TYPE_WORKER):
+        for timeline in self.findAllMatchingTimelines(workerType):
             highestTimelineID = max(highestTimelineID, timeline.getTimelineID())
             #TODO: Could just track the timeline of the highest here as well and return that instead of the ID - worker movement 
             #functions could call this automatically instead of needing to call this from outside
