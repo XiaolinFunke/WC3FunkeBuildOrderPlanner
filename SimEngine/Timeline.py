@@ -120,7 +120,7 @@ class Timeline:
         return dict
 
     def printTimeline(self):
-        print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)
+        print(self.mTimelineType, "Timeline (ID:", str(self.mTimelineID), "):", self.mActions)
 
     def __str__(self):
         return "Timeline: " + self.mTimelineType + " (ID:" + str(self.mTimelineID) + ")"
@@ -178,7 +178,7 @@ class WorkerTimeline(Timeline):
     def sendWorkerToMine(self, action, goldMineTimeline, currSimTime):
         self.changeTask(goldMineTimeline, currSimTime, WorkerTask.GOLD)
         #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
-        #For example, a unit could be building a building, which w, timelineIDould be an uninteruptable task (for elf and orc at least)
+        #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
         enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + action.mTravelTime), eventTime=currSimTime + action.mTravelTime, 
                                recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
         action.setAssociatedEvents([enterMineEvent])
@@ -226,7 +226,7 @@ class WorkerTimeline(Timeline):
         return True
 
     def printTimeline(self):
-        print(self.mTimelineType.name, "Timeline (ID:", str(self.mTimelineID), "):", self.mCurrentTask, self.mActions)
+        print(self.mTimelineType, "Timeline (ID:", str(self.mTimelineID), "):", self.mCurrentTask, self.mActions)
 
 class WispTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):

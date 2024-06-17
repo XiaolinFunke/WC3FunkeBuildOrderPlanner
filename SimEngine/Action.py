@@ -124,8 +124,12 @@ class Action:
         name = self.mName
         if self.mName == None:
             name = "Unnamed"
+        if self.mStartTime == -1:
+            scheduleStr = "(Unscheduled)"
+        else:
+            scheduleStr = "(" + str(self.getStartTime()) + " - " + str(self.getStartTime() + duration) + ")"
         
-        return "Action:\"" + self.__class__.__name__ + " : " + name + " (" + str(self.getStartTime()) + " - " + str(self.getStartTime() + duration) + ") - " + str(len(self.mAssociatedEvents)) + " events"
+        return "Action:\"" + self.__class__.__name__ + " : " + name + " " + scheduleStr + " - " + str(len(self.mAssociatedEvents)) + " events"
 
     def __repr__(self):
         return self.__str__()

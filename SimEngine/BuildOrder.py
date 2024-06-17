@@ -1,6 +1,6 @@
 import json
 
-from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TriggerType, TIMELINE_TYPE_GOLD_MINE, isUnitWorker
+from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TriggerType, TIMELINE_TYPE_GOLD_MINE, isUnitWorker, Worker
 from SimEngine.EventHandler import EventHandler, Event
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline, WorkerTimeline
 from SimEngine.Action import ActionType, Action
@@ -51,11 +51,17 @@ class BuildOrder:
     def simulateAction(self, action):
         self.mOrderedActionList.append(action)
         if action.getTrigger().mTriggerType == TriggerType.GOLD_AMOUNT:
-            self._simulateUntilResourcesAvailable( action.getTrigger().mValue, 0, 0 )
+            if not self._simulateUntilResourcesAvailable( action.getTrigger().mValue, 0, 0 ):
+                print("Tried to simulate until", action.getTrigger().mValue, "gold was available, but we would never reach that amount")
+                return False
         elif action.getTrigger().mTriggerType == TriggerType.LUMBER_AMOUNT:
-            self._simulateUntilResourcesAvailable( 0, action.getTrigger().mValue, 0 )
+            if not self._simulateUntilResourcesAvailable( 0, action.getTrigger().mValue, 0 ):
+                print("Tried to simulate until", action.getTrigger().mValue, "lumber was available, but we would never reach that amount")
+                return False
         elif action.getTrigger().mTriggerType == TriggerType.FOOD_AMOUNT:
-            self._simulateUntilResourcesAvailable( 0, 0, action.getTrigger().mValue )
+            if not self._simulateUntilResourcesAvailable( 0, 0, action.getTrigger().mValue ):
+                print("Tried to simulate until", action.getTrigger().mValue, "food was available, but we would never reach that amount")
+                return False
         elif action.getTrigger().mTriggerType == TriggerType.PERCENT_OF_ONGOING_ACTION:
             #TODO:
             pass
@@ -141,6 +147,13 @@ class BuildOrder:
             if timelineType == timeline.getTimelineType() and (timelineID == -1 or timeline.getTimelineID() == timelineID):
                 return timeline
 
+    def _findAllWorkerTimelines(self):
+        matchingTimelines = []
+        for workerType in Worker:
+            matchingTimelines.extend(self.findAllMatchingTimelines(workerType.name))
+
+        return matchingTimelines
+
     #Returns list of ALL timelines that match (Active ones will be first in the list)
     def findAllMatchingTimelines(self, timelineType):
         matchingTimelines = []
@@ -199,7 +212,10 @@ class BuildOrder:
     #Return True if action executed successfully, False if didn't execute or failed to execute
     def _executeAction(self, action):
         #Get lumber + food cost if they exist and aren't None, else default them to 0
-        self._simulateUntilResourcesAvailable( goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost if action.mLumberCost != None else 0, foodAmount=getattr(action, 'mFoodCost', 0) )
+        if not self._simulateUntilResourcesAvailable( goldRequired=action.mGoldCost, lumberRequired=action.mLumberCost if action.mLumberCost != None else 0, foodRequired=getattr(action, 'mFoodCost', 0) ):
+            print("Tried to simulate until resources were available for", action, "but we would never reach that amount")
+            return False
+
         self._simulateUntilTimelineExists(action.getRequiredTimelineType())
 
         matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
@@ -235,10 +251,30 @@ class BuildOrder:
         self.simulate(self.mCurrentSimTime)
         return True
 
-    def _simulateUntilResourcesAvailable(self, goldAmount, lumberAmount, foodAmount):
-        #TODO: Have a check to make sure this will eventually be true so we don't simulate into infinity
-        while not self._areRequiredResourcesAvailable(goldAmount, lumberAmount, foodAmount):
+    #@return False if we will never have enough resources. True otherwise
+    def _simulateUntilResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):
+        #TODO: If we eventually have a way for workers to be queued to gold/lumber after they're done building something, that will mess up this logic (we will think we will never mine more gold cause none are on it, but one is queued to gold, for example)
+        while True:
+            if self.mCurrentResources.getCurrentGold() < goldRequired:
+                if self._getNumWorkersOnTask(WorkerTask.GOLD) == 0:
+                    return False
+            elif self.mCurrentResources.getCurrentLumber() < lumberRequired:
+                if self._getNumWorkersOnTask(WorkerTask.LUMBER) == 0:
+                    return False
+            elif max(self.mCurrentResources.mCurrentFoodMax - self.mCurrentResources.mCurrentFood, 0) < foodRequired:
+                if self._getNumWorkersOnTask(WorkerTask.CONSTRUCTING) == 0:
+                    return False
+            else:
+                return True
             self.simulate(self.mCurrentSimTime + 1)
+
+    #@param workerTask - Task to return the number of workers for
+    def _getNumWorkersOnTask(self, workerTask):
+        numWorkers = 0
+        for workerTimeline in self._findAllWorkerTimelines():
+            if workerTimeline.mCurrentTask == workerTask:
+                numWorkers += 1
+        return numWorkers
 
     def _simulateUntilTimelineExists(self, timelineType):
         #TODO: Have a check to make sure this will eventually be true so we don't simulate into infinity
@@ -265,7 +301,9 @@ class BuildOrder:
     #Return True if executed the action successfully, False if didn't execute or failed to execute
     #Will be built with the most idle worker currently doing the workerTask passed in
     def _buildStructure(self, action):
-        self._simulateUntilResourcesAvailable(goldAmount=action.mGoldCost, lumberAmount=action.mLumberCost, foodAmount=0)
+        if not self._simulateUntilResourcesAvailable(goldRequired=action.mGoldCost, lumberRequired=action.mLumberCost, foodRequired=0):
+            print("Tried to simulate until resources were available for", action, "but they never were")
+            return False
 
         if action.mCurrentWorkerTask == WorkerTask.IDLE:
             workerTimeline = self._getIdleWorker(action.mRequiredTimelineType)
@@ -383,16 +421,6 @@ class BuildOrder:
                     break
             else:
                 i += 1
-
-    #Return True if we have the gold, lumber, and food required to build a unit/building
-    def _areRequiredResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):
-        if self.mCurrentResources.getCurrentGold() < goldRequired:
-            return False
-        elif self.mCurrentResources.getCurrentLumber() < lumberRequired:
-            return False
-        elif max(self.mCurrentResources.mCurrentFoodMax - self.mCurrentResources.mCurrentFood, 0) < foodRequired:
-            return False
-        return True
 
     def printAllTimelines(self):
         print("Active Timelines:")

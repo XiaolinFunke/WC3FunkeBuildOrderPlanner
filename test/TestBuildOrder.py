@@ -68,3 +68,37 @@ class TestBuildOrder(unittest.TestCase):
         orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), "Demon Hunter", 0, 0, 5, 55 * SECONDS_TO_SIMTIME, 3, "Altar of Elders"))
 
         self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), True) 
+
+    #Tests that we properly detect if we will never have enough resources for an action, and fail instead of infinitely looping
+    def testFailIfNeverEnoughResources(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+
+        orderedActionList = []
+
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 1))
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Moon Well", 180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 2))
+
+        #We only start iwth 500 gold, so this moon well should be too expensive, and we have no wisps on gold, so we will never be able to afford it
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Moon Well", 180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 3))
+
+        self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), False) 
+
+    #Test that we will wait until we have the food available for an action, if we ever will, otherwise fail
+    def testWaitForFoodAvailable(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+
+        orderedActionList = []
+
+        #Add a bunch of wisps for 0 gold, so we will run out of food before gold
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 0, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 0, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 0, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 0, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 0, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
+
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Moon Well", 180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 2))
+        #This shouldn't fail, but instead wait until the moon well is done
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
+
+        self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), True) 
