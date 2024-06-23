@@ -1,7 +1,7 @@
 import unittest
 
 from SimEngine.SimulationEngine import SimulationEngine
-from SimEngine.SimulationConstants import Race, WorkerTask, TimelineType, SECONDS_TO_SIMTIME, Trigger, TriggerType, Worker
+from SimEngine.SimulationConstants import Race, WorkerTask, SECONDS_TO_SIMTIME, Trigger, TriggerType, Worker
 from SimEngine.Action import WorkerMovementAction, BuildUnitAction, BuildStructureAction, BuildUpgradeAction, ShopAction
 
 #Convenience method to simulate a basic night elf build order

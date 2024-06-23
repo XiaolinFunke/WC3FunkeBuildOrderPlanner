@@ -1,6 +1,5 @@
 from enum import Enum, auto
 from SimEngine.SimulationConstants import SECONDS_TO_SIMTIME, Trigger, WorkerTask
-from SimEngine.TimelineTypeEnum import TimelineType
 from pydoc import locate
 
 class ActionType(Enum):

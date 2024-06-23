@@ -1,7 +1,5 @@
 from enum import Enum, auto
 
-from SimEngine.TimelineTypeEnum import TimelineType
-
 SECONDS_TO_SIMTIME = 10 #simtime is in deciseconds
 SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
 

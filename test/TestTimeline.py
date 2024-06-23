@@ -1,7 +1,6 @@
 import unittest
 
 from SimEngine.Timeline import Timeline 
-from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.Action import Action
 from SimEngine.SimulationConstants import Trigger, TriggerType, Worker
 

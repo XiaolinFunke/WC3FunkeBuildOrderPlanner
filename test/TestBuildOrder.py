@@ -3,49 +3,52 @@ import unittest
 from SimEngine.BuildOrder import BuildOrder
 from SimEngine.SimulationConstants import Race, Trigger, TriggerType, WorkerTask, Worker, SECONDS_TO_SIMTIME
 from SimEngine.Timeline import Timeline 
-from SimEngine.TimelineTypeEnum import TimelineType
 from SimEngine.Action import BuildUnitAction, BuildStructureAction
 
 class TestBuildOrder(unittest.TestCase):
     def testFindMatchingTimeline(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
-        inactiveAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 0, buildOrder.mEventHandler)
+        timelineType = "Altar of Elders"
+        inactiveAltarTimeline = Timeline(timelineType, 0, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveAltarTimeline)
-        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), inactiveAltarTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(timelineType), inactiveAltarTimeline)
 
-        activeAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 1, buildOrder.mEventHandler)
+        activeAltarTimeline = Timeline(timelineType, 1, buildOrder.mEventHandler)
         buildOrder.mActiveTimelines.append(activeAltarTimeline)
         #Should find active one first
-        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS), activeAltarTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(timelineType), activeAltarTimeline)
 
-        inactiveLoreTimeline = Timeline(TimelineType.ANCIENT_OF_LORE, 2, buildOrder.mEventHandler)
+        timelineTypeLore = "Ancient of Lore"
+        inactiveLoreTimeline = Timeline(timelineTypeLore, 2, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveLoreTimeline)
-        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ANCIENT_OF_LORE), inactiveLoreTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(timelineTypeLore), inactiveLoreTimeline)
 
         #Can get specific timeline if multiple of same type by using ID
-        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS, 0), inactiveAltarTimeline)
-        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ALTAR_OF_ELDERS, 1), activeAltarTimeline)
-        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ANCIENT_OF_LORE, 2), inactiveLoreTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(timelineType, 0), inactiveAltarTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(timelineType, 1), activeAltarTimeline)
+        self.assertEqual(buildOrder._findMatchingTimeline(timelineTypeLore, 2), inactiveLoreTimeline)
 
         #If ID and TimelineType don't match, should return none
-        self.assertEqual(buildOrder._findMatchingTimeline(TimelineType.ANCIENT_OF_LORE, 0), None)
+        self.assertEqual(buildOrder._findMatchingTimeline(timelineTypeLore, 0), None)
 
     def testFindAllMatchingTimelines(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
-        inactiveAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 0, buildOrder.mEventHandler)
+        timelineType = "Altar of Elders"
+        inactiveAltarTimeline = Timeline(timelineType, 0, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveAltarTimeline)
-        self.assertEqual(len(buildOrder.findAllMatchingTimelines(TimelineType.ALTAR_OF_ELDERS)), 1)
+        self.assertEqual(len(buildOrder.findAllMatchingTimelines(timelineType)), 1)
 
-        activeAltarTimeline = Timeline(TimelineType.ALTAR_OF_ELDERS, 1, buildOrder.mEventHandler)
+        activeAltarTimeline = Timeline(timelineType, 1, buildOrder.mEventHandler)
         buildOrder.mActiveTimelines.append(activeAltarTimeline)
-        self.assertEqual(len(buildOrder.findAllMatchingTimelines(TimelineType.ALTAR_OF_ELDERS)), 2)
+        self.assertEqual(len(buildOrder.findAllMatchingTimelines(timelineType)), 2)
 
-        inactiveLoreTimeline = Timeline(TimelineType.ANCIENT_OF_LORE, 2, buildOrder.mEventHandler)
+        timelineTypeLore = "Ancient of Lore"
+        inactiveLoreTimeline = Timeline(timelineTypeLore, 2, buildOrder.mEventHandler)
         buildOrder.mInactiveTimelines.append(inactiveLoreTimeline)
-        self.assertEqual(len(buildOrder.findAllMatchingTimelines(TimelineType.ANCIENT_OF_LORE)), 1)
-        self.assertEqual(len(buildOrder.findAllMatchingTimelines(TimelineType.ALTAR_OF_ELDERS)), 2)
+        self.assertEqual(len(buildOrder.findAllMatchingTimelines(timelineTypeLore)), 1)
+        self.assertEqual(len(buildOrder.findAllMatchingTimelines(timelineType)), 2)
 
     def testStartingResources(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
