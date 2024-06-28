@@ -87,7 +87,7 @@ class TestBuildOrder(unittest.TestCase):
 
         self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), False) 
 
-    #Test that we will wait until we have the food available for an action, if we ever will, otherwise fail
+    #Test that we will wait until we have the food available for an action
     def testWaitForFoodAvailable(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
@@ -105,3 +105,26 @@ class TestBuildOrder(unittest.TestCase):
         orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
 
         self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), True) 
+
+    #Test that we will add an action to a timeline that does not yet exist, if it will the first timeline to be able to handle the action once the timeline exists
+    def testScheduleOnTimelineThatDoesntExistYet(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+
+        orderedActionList = []
+
+        ancientOfWarStr = "Ancient of War"
+        orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, ancientOfWarStr, 150, 60, 0, 60 * SECONDS_TO_SIMTIME, "Wisp", 0, True))
+        orderedActionList.append(BuildStructureAction(10, Trigger(TriggerType.ASAP), WorkerTask.IDLE, ancientOfWarStr, 150, 60, 0, 60 * SECONDS_TO_SIMTIME, "Wisp", 0, True))
+        #Build two archers - pretend they cost no gold/lumber so we will have enough
+        #The second archer should be built at the second AoW
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), "Archer", 0, 0, 2, 20 * SECONDS_TO_SIMTIME, 0, "Ancient of War"))
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), "Archer", 0, 0, 2, 20 * SECONDS_TO_SIMTIME, 0, "Ancient of War"))
+
+        self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), True) 
+
+        activeTimelines = buildOrder.getActiveTimelines()
+
+        #Check that both AoW timelines have 1 action on them
+        for timeline in activeTimelines:
+            if timeline.mTimelineType == ancientOfWarStr:
+                self.assertEqual(len(timeline.mActions), 1)

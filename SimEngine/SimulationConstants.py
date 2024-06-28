@@ -6,7 +6,7 @@ SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
 TIMELINE_TYPE_GOLD_MINE = "Gold Mine"
 
 class Worker(Enum):
-    #Note: These names must be spelled like this to match the liquipedia data for when we build units that happen to be workers
+    #Note: These names must be spelled exactly like this to match the liquipedia data for when we build units that happen to be workers
     Wisp = auto() 
     Acolyte = auto()
     Peasant = auto()
@@ -48,6 +48,7 @@ class WorkerTask(Enum):
     IN_PRODUCTION = auto()
     IDLE = auto()
 
+#TODO: Move Trigger out of this file
 class Trigger():
     def __init__(self, triggerType, triggerValue = None):
         self.mTriggerType = triggerType

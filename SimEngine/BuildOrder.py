@@ -104,6 +104,9 @@ class BuildOrder:
     def addLumberToCount(self, amount):
         self.mCurrentResources.mCurrentLumber += amount
 
+    def getActiveTimelines(self):
+        return self.mActiveTimelines
+
     def _getWorkerTimelineForAction(self, action):
         if action.mWorkerTimelineID:
             workerTimeline = self._findMatchingTimeline(action.mRequiredTimelineType, action.mWorkerTimelineID)
@@ -218,20 +221,17 @@ class BuildOrder:
 
         self._simulateUntilTimelineExists(action.getRequiredTimelineType())
 
-        matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
-        if not matchingTimelines:
-            print("Tried to execute action", action.__class__.__name__ + " - " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
-            return False
+        prevNumTimelines = len(self.findAllMatchingTimelines(action.mRequiredTimelineType))
+        minAvailableTime, nextAvailableTimeline = self._getNextAvailableTimelineForAction(action)
+        #Simulate 1 sim second at a time, since we could get a new timeline that could handle this action before the minAvailableTime
+        while self.mCurrentSimTime < minAvailableTime:
+            self.simulate(self.mCurrentSimTime + 1)
 
-        minAvailableTime = float('inf')
-        for timeline in matchingTimelines:
-            prevMinAvailableTime = minAvailableTime
-            minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
-            if minAvailableTime != prevMinAvailableTime:
-                nextAvailableTimeline = timeline
-
-        #TODO: This doesn't account for the fact that there could be a new timeline that would have an earlier time available
-        self.simulate(minAvailableTime)
+            #We got a new timeline that matches! We need to reevaulate the minAvailableTime now
+            newNumTimelines = len(self.findAllMatchingTimelines(action.mRequiredTimelineType))
+            if prevNumTimelines != newNumTimelines:
+                prevNumTimelines = newNumTimelines
+                minAvailableTime, nextAvailableTimeline = self._getNextAvailableTimelineForAction(action)
 
         action.setStartTime(self.mCurrentSimTime)
 
@@ -250,6 +250,21 @@ class BuildOrder:
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
         self.simulate(self.mCurrentSimTime)
         return True
+
+    #Gets the time and the next timeline that can handle the action. If none can, returns None
+    def _getNextAvailableTimelineForAction(self, action):
+        matchingTimelines = self.findAllMatchingTimelines(action.mRequiredTimelineType)
+        if not matchingTimelines:
+            print("Tried to execute action", action.__class__.__name__ + " - " + action.mName + ", but did not find a timeline of type ", action.mRequiredTimelineType)
+            return None
+
+        minAvailableTime = float('inf')
+        for timeline in matchingTimelines:
+            prevMinAvailableTime = minAvailableTime
+            minAvailableTime = min(minAvailableTime, timeline.getNextPossibleTimeForAction(self.mCurrentSimTime))
+            if minAvailableTime != prevMinAvailableTime:
+                nextAvailableTimeline = timeline
+        return minAvailableTime, nextAvailableTimeline
 
     #@return False if we will never have enough resources. True otherwise
     def _simulateUntilResourcesAvailable(self, goldRequired, lumberRequired, foodRequired):
