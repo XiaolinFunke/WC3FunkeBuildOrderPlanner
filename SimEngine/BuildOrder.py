@@ -66,8 +66,7 @@ class BuildOrder:
             #TODO:
             pass
         elif action.getTrigger().mTriggerType == TriggerType.NEXT_WORKER_BUILT:
-            #This will simulate until the next worker is built
-            if not self._getNextBuiltWorkerTimelineID(action.getTrigger().mValue):
+            if not self._simulateUntilWorkerIsBuilt(action.getTrigger().mValue):
                 print("No next worker exists for NEXT_WORKER_BUILT trigger")
                 return False
 
@@ -394,7 +393,6 @@ class BuildOrder:
             print("Tried to get last built worker timeline, but worker type of", workerType, " is not the type of a worker!")
             return None
 
-        #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
         highestTimelineID = float('-inf')
         for timeline in self.findAllMatchingTimelines(workerType):
@@ -403,26 +401,6 @@ class BuildOrder:
                 newestTimeline = timeline
 
         return newestTimeline
-
-    #Simulates until the next worker will be built and returns its timeline ID
-    def _getNextBuiltWorkerTimelineID(self, workerType): 
-        if not isUnitWorker(workerType):
-            print("Tried to get next built worker timeline, but worker type of", workerType, " is not the type of a worker!")
-            return None
-
-        if not self._simulateUntilWorkerIsBuilt(workerType):
-            print("Tried to simulate until a worker was built, but one never was")
-            return None
-
-        #TODO: Handle possible edge-case if we build multiple workers at the same time
-        #Return the timeline with the highest timeline ID, since that means it's newest
-        highestTimelineID = float('-inf')
-        for timeline in self.findAllMatchingTimelines(workerType):
-            highestTimelineID = max(highestTimelineID, timeline.getTimelineID())
-            #TODO: Could just track the timeline of the highest here as well and return that instead of the ID - worker movement 
-            #functions could call this automatically instead of needing to call this from outside
-
-        return highestTimelineID
 
     #Simulates until a worker is built (finished). Returns False if that will never happen
     def _simulateUntilWorkerIsBuilt(self, workerType):

@@ -207,7 +207,6 @@ class WorkerTimeline(Timeline):
 
     #Return True if successful, False otherwise
     def buildStructure(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
-        #TODO: I think this event is somehow appending a None Timeline to the inactive timeline list
         newTimelineEvent = Event(lambda: inactiveTimelines.append(Timeline(action.mName, getNextTimelineIDFunc(), self.mEventHandler)), action.mTravelTime + action.mStartTime + action.mDuration, 
                                             0, self.mEventHandler.getNewEventID(), "Create timeline for " + action.mName)
         events = [ newTimelineEvent ]
