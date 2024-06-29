@@ -219,7 +219,9 @@ class BuildOrder:
             print("Tried to simulate until resources were available for", action, "but we would never reach that amount")
             return False
 
-        self._simulateUntilTimelineExists(action.getRequiredTimelineType())
+        if not self._simulateUntilTimelineExists(action.getRequiredTimelineType()):
+            print("Tried to simulate until ", action.getRequiredTimelineType(), " Timeline existed for action ", action, " but it never did")
+            return False
 
         prevNumTimelines = len(self.findAllMatchingTimelines(action.mRequiredTimelineType))
         minAvailableTime, nextAvailableTimeline = self._getNextAvailableTimelineForAction(action)
@@ -292,9 +294,13 @@ class BuildOrder:
         return numWorkers
 
     def _simulateUntilTimelineExists(self, timelineType):
-        #TODO: Have a check to make sure this will eventually be true so we don't simulate into infinity
         while self._findMatchingTimeline(timelineType) == None:
+            #If we only have recurring events, then new timelines won't be getting added anymore
+            if self.mEventHandler.containsOnlyRecurringEvents(self.mCurrentSimTime):
+                return False
             self.simulate(self.mCurrentSimTime + 1)
+
+        return True
 
     #Commented out -- will rely on front-end for hero handling unless we eventually want to double-check it here
     # def _buildHero(self, action):

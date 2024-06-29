@@ -82,8 +82,18 @@ class TestBuildOrder(unittest.TestCase):
         orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 1))
         orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Moon Well", 180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 2))
 
-        #We only start iwth 500 gold, so this moon well should be too expensive, and we have no wisps on gold, so we will never be able to afford it
+        #We only start with 500 gold, so this moon well should be too expensive, and we have no wisps on gold, so we will never be able to afford it
         orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Moon Well", 180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 3))
+
+        self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), False) 
+
+    #Tests that we properly detect if we will never have the timeline for an action, and fail instead of infinitely looping
+    def testFailIfTimelineNeverExists(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+
+        orderedActionList = []
+
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), "Demon Hunter", 0, 0, 5, 55 * SECONDS_TO_SIMTIME, 3, "Altar of Elders"))
 
         self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), False) 
 
