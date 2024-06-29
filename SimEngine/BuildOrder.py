@@ -67,7 +67,9 @@ class BuildOrder:
             pass
         elif action.getTrigger().mTriggerType == TriggerType.NEXT_WORKER_BUILT:
             #This will simulate until the next worker is built
-            self._getNextBuiltWorkerTimelineID(action.getTrigger().mValue)
+            if not self._getNextBuiltWorkerTimelineID(action.getTrigger().mValue):
+                print("No next worker exists for NEXT_WORKER_BUILT trigger")
+                return False
 
         if action.getActionType() == ActionType.BuildUnit or action.getActionType() == ActionType.BuildUpgrade or action.getActionType() == ActionType.Shop:
             success = self._executeAction(action)
@@ -408,16 +410,9 @@ class BuildOrder:
             print("Tried to get next built worker timeline, but worker type of", workerType, " is not the type of a worker!")
             return None
 
-        #TODO: This function could be optimized if it's a performance issue
-        initialNumWorkerTimelines = len(self.findAllMatchingTimelines(workerType))
-
-        #TODO: Have some way to ensure a worker is being built, so that we know we won't simulate forever here
-        while True:
-            self.simulate(self.mCurrentSimTime + 1)   
-            workerTimelines = self.findAllMatchingTimelines(workerType)
-            #Number of worker timelines has changed. This means a worker was built
-            if initialNumWorkerTimelines != len(workerTimelines):
-                break
+        if not self._simulateUntilWorkerIsBuilt(workerType):
+            print("Tried to simulate until a worker was built, but one never was")
+            return None
 
         #TODO: Handle possible edge-case if we build multiple workers at the same time
         #Return the timeline with the highest timeline ID, since that means it's newest
@@ -428,6 +423,22 @@ class BuildOrder:
             #functions could call this automatically instead of needing to call this from outside
 
         return highestTimelineID
+
+    #Simulates until a worker is built (finished). Returns False if that will never happen
+    def _simulateUntilWorkerIsBuilt(self, workerType):
+        initialNumWorkerTimelines = len(self.findAllMatchingTimelines(workerType))
+
+        workerTimelines = self.findAllMatchingTimelines(workerType)
+        #If number of worker timelines has changed, this means a worker was built
+        while initialNumWorkerTimelines == len(workerTimelines):
+            #If we only have recurring events, then new timelines won't be getting added anymore, so we can't possibily get more workers
+            if self.mEventHandler.containsOnlyRecurringEvents(self.mCurrentSimTime):
+                return False
+
+            self.simulate(self.mCurrentSimTime + 1)   
+            workerTimelines = self.findAllMatchingTimelines(workerType)
+
+        return True
 
     #Checks inactive timelines and determines if any should be moved to the active list
     def _moveTimelinesToActiveList(self):
