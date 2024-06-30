@@ -1,7 +1,5 @@
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import WorkerTask
 
-from enum import Enum
 import json
 
 class SimulationEngine:

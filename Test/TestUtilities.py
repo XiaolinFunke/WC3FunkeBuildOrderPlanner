@@ -1,6 +1,6 @@
 import copy
 
-from SimEngine.SimulationConstants import TriggerType, Trigger
+from SimEngine.Trigger import TriggerType, Trigger
 from SimEngine.Action import BuildStructureAction, BuildUnitAction
 
 #Builds a unit and tests that the resources are spent properly

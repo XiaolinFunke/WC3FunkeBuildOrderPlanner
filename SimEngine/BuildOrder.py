@@ -1,6 +1,7 @@
 import json
 
-from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TriggerType, TIMELINE_TYPE_GOLD_MINE, isUnitWorker, Worker
+from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TIMELINE_TYPE_GOLD_MINE, isUnitWorker, Worker
+from SimEngine.Trigger import TriggerType
 from SimEngine.EventHandler import EventHandler, Event
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline, WorkerTimeline
 from SimEngine.Action import ActionType, Action
