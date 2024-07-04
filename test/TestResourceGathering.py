@@ -1,7 +1,8 @@
 import unittest
 
 from SimEngine.BuildOrder import BuildOrder
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER, WorkerTask, Worker
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER
+from SimEngine.Worker import WorkerTask, Worker
 from SimEngine.Trigger import Trigger, TriggerType
 from SimEngine.Action import WorkerMovementAction, BuildUnitAction
 

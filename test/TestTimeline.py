@@ -2,7 +2,7 @@ import unittest
 
 from SimEngine.Timeline import Timeline 
 from SimEngine.Action import Action
-from SimEngine.SimulationConstants import Worker
+from SimEngine.Worker import Worker
 from SimEngine.Trigger import Trigger, TriggerType
 
 class TestTimeline(unittest.TestCase):

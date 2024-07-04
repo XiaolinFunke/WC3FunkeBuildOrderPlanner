@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from SimEngine.SimulationConstants import SECONDS_TO_SIMTIME, WorkerTask
+from SimEngine.Worker import WorkerTask
 from SimEngine.Trigger import Trigger
 from pydoc import locate
 

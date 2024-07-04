@@ -1,4 +1,5 @@
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC, WorkerTask, isUnitWorker, Worker
+from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC
+from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.EventHandler import Event
 from SimEngine.Action import AutomaticAction
 

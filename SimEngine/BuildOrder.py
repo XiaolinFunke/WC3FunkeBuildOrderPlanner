@@ -1,6 +1,7 @@
 import json
 
-from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, WorkerTask, TIMELINE_TYPE_GOLD_MINE, isUnitWorker, Worker
+from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_TYPE_GOLD_MINE
+from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.Trigger import TriggerType
 from SimEngine.EventHandler import EventHandler, Event
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline, WorkerTimeline
@@ -110,6 +111,7 @@ class BuildOrder:
         return self.mActiveTimelines
 
     def _getWorkerTimelineForAction(self, action):
+        workerTimeline = None
         if action.mWorkerTimelineID:
             workerTimeline = self._findMatchingTimeline(action.mRequiredTimelineType, action.mWorkerTimelineID)
         elif action.mCurrentWorkerTask == WorkerTask.IDLE:
@@ -130,6 +132,7 @@ class BuildOrder:
 
         goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
         action.setStartTime(self.mCurrentSimTime)
+        success = False
         if action.mDesiredWorkerTask == WorkerTask.LUMBER:
             #TODO: A little bit odd that we need to pass the goldmine here (it's because we might be moving a worker OFF of gold. But if we store it on the timeline, then we need to pass the goldmine to buildUnit just in case the unit is a wisp)
             success = workerTimeline.sendWorkerToLumber(action, goldMineTimeline, self.mCurrentSimTime, self.mCurrentResources)

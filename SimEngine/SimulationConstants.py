@@ -5,21 +5,6 @@ SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
 
 TIMELINE_TYPE_GOLD_MINE = "Gold Mine"
 
-class Worker(Enum):
-    #Note: These names must be spelled exactly like this to match the liquipedia data for when we build units that happen to be workers
-    Wisp = auto() 
-    Acolyte = auto()
-    Peasant = auto()
-    Peon = auto()
-    Ghoul = auto()
-
-def isUnitWorker(unitName):
-    for workerName in Worker:
-        if unitName == workerName.name:
-            return True
-
-    return False
-
 class Race(Enum):
     HUMAN = auto()
     ORC = auto()
