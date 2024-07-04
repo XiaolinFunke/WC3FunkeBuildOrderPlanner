@@ -178,7 +178,6 @@ class WorkerTimeline(Timeline):
 
     def sendWorkerToMine(self, action, goldMineTimeline, currSimTime):
         self.changeTask(goldMineTimeline, currSimTime, WorkerTask.GOLD)
-        #TODO: Should we also be looking at whether the worker is available to be used like we do with building units?
         #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
         enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + action.mTravelTime), eventTime=currSimTime + action.mTravelTime, 
                                recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())

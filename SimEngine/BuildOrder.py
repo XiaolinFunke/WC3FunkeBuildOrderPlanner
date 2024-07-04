@@ -134,7 +134,6 @@ class BuildOrder:
         action.setStartTime(self.mCurrentSimTime)
         success = False
         if action.mDesiredWorkerTask == WorkerTask.LUMBER:
-            #TODO: A little bit odd that we need to pass the goldmine here (it's because we might be moving a worker OFF of gold. But if we store it on the timeline, then we need to pass the goldmine to buildUnit just in case the unit is a wisp)
             success = workerTimeline.sendWorkerToLumber(action, goldMineTimeline, self.mCurrentSimTime, self.mCurrentResources)
         elif action.mDesiredWorkerTask == WorkerTask.GOLD:
             success = workerTimeline.sendWorkerToMine(action, goldMineTimeline, self.mCurrentSimTime)

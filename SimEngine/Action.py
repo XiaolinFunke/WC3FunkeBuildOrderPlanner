@@ -21,6 +21,7 @@ class Action:
         #In simtime
         self.mStartTime = -1 #Set to -1 so we know this is unscheduled as of yet
         #Duration does not include travel time - So full duration is duration + travel time
+        #If action has infinite duration, will be None
         self.mDuration = duration
         #Travel time takes place at the very beginning of the action (start time)
         self.mTravelTime = travelTime
