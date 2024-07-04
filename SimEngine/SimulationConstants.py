@@ -24,11 +24,3 @@ STARTING_FOOD_MAX_MAP = {
 GOLD_MINED_PER_TRIP = 10
 #Time to mine for 1 worker
 TIME_TO_MINE_GOLD_BASE_SEC = 5
-
-class WorkerTask(Enum):
-    GOLD = auto()
-    LUMBER = auto()
-    CONSTRUCTING = auto()
-    ROAMING = auto()
-    IN_PRODUCTION = auto()
-    IDLE = auto()
