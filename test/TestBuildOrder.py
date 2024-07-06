@@ -150,3 +150,7 @@ class TestBuildOrder(unittest.TestCase):
         for timeline in activeTimelines:
             if timeline.mTimelineType == ancientOfWarStr:
                 self.assertEqual(len(timeline.mActions), 1)
+
+    #TODO: Test that resources aren't lost for building a structure until AFTER the travel time - beacuse a skilled player will not tie up the resources until then (unless it's a case where it doesn't matter anyway)
+    #SAme for any actions that have travel time
+    #TODO: Test that if we have any action with travel time, and then the next action is ASAP, it happens before the travel time is done, if possible. Otherwise, a wisp moving to build a building would prevent us from que4ing up a wisp until it reaches its destination, for example
