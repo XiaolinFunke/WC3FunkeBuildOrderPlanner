@@ -1,6 +1,6 @@
 from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
-from SimEngine.EventHandler import Event
+from SimEngine.Event import Event
 from SimEngine.Action import AutomaticAction
 
 # Represents a single timeline on the planner. For example, the production queue of a barracks, or blacksmith, etc.
@@ -10,6 +10,25 @@ class Timeline:
         self.mTimelineType = timelineType
         self.mTimelineID = timelineID
         self.mEventHandler = eventHandler
+
+    #Convenience method for getting an event that adds a new timeline and can be reversed
+    @staticmethod
+    def getNewTimelineEvent(inactiveTimelines, simTime, timelineName, timelineID, eventName, eventID, eventHandler):
+        def removeTimeline(id):
+            for i in range(len(inactiveTimelines)):
+                if inactiveTimelines[i].getTimelineID() == id:
+                    inactiveTimelines.pop(i)
+                    return
+
+        getNewTimelineFunc = lambda: Timeline(timelineName, timelineID, eventHandler)
+        if isUnitWorker(timelineName):
+            getNewTimelineFunc = WorkerTimeline.getNewWorkerTimeline
+                    
+        event = Event(eventFunction = lambda: inactiveTimelines.append(getNewTimelineFunc(timelineName, timelineID, eventHandler)), 
+                        reverseFunction = lambda: removeTimeline(timelineID),
+                      eventTime=simTime, recurPeriodSimtime=0, eventID=eventID, eventName=eventName)
+
+        return event
 
     def getTimelineType(self):
         return self.mTimelineType
@@ -179,8 +198,7 @@ class WorkerTimeline(Timeline):
     def sendWorkerToMine(self, action, goldMineTimeline, currSimTime):
         self.changeTask(goldMineTimeline, currSimTime, WorkerTask.GOLD)
         #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
-        enterMineEvent = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(currSimTime + action.mTravelTime), eventTime=currSimTime + action.mTravelTime, 
-                               recurPeriodSimtime = 0, eventName = "Enter mine", eventID = self.mEventHandler.getNewEventID())
+        enterMineEvent = Event.getModifyWorkersInMineEvent(goldMineTimeline, currSimTime + action.mTravelTime, "Enter mine", self.mEventHandler.getNewEventID())
         action.setAssociatedEvents([enterMineEvent])
         if not self.addAction(action):
             print("Failed to add go to mine action to timeline")
@@ -190,12 +208,9 @@ class WorkerTimeline(Timeline):
         return True
 
     def sendWorkerToLumber(self, action, goldMineTimeline, currSimTime, currentResources):
-        def addLumberToCount(amount):
-            currentResources.mCurrentLumber += amount
-
         self.changeTask(goldMineTimeline, currSimTime, WorkerTask.LUMBER)
-        gainLumberEvent = Event(eventFunction = lambda: addLumberToCount(self.mLumberGainPerCycle), eventTime=currSimTime + action.mTravelTime + (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), 
-                                recurPeriodSimtime = (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), eventName = "Gain 5 lumber", eventID = self.mEventHandler.getNewEventID())
+        gainLumberEvent = Event.getModifyResourceCountEvent(currentResources, currSimTime + action.mTravelTime + (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), "Gain 5 lumber", 
+                                                            self.mEventHandler.getNewEventID(), 0, self.mLumberGainPerCycle, 0, 0, self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME)
         action.setAssociatedEvents([gainLumberEvent])
 
         if not self.addAction(action):
@@ -211,8 +226,9 @@ class WorkerTimeline(Timeline):
                                             0, self.mEventHandler.getNewEventID(), "Create timeline for " + action.mName)
         events = [ newTimelineEvent ]
 
-        increaseFoodMaxEvent = Event(lambda: currentResources.increaseMaxFood(action.mFoodProvided), action.mTravelTime + action.mStartTime + action.mDuration, 
-                                            0, self.mEventHandler.getNewEventID(), "Add max food for " + action.mName)
+        increaseFoodMaxEvent = Event.getModifyResourceCountEvent(currentResources, action.mStartTime + action.mTravelTime + action.mDuration, "Add max food for " + action.mName, 
+                                                            self.mEventHandler.getNewEventID(), 0, 0, 0, action.mFoodProvided)
+
         if action.mFoodProvided != 0:
             events.append(increaseFoodMaxEvent)
 
@@ -275,11 +291,9 @@ class GoldMineTimeline(Timeline):
                 #Time to mine for 1 worker (diminishes proportionally with number of workers)
                 timeToMine = TIME_TO_MINE_GOLD_BASE_SEC * SECONDS_TO_SIMTIME
 
-                def addGoldToCount(goldMined):
-                    self.mCurrentResources.mCurrentGold += goldMined
                 #For first worker, we need to create the +10 gold event that we will use from here on out
-                gainGoldEvent = Event(eventFunction = lambda: addGoldToCount(GOLD_MINED_PER_TRIP), eventTime=simTime + timeToMine, recurPeriodSimtime = timeToMine, eventName = "Gain 10 gold", 
-                                      eventID = self.mEventHandler.getNewEventID())
+                gainGoldEvent = Event.getModifyResourceCountEvent(self.mCurrentResources, simTime + timeToMine, "Gain 10 gold", 
+                                                            self.mEventHandler.getNewEventID(), 10, 0, 0, 0, timeToMine)
                 self.mEventHandler.registerEvent(gainGoldEvent)
             else:
                 gainGoldEvent = self.modifyGainGoldEvent(self.getNumWorkersInMine(), self.getNumWorkersInMine() + 1, simTime)
@@ -326,7 +340,7 @@ class GoldMineTimeline(Timeline):
         #The event could also be for the current time, if multiple workers are added at exact same time (unrealistic, but happens in tests)
         prevAction = self.getCurrOrPrevAction(simTime)
         #The "New worker in mine" or "Remove worker from mine" action on the mine timeline will be associated with a gain gold event
-        gainGoldEvent = prevAction.getAssociatedEvent()
+        gainGoldEvent = prevAction.getNewestAssociatedEvent()
 
         if newNumWorkers != 0:
             #The new time of the +10 gold event will be proportionally sooner or later

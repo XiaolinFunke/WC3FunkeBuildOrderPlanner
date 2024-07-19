@@ -3,8 +3,8 @@ import json
 from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_TYPE_GOLD_MINE
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.Trigger import TriggerType
-from SimEngine.EventHandler import EventHandler, Event
-from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline, WorkerTimeline
+from SimEngine.EventHandler import EventHandler
+from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline
 from SimEngine.Action import ActionType, Action
 
 class MapStartingPosition:
@@ -245,8 +245,8 @@ class BuildOrder:
             return False 
 
         if isUnitWorker(action.mName):
-            events = [ Event(lambda: self.mInactiveTimelines.append(WorkerTimeline.getNewWorkerTimeline(action.mName, self.getNextTimelineID(), self.mEventHandler)), action.getStartTime() + action.mDuration, 
-                                            0, self.mEventHandler.getNewEventID(), "Worker " + action.mName + " produced") ]
+            events = [ Timeline.getNewTimelineEvent(self.mInactiveTimelines, action.getStartTime() + action.mDuration, action.mName, self.getNextTimelineID(),
+                                                 "Worker " + action.mName + " produced", self.mEventHandler.getNewEventID(), self.mEventHandler) ]
             self.mEventHandler.registerEvents(events)
 
         if not nextAvailableTimeline.addAction(action, self.mCurrentResources):
@@ -460,6 +460,12 @@ class CurrentResources:
         }
 
         return dict
+
+    def modifyResources(self, goldChange, lumberChange, foodChange, foodMaxChange):
+        self.mCurrentGold += goldChange
+        self.mCurrentLumber += lumberChange
+        self.mCurrentFood += foodChange
+        self.mCurrentFoodMax += foodMaxChange
 
     def deductGold(self, amount):
         if amount > self.mCurrentGold:

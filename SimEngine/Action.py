@@ -112,6 +112,17 @@ class Action:
         print("Tried to get associated event, but there were", len(self.mAssociatedEvents), "associated events")
         return None
 
+    #Gets the associated event, but if its a recurring event, it gets the newest recurrence
+    def getNewestAssociatedEvent(self):
+        assEvent = self.getAssociatedEvent()
+        while True:
+            nextEvent = assEvent.mNextRecurredEvent
+            if nextEvent:
+                assEvent = nextEvent
+            else:
+                break
+        return assEvent
+
     def getAssociatedEvents(self):
         return self.mAssociatedEvents
     
