@@ -31,7 +31,7 @@ def simulateBasicElfBuildOrder(simEngine):
     actionList2.append(BuildUnitAction(Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, 5, "Tree of Life"))
     actionList2.append(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 6, False))
     actionList2.append(BuildStructureAction(int(1.5 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, "Moon Well", 180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 7, False))
-    actionList2.append(ShopAction("Scroll of Town Portal", 325, Trigger(TriggerType.ASAP), "Goblin Merchant", 15 * SECONDS_TO_SIMTIME, 8, True))
+    actionList2.append(ShopAction("Scroll of Town Portal", -195, Trigger(TriggerType.ASAP), "Goblin Merchant", 15 * SECONDS_TO_SIMTIME, 8))
     actionList2.append(BuildUnitAction(Trigger(TriggerType.ASAP), "Keeper of the Grove", 0, 0, 5, 55 * SECONDS_TO_SIMTIME, 9, "Altar of Elders"))
 
     simEngine.getTeamBuildOrders()[0].simulateOrderedActionList(actionList1)

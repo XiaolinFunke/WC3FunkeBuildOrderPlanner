@@ -19,7 +19,7 @@ class Action:
         self.mTrigger = trigger
         #Start time starts at the beginning of the travel time 
         #In simtime
-        self.mStartTime = -1 #Set to -1 so we know this is unscheduled as of yet
+        self.mStartTime = -1
         #Duration does not include travel time - So full duration is duration + travel time
         #If action has infinite duration, will be None
         self.mDuration = duration
@@ -213,26 +213,16 @@ class BuildStructureAction(Action):
         return action
 
 class ShopAction(Action):
-    def __init__(self, name, goldCost, trigger, requiredTimelineType, travelTime, actionID, isBeingSold):
+    def __init__(self, name, goldCost, trigger, requiredTimelineType, travelTime, actionID):
         super().__init__(name, goldCost, None, trigger, None, requiredTimelineType, travelTime, actionID, False)
-        #If True, we are selling the item, if False, buying it
-        self.mIsBeingSold = isBeingSold
 
     def getActionType(self):
         return ActionType.Shop
 
-    def getAsDictForSerialization(self, isOnTimeline = True):
-        dict = super().getAsDictForSerialization(isOnTimeline)
-
-        dict['isBeingSold'] = self.mIsBeingSold
-
-        return dict
-
     #Used to deserialize JSON (after converting the JSON to dict)
     @staticmethod
     def getActionFromDict(actionDict, trigger, name, goldCost, lumberCost, duration, requiredTimelineType, actionID, travelTime):
-        isBeingSold = bool(actionDict['isBeingSold'])
-        action = ShopAction(name, goldCost, trigger, requiredTimelineType, travelTime, actionID, isBeingSold)
+        action = ShopAction(name, goldCost, trigger, requiredTimelineType, travelTime, actionID)
 
         return action
 

@@ -56,12 +56,12 @@ class EventHandler:
             event = self.mEvents[simTime][i]
             if executeRemainingEvents:
                 event.reverse()
-                #Unregister recurrences of an initial recurring event, so they don't get doubled when we simulate forward again
-                if event.doesRecur() and event.mIsRecurrence:
-                    #Remove the event from the chain of recurring events
-                    event.mPrevRecurredEvent.mNextRecurredEvent = None
-                    event.mPrevRecurredEvent = None
-                    self.unregisterEvent(event)
+                #If this event recurs, unregister its recurrence, so the recurrence doesn't get doubled when we simulate forward again
+                if event.doesRecur():
+                    #Remove the next recurring event from the chain of recurring events
+                    event.mNextRecurredEvent.mPrevRecurredEvent = None
+                    self.unRegisterEvent(event.mNextRecurredEvent.getEventTime(), event.mNextRecurredEvent.getEventID())
+                    event.mNextRecurredEvent = None
             #This event was the last one we executed, so we should start executing the events for this simtime from here on
             elif event.getEventID() == self.mLastEventExecuted:
                 executeRemainingEvents = True

@@ -1,11 +1,10 @@
-import json
-
 from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_TYPE_GOLD_MINE
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.Trigger import TriggerType
 from SimEngine.EventHandler import EventHandler
 from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline
 from SimEngine.Action import ActionType, Action
+from SimEngine.Event import Event
 
 class MapStartingPosition:
     def __init__(self, name, lumberTripTravelTimeSec, goldTripTravelTimeSec):
@@ -72,6 +71,8 @@ class BuildOrder:
                 print("No next worker exists for NEXT_WORKER_BUILT trigger")
                 return False
 
+        #Set a preliminary start time for the action, that may be pushed back (but not forward)
+        action.mStartTime = self.mCurrentSimTime
         if action.getActionType() == ActionType.BuildUnit or action.getActionType() == ActionType.BuildUpgrade or action.getActionType() == ActionType.Shop:
             success = self._executeAction(action)
         elif action.getActionType() == ActionType.BuildStructure:
@@ -82,13 +83,23 @@ class BuildOrder:
         self._moveTimelinesToActiveList()
         return success
 
-    #Will simulate up to specified simtime
+    #Will simulate up to (and including) specified simtime
     def simulate(self, untilSimTime):
         #Current sim time wll be executed now, even though it was executed last simulate() call
         #Event Handler knows to only execute the events that have been added to the current time since then
         for time in range(self.mCurrentSimTime, untilSimTime + 1):
             self.mCurrentSimTime = time
             self.mEventHandler.executeEvents(time)
+
+    #Will simulate back to specified simtime
+    #Will reverse all actions between now and then, but won't reverse any at the specified simtime itself
+    def _simulateBackward(self, untilSimTime):
+        #Current sim time wll be executed now, even though it was executed last simulate() call
+        #Event Handler knows to only execute the events that have been added to the current time since then
+        for time in range(self.mCurrentSimTime, untilSimTime, -1):
+            self.mEventHandler.reverseEvents(time)
+            self.mCurrentSimTime -= 1
+        #We should now be at the correct simtime, but shouldn't reverse anything at the new current simtime
 
     def getNextTimelineID(self):
         timelineID = self.mNextTimelineID
@@ -326,20 +337,49 @@ class BuildOrder:
     #Return True if executed the action successfully, False if didn't execute or failed to execute
     #Will be built with the most idle worker currently doing the workerTask passed in
     def _buildStructure(self, action):
+        #This simTime is as soon as we can afford the structure, with all workers working (one may be taken off a resource, so this would be the minimum possible sim time for the building to start)
         if not self._simulateUntilResourcesAvailable(goldRequired=action.mGoldCost, lumberRequired=action.mLumberCost, foodRequired=0):
             print("Tried to simulate until resources were available for", action, "but they never were")
             return False
 
-        if action.mCurrentWorkerTask == WorkerTask.IDLE:
-            workerTimeline = self._getIdleWorker(action.mRequiredTimelineType)
-        elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
-            workerTimeline = self._getMostIdleWorkerOnResource(action.mRequiredTimelineType, action.mCurrentWorkerTask == WorkerTask.GOLD)
-        elif action.mCurrentWorkerTask == WorkerTask.IN_PRODUCTION:
-            #We should have already simulated up until the worker was built, since the Trigger Type would be NEXT_WORKER_BUILT
-            workerTimeline = self._getLastBuiltWorkerTimeline(action.mRequiredTimelineType)
-        
         goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
+
+        #Never simulate back to before the original time the action was set to trigger at, since we want to maintain the order of the actions
+        self._simulateBackward(max(self.mCurrentSimTime - action.mTravelTime, action.mStartTime))
+        foundCorrectStartTime = False
+        #Now, we need to see when we can actually afford the building while accounting for the worker that will be taken off its resource to travel (if it is indeed a worker on a resource)
+        while not foundCorrectStartTime:
+            if action.mCurrentWorkerTask == WorkerTask.IDLE:
+                workerTimeline = self._getIdleWorker(action.mRequiredTimelineType)
+            elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
+                workerTimeline = self._getMostIdleWorkerOnResource(action.mRequiredTimelineType, action.mCurrentWorkerTask == WorkerTask.GOLD)
+            elif action.mCurrentWorkerTask == WorkerTask.IN_PRODUCTION:
+                #We should have already simulated up until the worker was built, since the Trigger Type would be NEXT_WORKER_BUILT
+                workerTimeline = self._getLastBuiltWorkerTimeline(action.mRequiredTimelineType)
+
+            #Move worker off of resource and simulate ahead to see if this start time works
+            workerTimeline.changeTask(goldMineTimeline, self.mCurrentSimTime, WorkerTask.ROAMING)
+            #Simulate ahead to see if this start time will work
+            self.simulate(self.mCurrentSimTime + action.mTravelTime)
+            #If we have enough resources after the travel time has passed, then this start time will work
+            if self.mCurrentResources.haveRequiredResources(action.mGoldCost, action.mLumberCost):
+                #This start time works!
+                foundCorrectStartTime = True
+                print(self.mEventHandler.printScheduledEvents())
+
+            #Now that we've siualted ahead to check whether this time works, simulate back and reset
+            self._simulateBackward(self.mCurrentSimTime - action.mTravelTime)
+            #Put worker back to its previous task
+            workerTimeline.changeTask(goldMineTimeline, self.mCurrentSimTime, action.mCurrentWorkerTask)
+
+            if not foundCorrectStartTime:
+                #Increment so we are checking what happens if we remove the worker on the next simTime for the next iteration
+                self.simulate(self.mCurrentSimTime + 1)
+        
         action.setStartTime(self.mCurrentSimTime)
+        #Create an event for when the resources should be deducted from our resource total
+        Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + action.mTravelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
+                                          action.mGoldCost * -1, action.mLumberCost * -1, 0, 0)
         if action.mDontExecute == True:
             return False
         elif not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline):
@@ -502,6 +542,16 @@ class CurrentResources:
 
     def getCurrentFoodMax(self):
         return self.mCurrentFoodMax
+
+    def haveRequiredResources(self, goldRequired, lumberRequired, foodRequired = 0):
+        return self.mCurrentGold >= goldRequired and self.mCurrentLumber >= lumberRequired and self.mCurrentFood + foodRequired <= self.mCurrentFoodMax
+
+    def __eq__(self, other):
+        #Don't attempt to compare if not the same type
+        if not isinstance(other, CurrentResources):
+            return NotImplemented
+
+        return self.mCurrentFood == other.mCurrentFood and self.mCurrentFoodMax == other.mCurrentFoodMax and self.mCurrentGold == other.mCurrentGold and self.mCurrentLumber == other.mCurrentLumber
 
     def __str__(self):
         return "| Gold:" + str(self.mCurrentGold) + " | Lumber:" + str(self.mCurrentLumber) + " | Food:" + str(self.mCurrentFood) + "/" + str(self.mCurrentFoodMax) + " |"

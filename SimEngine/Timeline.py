@@ -22,9 +22,9 @@ class Timeline:
 
         getNewTimelineFunc = lambda: Timeline(timelineName, timelineID, eventHandler)
         if isUnitWorker(timelineName):
-            getNewTimelineFunc = WorkerTimeline.getNewWorkerTimeline
+            getNewTimelineFunc = lambda: WorkerTimeline.getNewWorkerTimeline(timelineName, timelineID, eventHandler)
                     
-        event = Event(eventFunction = lambda: inactiveTimelines.append(getNewTimelineFunc(timelineName, timelineID, eventHandler)), 
+        event = Event(eventFunction = lambda: inactiveTimelines.append(getNewTimelineFunc()), 
                         reverseFunction = lambda: removeTimeline(timelineID),
                       eventTime=simTime, recurPeriodSimtime=0, eventID=eventID, eventName=eventName)
 
@@ -222,8 +222,8 @@ class WorkerTimeline(Timeline):
 
     #Return True if successful, False otherwise
     def buildStructure(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
-        newTimelineEvent = Event(lambda: inactiveTimelines.append(Timeline(action.mName, getNextTimelineIDFunc(), self.mEventHandler)), action.mTravelTime + action.mStartTime + action.mDuration, 
-                                            0, self.mEventHandler.getNewEventID(), "Create timeline for " + action.mName)
+        newTimelineEvent = Timeline.getNewTimelineEvent( inactiveTimelines, action.mStartTime + action.mTravelTime + action.mDuration, action.mName, getNextTimelineIDFunc(), 
+                                                        "Create timeline for " + action.mName, self.mEventHandler.getNewEventID(), self.mEventHandler )
         events = [ newTimelineEvent ]
 
         increaseFoodMaxEvent = Event.getModifyResourceCountEvent(currentResources, action.mStartTime + action.mTravelTime + action.mDuration, "Add max food for " + action.mName, 
