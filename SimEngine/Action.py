@@ -37,6 +37,7 @@ class Action:
 
         #If True, simulate up to when the action would need to be taken, but don't actually execute it
         #Just used for testing at the moment
+        #TODO: Do we need this anymore?
         self.mDontExecute = False
 
     #TODO: Any fancy way we could mark variables as ones that should be serialized rather than having to specify here?
@@ -136,12 +137,15 @@ class Action:
         name = self.mName
         if self.mName == None:
             name = "Unnamed"
+        travelTime = self.mTravelTime
+        if self.mTravelTime == None:
+            travelTime = 0
         if self.mStartTime == -1:
             scheduleStr = "(Unscheduled)"
         else:
-            scheduleStr = "(" + str(self.getStartTime()) + " - " + str(self.getStartTime() + duration) + ")"
+            scheduleStr = "(" + str(travelTime + self.getStartTime()) + " - " + str(travelTime + self.getStartTime() + duration) + ")"
         
-        return "Action:\"" + self.__class__.__name__ + " : " + name + " " + scheduleStr + " - " + str(len(self.mAssociatedEvents)) + " events"
+        return "Action: \"" + self.__class__.__name__ + "\" : " + name + " " + scheduleStr + " - " + str(len(self.mAssociatedEvents)) + " events"
 
     def __repr__(self):
         return self.__str__()
@@ -275,7 +279,7 @@ class BuildUpgradeAction(Action):
 #For example, adding and removing a worker from a mine
 class AutomaticAction(Action):
     def __init__(self):
-        super().__init__(0, 0, 0, None, 0, None, -1, False)
+        super().__init__(None, 0, 0, None, 0, None, -1, False)
         self.mIsInvisibleToUser = True
 
     #Automatic actions don't concern the user and won't be serialized

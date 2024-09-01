@@ -1,6 +1,6 @@
 import unittest
 
-from SimEngine.BuildOrder import BuildOrder
+from SimEngine.BuildOrder import BuildOrder, CurrentResources
 from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME
 from SimEngine.Trigger import Trigger, TriggerType
 from SimEngine.Worker import WorkerTask, Worker
@@ -46,68 +46,129 @@ class TestRealBuildOrders(unittest.TestCase):
         actionIDHandler = UniqueIDHandler()
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
-        timeOfFirstGold = executeStandardElfStart(buildOrder, actionIDHandler, 4)
+        #First gold gained at 2.625 seconds
+        #With 4 wisps, we will gain 10 more every 1.25 seconds
+        executeStandardElfStart(buildOrder, actionIDHandler, 4)
+
+        #Queue first wisp
+        self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        #Time shouldn't have advanced yet
+        self.assertEqual(buildOrder.getCurrentSimTime(), 0)
 
         #0th wisp -- Altar
-        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(8 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 
                                               180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
+        #Time should not advance yet
+        self.assertEqual(buildOrder.getCurrentSimTime(), 0)
 
-        self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
         #1st wisp -- moon well
         self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, "Moon Well", 
                                                     180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
+        #Time should advance until the time the first wisp is built
+        self.assertEqual(buildOrder.getCurrentSimTime(), 14 * SECONDS_TO_SIMTIME)
 
+        #Queue 2nd wisp
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 14 * SECONDS_TO_SIMTIME)
+
         #2nd wisp -- gold
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(1.5 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.GOLD, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(1.5 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.GOLD, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 28 * SECONDS_TO_SIMTIME)
 
+        #Queue 3rd wisp
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 28 * SECONDS_TO_SIMTIME)
+
         #3rd wisp -- lumber
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 42 * SECONDS_TO_SIMTIME)
 
+        #Queue 4th wisp
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 42 * SECONDS_TO_SIMTIME)
+
         #4th wisp -- lumber
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 56 * SECONDS_TO_SIMTIME)
 
         #5th wisp start
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 56 * SECONDS_TO_SIMTIME)
+
+        #Moon well wisp to lumber when done
+        #TODO: Change to use trigger at 100% of those buildings once we have that trigger type working
+        buildOrder.simulate(66 * SECONDS_TO_SIMTIME)
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 66 * SECONDS_TO_SIMTIME)
+
         #@Altar -- build hero
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), "Keeper of the Grove", 0, 0, 5, 55 * SECONDS_TO_SIMTIME, 8, "Altar of Elders")))
-        #Altar and moon well wisps to lumber when done
-        #TODO: Change to use trigger at 100% of those buildings once we have that trigger type working
+        self.assertEqual(buildOrder.getCurrentSimTime(), 68 * SECONDS_TO_SIMTIME)
+
+        #Altar wisp to lumber when done
         self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 68 * SECONDS_TO_SIMTIME)
 
         #5th wisp to lumber
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 70 * SECONDS_TO_SIMTIME)
+
+        #Queue 6th wisp
+        self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 70 * SECONDS_TO_SIMTIME)
 
         #6th wisp -- lumber
-        self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 84 * SECONDS_TO_SIMTIME)
 
-        #7th wisp -- start
+        #Queue 7th wisp
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 84 * SECONDS_TO_SIMTIME)
+        print("ABOUT TO SIMULATE BUILD STRUCTURE")
+        #TODO: The 78s and 94s lumber gathers are in the event handler at this point..
 
         #@160 lumber, build AoW and HH
-        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 160), WorkerTask.LUMBER, "Hunter's Hall", 210, 100, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
-        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 160), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
+        #Lumber wisps start mining at 44s, 58s, 68s, 70s, 72s, 86s, 100s, 114s, 128s
+        #We already have 60 lumber leftover from start, so we need to gather 100
+        #If they gather 5 lumber every 8 seconds, that means we will get to 160 lumber at 96s
+        #We will make the trigger 155 lumber, since we will have that at 94s, just before the 2s travel time (the trigger is when the wisp STARTS the action, before travel time)
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 155), WorkerTask.LUMBER, "Hunter's Hall", 210, 100, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 94 * SECONDS_TO_SIMTIME)
+        #78s event gone at this point
+        print()
+        buildOrder.getEventHandler().printScheduledEvents()
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 155), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 94 * SECONDS_TO_SIMTIME)
+        #94s event also gone at this point
+        print()
+        buildOrder.getEventHandler().printScheduledEvents()
 
         #7th wisp to lumber
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 98 * SECONDS_TO_SIMTIME)
+
+        #Queue 8th wisp -- lumber
+        self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 98 * SECONDS_TO_SIMTIME)
 
         #8th wisp -- lumber
-        self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 112 * SECONDS_TO_SIMTIME)
 
         #9th wisp -- start
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Tree of Life")))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 112 * SECONDS_TO_SIMTIME)
 
-        #TODO: This might be during the 8th wisp instead of 9th, was close
+        #It's building the HH and AoW with the correct 2 wisps
+        #But we are still 5 lumber ahead of where we should be somehow..
         #@60 lumber -- 2nd AoW
-        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(3 * SECONDS_TO_SIMTIME), Trigger(TriggerType.LUMBER_AMOUNT, 60), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.LUMBER_AMOUNT, 50), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 114 * SECONDS_TO_SIMTIME)
 
+        #TODO: Continue
         #9th wisp to lumber
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 126 * SECONDS_TO_SIMTIME)
 
         #@40 lumber -- 2nd well
         self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.LUMBER_AMOUNT, 40), WorkerTask.LUMBER, "Moon Well", 

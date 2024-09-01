@@ -209,3 +209,79 @@ class TestEventHandler(unittest.TestCase):
         eventHandler.executeEventsInRange(0, 10)
         #Increment event wasn't in list of events when the events for time 10 are executed, but it will get added as we execute, so it should be executed as well
         self.assertEqual(self.testInt, 1)
+
+    #Test reversing a single one-time event
+    def testReverseEvent(self):
+        eventHandler = EventHandler() 
+
+        self.testInt = 0
+        def increment():
+            self.testInt += 1
+        def decrement():
+            self.testInt -= 1
+        incrementEvent = Event(eventFunction = increment, reverseFunction = decrement, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+
+        eventHandler.registerEvent(incrementEvent)
+
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEvents(10)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.reverseEvents(10)
+        self.assertEqual(self.testInt, 0)
+
+        #Do it again to make sure we can execute and reverse multiple times
+        eventHandler.executeEvents(10)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.reverseEvents(10)
+        self.assertEqual(self.testInt, 0)
+
+    #Test reversing a recurring event
+    def testReverseRecurringEvent(self):
+        eventHandler = EventHandler() 
+
+        self.testInt = 0
+        def increment():
+            self.testInt += 1
+        def decrement():
+            self.testInt -= 1
+        incrementEvent = Event(eventFunction = increment, reverseFunction = decrement, eventTime = 10, recurPeriodSimtime = 5, eventID = eventHandler.getNewEventID())
+
+        eventHandler.registerEvent(incrementEvent)
+
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEvents(10)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.reverseEvents(10)
+        self.assertEqual(self.testInt, 0)
+
+        #The event should have recurred, so now let's make sure the reversal undid that recurrence and we only get one recurring event still when we simulate forward
+        eventHandler.executeEvents(10)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.executeEvents(15)
+        self.assertEqual(self.testInt, 2)
+
+        #Do it again to make sure we can execute and reverse multiple times and all is as expected
+        eventHandler.reverseEvents(15)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.executeEvents(15)
+        self.assertEqual(self.testInt, 2)
+        eventHandler.executeEvents(20)
+        self.assertEqual(self.testInt, 3)
+
+        #Now, test that if we UNREGISTER the ORIGINAL event, after reversing everything, there will be no more events registered
+        eventHandler.reverseEvents(20)
+        self.assertEqual(self.testInt, 2)
+        eventHandler.reverseEvents(15)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.reverseEvents(10)
+        self.assertEqual(self.testInt, 0)
+
+        eventHandler.unRegisterEvent(incrementEvent.getEventTime(), incrementEvent.getEventID())
+        eventHandler.executeEvents(10)
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEvents(15)
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEvents(20)
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEvents(25)
+        self.assertEqual(self.testInt, 0)
