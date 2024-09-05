@@ -104,6 +104,17 @@ class Event:
     def doesRecur(self):
         return self.mRecurPeriodSimTime > 0
 
+    def getMostRecentRecurrence(self):
+        if self.doesRecur == False:
+            return None
+        
+        mostRecentRecurrence = self
+        while True:
+            if mostRecentRecurrence.mNextRecurredEvent == None:
+                return mostRecentRecurrence
+            else:
+                mostRecentRecurrence = mostRecentRecurrence.mNextRecurredEvent
+
     #Execute the reverse event
     def reverse(self):
         if not self.mReverseFunction:

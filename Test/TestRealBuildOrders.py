@@ -135,13 +135,9 @@ class TestRealBuildOrders(unittest.TestCase):
         self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 155), WorkerTask.LUMBER, "Hunter's Hall", 210, 100, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
         self.assertEqual(buildOrder.getCurrentSimTime(), 94 * SECONDS_TO_SIMTIME)
         #78s event gone at this point
-        print()
-        buildOrder.getEventHandler().printScheduledEvents()
         self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 155), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
         self.assertEqual(buildOrder.getCurrentSimTime(), 94 * SECONDS_TO_SIMTIME)
         #94s event also gone at this point
-        print()
-        buildOrder.getEventHandler().printScheduledEvents()
 
         #7th wisp to lumber
         self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))

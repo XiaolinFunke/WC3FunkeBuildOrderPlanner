@@ -88,6 +88,7 @@ class TestBuildOrder(unittest.TestCase):
 
         #We only start with 500 gold, so this moon well should be too expensive, and we have no wisps on gold, so we will never be able to afford it
         orderedActionList.append(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Moon Well", 180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 3))
+        orderedActionList.append(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, 0, "Tree of Life"))
 
         self.assertEqual(buildOrder.simulateOrderedActionList(orderedActionList), False) 
 
@@ -153,11 +154,17 @@ class TestBuildOrder(unittest.TestCase):
             if timeline.mTimelineType == ancientOfWarStr:
                 self.assertEqual(len(timeline.mActions), 1)
 
+    #Test that we properly handle a travel time of zero for an action that could have a non-zero travel time
+    def testTravelTimeOfZero(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+
+        self.assertEqual(buildOrder.simulateAction(BuildStructureAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, 1)), True)
+
     #Test that resources aren't lost for building a structure or buying an item until AFTER the travel time, since a skilled player will not tie up the resources until it's necessary (unless it's a case where it doesn't matter)
     def testResourceSpendingWithTravelTime(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
-        startingResources = copy(buildOrder.getCurrentResources)
+        startingResources = copy(buildOrder.getCurrentResources())
         wellStr = "Moon Well"
 
         #Starting resources: 500/150
@@ -165,22 +172,21 @@ class TestBuildOrder(unittest.TestCase):
         #Sim time should not advance, so we can queue another action while we wait for the travel time to be done
         #Resources should also not be spent yet
         self.assertEqual(buildOrder.getCurrentSimTime(), 0)
-        self.assertEqual(buildOrder.getCurrentResources, startingResources)
+        self.assertEqual(buildOrder.getCurrentResources(), startingResources)
 
         self.assertEqual(buildOrder.simulateAction(BuildStructureAction(5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, wellStr, 180, 40, 0, 50 * SECONDS_TO_SIMTIME, "Wisp", 1)), True) 
         self.assertEqual(buildOrder.getCurrentSimTime(), 0)
-        self.assertEqual(buildOrder.getCurrentResources, startingResources)
+        self.assertEqual(buildOrder.getCurrentResources(), startingResources)
 
-        #Two wells cost 360/80. So at time 5 seconds we should have 140/70 resources left
+        #Two wells cost 360/80. So at time 5 seconds we should have 140/70 resources left, only accounting for those
         #Sell TP
         self.assertEqual(buildOrder.simulateAction(ShopAction("Scroll of Town Portal", -195, Trigger(TriggerType.ASAP), "Goblin Merchant", 5 * SECONDS_TO_SIMTIME, 2)), True)
         self.assertEqual(buildOrder.getCurrentSimTime(), 0)
-        self.assertEqual(buildOrder.getCurrentResources, startingResources)
+        self.assertEqual(buildOrder.getCurrentResources(), startingResources)
 
         #However, if we won't have enough resources by the end of the travel time, the action start time should be pushed back until we will have resources by the end of the travel time
         self.assertEqual(buildOrder.simulateAction(WorkerMovementAction(5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, 3)), True)
 
-        print(buildOrder.getCurrentResources())
         #Now, at time 5 seconds we should have 335/70 resources left
         #We should have enough gold for this, but are short 30 lumber
         #We have one worker mining (5 lumber every 8 seconds, starting at second 5), so we should have the required amount of lumber by time 53s

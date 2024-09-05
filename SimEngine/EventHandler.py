@@ -11,6 +11,21 @@ class EventHandler:
         #The last simtime we have executed events for (only updated if there were actually events to execute at that time, not just if we tried to execute)
         self.mLastSimTimeExecuted = -1
 
+        #For Debugging Only
+        #String Events IDs of all the events executed in order - put an 'R' in front of any that were executed in reverse
+        self.mEventsExecutedInOrder = []
+
+    def printEventsExecutedInOrder(self):
+        if len(self.mEventsExecutedInOrder) == 0:
+            print("No events executed")
+            return
+
+        print("Events executed: ", end='')
+        print(self.mEventsExecutedInOrder[0], end='')
+        for i in range(1, len(self.mEventsExecutedInOrder)):
+            print(", " + self.mEventsExecutedInOrder[i], end='')
+        print()
+
     def registerEvent(self, event):
         if event.getEventTime() not in self.mEvents:
             self.mEvents[event.getEventTime()] = [event]
@@ -45,7 +60,7 @@ class EventHandler:
             return
 
         executeRemainingEvents = True
-        #If we have already executed at this simtime, we only want to execute the remaining events (this event and the ones before it)
+        #If we have already executed at this simtime, we only want to reverse the remaining events (this event and the ones before it)
         if simTime == self.mLastSimTimeExecuted:
             executeRemainingEvents = False
 
@@ -55,6 +70,7 @@ class EventHandler:
         while i >= 0:
             event = self.mEvents[simTime][i]
             if executeRemainingEvents:
+                self.mEventsExecutedInOrder.append('R' + str(event.getEventID()))
                 event.reverse()
                 #If this event recurs, unregister its recurrence, so the recurrence doesn't get doubled when we simulate forward again
                 if event.doesRecur():
@@ -68,9 +84,18 @@ class EventHandler:
                 #Start the execution at this event, since we're going in reverse
                 continue
             i -= 1
-        #When going in reverse, we always just reset these values, since we know we can just start from the first event when this sim time is executed again
-        self.mLastSimTimeExecuted = -1
-        self.mLastEventExecuted = -1
+        #Search back for the last executed event to reset the variables that track the last executed event
+        for time in range(simTime - 1, -1, -1):
+            #Search from (simTime - 1) to 0 for an event
+            if time in self.mEvents and len(self.mEvents[time]) != 0:
+                self.mLastSimTimeExecuted = time
+                numEvents = len(self.mEvents[time])
+                self.mLastEventExecuted = self.mEvents[time][numEvents - 1].getEventID()
+                break
+        else: #No break
+            #No event found, just unset them
+            self.mLastSimTimeExecuted = -1
+            self.mLastEventExecuted = -1
 
     def executeEvents(self, simTime):
         if simTime not in self.mEvents:
@@ -87,6 +112,7 @@ class EventHandler:
         while i < len(self.mEvents[simTime]):
             event = self.mEvents[simTime][i]
             if executeRemainingEvents:
+                self.mEventsExecutedInOrder.append(str(event.getEventID()))
                 event.execute()
                 self.mLastEventExecuted = event.getEventID()
                 if event.doesRecur():

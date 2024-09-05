@@ -153,7 +153,7 @@ class WorkerTimeline(Timeline):
         super().__init__(timelineType, timelineID, eventHandler)
         self.mCurrentTask = WorkerTask.IDLE
         #For most workers, the cycle starts at the town hall with no resource and ends at the town hall when they drop off the resource
-        #For wisps/acolytes, cycle starts as soon as the worker is on the mine/tree ands end when they get the resource
+        #For wisps/acolytes, cycle starts as soon as the worker is on the mine/tree and ends when they get the resource
         self.mLumberCycleTimeSec = lumberCycleTimeSec
         self.mLumberGainPerCycle = lumberGainPerCycle
         self.mGoldCycleTimeSec = goldCycleTimeSec
@@ -178,6 +178,14 @@ class WorkerTimeline(Timeline):
             return PeonTimeline(timelineID, eventHandler)
         elif workerName == Worker.Wisp.name:
             return WispTimeline(timelineID, eventHandler)
+
+    #Convenience method for getting an event that changes a worker's task and can be reversed
+    def getChangeTaskEvent(self, newTask, simTime, eventName, eventID, goldMineTimeline):
+        originalTask = self.mCurrentTask
+        event = Event(eventFunction = lambda: self.changeTask(goldMineTimeline, simTime, newTask), 
+                        reverseFunction = lambda: self.changeTask(goldMineTimeline, simTime, originalTask),
+                      eventTime=simTime, recurPeriodSimtime = 0, eventName = eventName, eventID = eventID)
+        return event
 
     def changeTask(self, goldMineTimeline, currSimTime, newTask):
         if self.mCurrentTask == newTask:
@@ -220,11 +228,13 @@ class WorkerTimeline(Timeline):
         self.mEventHandler.registerEvent(gainLumberEvent)
         return True
 
+    #TODO: Should all worker timelines just have a reference to the gold mine timeline? Seems a bit silly to keep passing it around
     #Return True if successful, False otherwise
     def buildStructure(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
         newTimelineEvent = Timeline.getNewTimelineEvent( inactiveTimelines, action.mStartTime + action.mTravelTime + action.mDuration, action.mName, getNextTimelineIDFunc(), 
                                                         "Create timeline for " + action.mName, self.mEventHandler.getNewEventID(), self.mEventHandler )
-        events = [ newTimelineEvent ]
+        setWorkerIdleEvent = self.getChangeTaskEvent( WorkerTask.IDLE, action.mStartTime + action.mTravelTime + action.mDuration, "Worker finished building " + action.mName, self.mEventHandler.getNewEventID(), goldMineTimeline )
+        events = [ newTimelineEvent, setWorkerIdleEvent ]
 
         increaseFoodMaxEvent = Event.getModifyResourceCountEvent(currentResources, action.mStartTime + action.mTravelTime + action.mDuration, "Add max food for " + action.mName, 
                                                             self.mEventHandler.getNewEventID(), 0, 0, 0, action.mFoodProvided)
@@ -235,8 +245,12 @@ class WorkerTimeline(Timeline):
         self.mEventHandler.registerEvents(events)
 
         action.setAssociatedEvents(events)
-        self.addAction(action, currentResources)
+
+        #Must change task before adding action, since moving off of gold or lumber will assume the last action on the timeline is the gain 
+        # gold or lumber action that it can grab the +gold or +lumber event from
+        #TODO: Make this more elegant / less error prone?
         self.changeTask(goldMineTimeline, action.mStartTime, WorkerTask.CONSTRUCTING)
+        self.addAction(action)
 
         return True
 

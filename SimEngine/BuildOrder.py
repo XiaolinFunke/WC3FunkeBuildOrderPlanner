@@ -1,4 +1,4 @@
-from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_TYPE_GOLD_MINE
+from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_TYPE_GOLD_MINE, STARTING_FOOD, STARTING_GOLD, STARTING_LUMBER
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.Trigger import TriggerType
 from SimEngine.EventHandler import EventHandler
@@ -94,8 +94,10 @@ class BuildOrder:
     #Will simulate back to specified simtime
     #Will reverse all actions between now and then, but won't reverse any at the specified simtime itself
     def _simulateBackward(self, untilSimTime):
-        #Current sim time wll be executed now, even though it was executed last simulate() call
-        #Event Handler knows to only execute the events that have been added to the current time since then
+        #This is a no-op, since we don't reverse anything at the specified simtime when going backward
+        if self.mCurrentSimTime == untilSimTime:
+            return
+
         for time in range(self.mCurrentSimTime, untilSimTime, -1):
             self.mEventHandler.reverseEvents(time)
             self.mCurrentSimTime -= 1
@@ -123,9 +125,12 @@ class BuildOrder:
 
     def _getWorkerTimelineForAction(self, action):
         workerTimeline = None
-        if action.mWorkerTimelineID:
-            workerTimeline = self._findMatchingTimeline(action.mRequiredTimelineType, action.mWorkerTimelineID)
-        elif action.mCurrentWorkerTask == WorkerTask.IDLE:
+        #Only worker movement action has this attribute
+        if hasattr(action, 'mWorkerTimelineID'):
+            if action.mWorkerTimelineID:
+                return self._findMatchingTimeline(action.mRequiredTimelineType, action.mWorkerTimelineID)
+
+        if action.mCurrentWorkerTask == WorkerTask.IDLE:
             workerTimeline = self._getIdleWorker(action.mRequiredTimelineType)
         elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
             workerTimeline = self._getMostIdleWorkerOnResource(action.mRequiredTimelineType, action.mCurrentWorkerTask == WorkerTask.GOLD)
@@ -251,6 +256,16 @@ class BuildOrder:
                 minAvailableTime, nextAvailableTimeline = self._getNextAvailableTimelineForAction(action)
 
         action.setStartTime(self.mCurrentSimTime)
+        #Create an event for when the resources should be deducted from our resource total
+        #TODO: Clean this up -- maybe somehow combine with how we're doing it in buildStructure -- or pull out or make more elegant somehow
+        lumberCost = 0
+        if action.mLumberCost:
+            lumberCost = action.mLumberCost
+        travelTime = 0
+        if action.mTravelTime:
+            travelTime = action.mTravelTime
+        self.mEventHandler.registerEvent(Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + travelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
+                                          action.mGoldCost * -1, lumberCost * -1, 0, 0))
 
         if action.mDontExecute == True:
             return False 
@@ -259,8 +274,9 @@ class BuildOrder:
             events = [ Timeline.getNewTimelineEvent(self.mInactiveTimelines, action.getStartTime() + action.mDuration, action.mName, self.getNextTimelineID(),
                                                  "Worker " + action.mName + " produced", self.mEventHandler.getNewEventID(), self.mEventHandler) ]
             self.mEventHandler.registerEvents(events)
+            action.mAssociatedEvents = events
 
-        if not nextAvailableTimeline.addAction(action, self.mCurrentResources):
+        if not nextAvailableTimeline.addAction(action):
             print("Failed to execute action", action.__class__.__name__ + " - " + action.mName)
             return False
 
@@ -344,19 +360,21 @@ class BuildOrder:
 
         goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
 
+        #TODO: The events are getting messed up in this sim backward section
+        foundCorrectStartTime = False
+        if action.mTravelTime == 0:
+            #If there's no travel time, no need to simulate back and forth to account for travel time
+            foundCorrectStartTime = True
+            workerTimeline = self._getWorkerTimelineForAction(action)
+
+        #Now, we need to see when we can actually afford the building while accounting for the worker that will be taken off its resource to travel (if it is indeed a worker on a resource)
         #Never simulate back to before the original time the action was set to trigger at, since we want to maintain the order of the actions
         self._simulateBackward(max(self.mCurrentSimTime - action.mTravelTime, action.mStartTime))
-        foundCorrectStartTime = False
-        #Now, we need to see when we can actually afford the building while accounting for the worker that will be taken off its resource to travel (if it is indeed a worker on a resource)
         while not foundCorrectStartTime:
-            if action.mCurrentWorkerTask == WorkerTask.IDLE:
-                workerTimeline = self._getIdleWorker(action.mRequiredTimelineType)
-            elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
-                workerTimeline = self._getMostIdleWorkerOnResource(action.mRequiredTimelineType, action.mCurrentWorkerTask == WorkerTask.GOLD)
-            elif action.mCurrentWorkerTask == WorkerTask.IN_PRODUCTION:
-                #We should have already simulated up until the worker was built, since the Trigger Type would be NEXT_WORKER_BUILT
-                workerTimeline = self._getLastBuiltWorkerTimeline(action.mRequiredTimelineType)
-
+            workerTimeline = self._getWorkerTimelineForAction(action)
+            if workerTimeline == None:
+                return False
+            
             #Move worker off of resource and simulate ahead to see if this start time works
             workerTimeline.changeTask(goldMineTimeline, self.mCurrentSimTime, WorkerTask.ROAMING)
             #Simulate ahead to see if this start time will work
@@ -365,9 +383,8 @@ class BuildOrder:
             if self.mCurrentResources.haveRequiredResources(action.mGoldCost, action.mLumberCost):
                 #This start time works!
                 foundCorrectStartTime = True
-                print(self.mEventHandler.printScheduledEvents())
 
-            #Now that we've siualted ahead to check whether this time works, simulate back and reset
+            #Now that we've simulated ahead to check whether this time works, simulate back and reset
             self._simulateBackward(self.mCurrentSimTime - action.mTravelTime)
             #Put worker back to its previous task
             workerTimeline.changeTask(goldMineTimeline, self.mCurrentSimTime, action.mCurrentWorkerTask)
@@ -378,8 +395,9 @@ class BuildOrder:
         
         action.setStartTime(self.mCurrentSimTime)
         #Create an event for when the resources should be deducted from our resource total
-        Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + action.mTravelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
-                                          action.mGoldCost * -1, action.mLumberCost * -1, 0, 0)
+        self.mEventHandler.registerEvent(Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + action.mTravelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
+                                          action.mGoldCost * -1, action.mLumberCost * -1, 0, 0))
+
         if action.mDontExecute == True:
             return False
         elif not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline):
@@ -427,6 +445,24 @@ class BuildOrder:
             return None
 
         #TODO: Determine the idleness of the workers
+        if self.mRace == Race.NIGHT_ELF:
+            if onGold:
+                #Take any gold worker, they are all equivalent for Elf. May as well take the first one
+                return correctTaskWorkerTimelines[0]
+            else:
+                #Take the lumber worker whose gain lumber event is the farthest in the future (it has done the least work to the next gain lumber event)
+                maxEventTime = -1
+                mostIdleWorker = None
+                for workerTimeline in correctTaskWorkerTimelines:
+                    #This worker's most recent action should be to go to lumber
+                    #Get the most recent recurrence of the gain lumber event associated with that action
+                    gainLumberEvent = workerTimeline.getCurrOrPrevAction(self.mCurrentSimTime).getAssociatedEvent().getMostRecentRecurrence()
+                    eventTime = gainLumberEvent.getEventTime()
+                    if eventTime > maxEventTime:
+                        maxEventTime = eventTime
+                        mostIdleWorker = workerTimeline
+                return mostIdleWorker
+
         #For now, just return the first one
         return correctTaskWorkerTimelines[0]
 
@@ -484,12 +520,15 @@ class BuildOrder:
             timeline.printTimeline()
 
 class CurrentResources:
-    def __init__(self, race):
-        self.mCurrentGold = 500
-        self.mCurrentLumber = 150
-        self.mCurrentFood = 5
+    def __init__(self, race, startingGold=STARTING_GOLD, startingLumber=STARTING_LUMBER, startingFood=STARTING_FOOD, startingFoodMax=None):
+        self.mCurrentGold = startingGold
+        self.mCurrentLumber = startingLumber
+        self.mCurrentFood = startingFood
 
-        self.mCurrentFoodMax = STARTING_FOOD_MAX_MAP[race]
+        if not startingFoodMax:
+            self.mCurrentFoodMax = STARTING_FOOD_MAX_MAP[race]
+        else:
+            self.mCurrentFoodMax = startingFoodMax
 
     def getAsDictForSerialization(self):
         dict = {
@@ -545,6 +584,16 @@ class CurrentResources:
 
     def haveRequiredResources(self, goldRequired, lumberRequired, foodRequired = 0):
         return self.mCurrentGold >= goldRequired and self.mCurrentLumber >= lumberRequired and self.mCurrentFood + foodRequired <= self.mCurrentFoodMax
+
+    def __sub__(self, other):
+        self.mCurrentFood -= other.mCurrentFood
+        self.mCurrentGold -= other.mCurrentGold
+        self.mCurrentLumber -= other.mCurrentLumber
+
+    def __add__(self, other):
+        self.mCurrentFood += other.mCurrentFood
+        self.mCurrentGold += other.mCurrentGold
+        self.mCurrentLumber += other.mCurrentLumber
 
     def __eq__(self, other):
         #Don't attempt to compare if not the same type
