@@ -15,6 +15,13 @@ class EventHandler:
         #String Events IDs of all the events executed in order - put an 'R' in front of any that were executed in reverse
         self.mEventsExecutedInOrder = []
 
+    def getNumberOfEvents(self):
+        num = 0
+        for simTime in self.mEvents:
+            for event in self.mEvents[simTime]:
+                num += 1
+        return num
+
     def printEventsExecutedInOrder(self):
         if len(self.mEventsExecutedInOrder) == 0:
             print("No events executed")

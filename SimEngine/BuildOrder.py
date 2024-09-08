@@ -360,7 +360,6 @@ class BuildOrder:
 
         goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
 
-        #TODO: The events are getting messed up in this sim backward section
         foundCorrectStartTime = False
         if action.mTravelTime == 0:
             #If there's no travel time, no need to simulate back and forth to account for travel time
@@ -456,7 +455,7 @@ class BuildOrder:
                 for workerTimeline in correctTaskWorkerTimelines:
                     #This worker's most recent action should be to go to lumber
                     #Get the most recent recurrence of the gain lumber event associated with that action
-                    gainLumberEvent = workerTimeline.getCurrOrPrevAction(self.mCurrentSimTime).getAssociatedEvent().getMostRecentRecurrence()
+                    gainLumberEvent = workerTimeline.getCurrOrPrevAction(self.mCurrentSimTime).getNewestAssociatedEvent()
                     eventTime = gainLumberEvent.getEventTime()
                     if eventTime > maxEventTime:
                         maxEventTime = eventTime

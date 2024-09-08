@@ -195,7 +195,7 @@ class WorkerTimeline(Timeline):
             goldMineTimeline.removeWorkerFromMine(currSimTime)
         elif self.mCurrentTask == WorkerTask.LUMBER:
             #Lumber action is associated with an event to gain lumber. Remove that event here now that this worker is doing something else
-            gainLumberEvent = self.getCurrOrPrevAction(currSimTime).getAssociatedEvent()
+            gainLumberEvent = self.getCurrOrPrevAction(currSimTime).getNewestAssociatedEvent()
             self.mEventHandler.unRegisterEvent(gainLumberEvent.getEventTime(), gainLumberEvent.getEventID())
 
         self.mCurrentTask = newTask
