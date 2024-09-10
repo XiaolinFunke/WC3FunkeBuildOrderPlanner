@@ -35,11 +35,6 @@ class Action:
         #Some Actions shouldn't be shown to the user and shouldn't make a timeline 'Active'
         self.mIsInvisibleToUser = False
 
-        #If True, simulate up to when the action would need to be taken, but don't actually execute it
-        #Just used for testing at the moment
-        #TODO: Do we need this anymore?
-        self.mDontExecute = False
-
     #TODO: Any fancy way we could mark variables as ones that should be serialized rather than having to specify here?
     #Pare down to only relevant fields for JSON encoding and get as dict
     #@param isOnTimeline - If True, include stuff like start time and duration (needed for when we're printing the Timelines as JSON, but not for ordered action list)

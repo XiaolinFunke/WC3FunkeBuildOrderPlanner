@@ -267,9 +267,6 @@ class BuildOrder:
         self.mEventHandler.registerEvent(Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + travelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
                                           action.mGoldCost * -1, lumberCost * -1, 0, 0))
 
-        if action.mDontExecute == True:
-            return False 
-
         if isUnitWorker(action.mName):
             events = [ Timeline.getNewTimelineEvent(self.mInactiveTimelines, action.getStartTime() + action.mDuration, action.mName, self.getNextTimelineID(),
                                                  "Worker " + action.mName + " produced", self.mEventHandler.getNewEventID(), self.mEventHandler) ]
@@ -397,9 +394,7 @@ class BuildOrder:
         self.mEventHandler.registerEvent(Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + action.mTravelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
                                           action.mGoldCost * -1, action.mLumberCost * -1, 0, 0))
 
-        if action.mDontExecute == True:
-            return False
-        elif not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline):
+        if not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline):
             print("Failed to build", action.mName)
             return False
 
