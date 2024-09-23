@@ -125,6 +125,29 @@ class Action:
     def getRequiredTimelineType(self):
         return self.mRequiredTimelineType
 
+    def getEndTime(self):
+        travelTime = self.mTravelTime
+        if not self.mTravelTime:
+            travelTime = 0
+        return self.mStartTime + self.mDuration + travelTime
+
+    #Return the percent of this action that has been completed, based on the simtime (between 0 and 100). Returns -1 if the action has not begun yet
+    #Does not include travel time as part of the action being completed
+    def getPercentComplete(self, currSimTime):
+        #If action hasn't started yet (excluding any potential travel time), return -1
+        if currSimTime < self.getEndTime() - self.mDuration:
+            return -1
+
+        #Use time left / end time rather than the time used / start time, since we want to exclude the travel time
+        #For example, a BuildStructure action that has been going for 5s because the worker has been walking for 5s is still a 0% complete action
+        timeLeft = self.getEndTime() - currSimTime
+        percentLeftToComplete = (timeLeft / self.mDuration) * 100
+
+        #Bound between 0 and 100
+        currentPercentComplete = min(100.0, max(0.0, 100.0 - percentLeftToComplete))
+
+        return currentPercentComplete
+
     def __str__(self):
         duration = self.mDuration
         if self.mDuration == None:

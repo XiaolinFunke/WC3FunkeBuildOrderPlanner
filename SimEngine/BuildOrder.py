@@ -64,8 +64,9 @@ class BuildOrder:
                 print("Tried to simulate until", action.getTrigger().mValue, "food was available, but we would never reach that amount")
                 return False
         elif action.getTrigger().mTriggerType == TriggerType.PERCENT_OF_ONGOING_ACTION:
-            #TODO:
-            pass
+            if not self._simulateUntilActionIsNPercentComplete(action.getTrigger().mActionID, action.getTrigger().mValue):
+                print("Tried to simulate until action with ID", action.getTrigger().mActionID, "was", action.getTrigger().mValue, "percent complete, but that is not possible")
+                return False
         elif action.getTrigger().mTriggerType == TriggerType.NEXT_WORKER_BUILT:
             if not self._simulateUntilWorkerIsBuilt(action.getTrigger().mValue):
                 print("No next worker exists for NEXT_WORKER_BUILT trigger")
@@ -350,6 +351,8 @@ class BuildOrder:
     #Return True if executed the action successfully, False if didn't execute or failed to execute
     #Will be built with the most idle worker currently doing the workerTask passed in
     def _buildStructure(self, action):
+        #Simulate to the time when the travel time is over first. Any time before that is not feasible, even if we have the resources at that point
+        self.simulate(self.mCurrentSimTime + action.mTravelTime)
         #This simTime is as soon as we can afford the structure, with all workers working (one may be taken off a resource, so this would be the minimum possible sim time for the building to start)
         if not self._simulateUntilResourcesAvailable(goldRequired=action.mGoldCost, lumberRequired=action.mLumberCost, foodRequired=0):
             print("Tried to simulate until resources were available for", action, "but they never were")
@@ -365,7 +368,7 @@ class BuildOrder:
 
         #Now, we need to see when we can actually afford the building while accounting for the worker that will be taken off its resource to travel (if it is indeed a worker on a resource)
         #Never simulate back to before the original time the action was set to trigger at, since we want to maintain the order of the actions
-        self._simulateBackward(max(self.mCurrentSimTime - action.mTravelTime, action.mStartTime))
+        self._simulateBackward(self.mCurrentSimTime - action.mTravelTime)
         while not foundCorrectStartTime:
             workerTimeline = self._getWorkerTimelineForAction(action)
             if workerTimeline == None:
@@ -438,7 +441,6 @@ class BuildOrder:
         if len(correctTaskWorkerTimelines) == 0:
             return None
 
-        #TODO: Determine the idleness of the workers
         if self.mRace == Race.NIGHT_ELF:
             if onGold:
                 #Take any gold worker, they are all equivalent for Elf. May as well take the first one
@@ -491,6 +493,32 @@ class BuildOrder:
 
         return True
 
+    #May simulate to slightly after the desired percentage, if the simTime resolution doesn't allow simulating to that exact percentage
+    def _simulateUntilActionIsNPercentComplete(self, actionID, percentComplete):
+        if percentComplete < 0 or percentComplete > 100:
+            print("Cannot simulate until an action is", percentComplete, "percent complete. Percent must be between 0%% and 100%%")
+            return False
+
+        #TODO: How would we say to return workers early when they have 5 lumber in hand, for example?
+        matchingAction = None
+        for action in self.mOrderedActionList:
+            if action.mActionID == actionID:
+                if matchingAction != None:
+                    print("Two or more actions exist with the same action ID of", actionID, "! Cannot simulate until percentage completion based on action ID")
+                    return False
+                else:
+                    matchingAction = action
+        if matchingAction == None:
+            print("Tried to simulate until action with ID", actionID, "was", percentComplete, "percent complete, but no action exists with that ID")
+            return False
+
+        while matchingAction.getPercentComplete(self.mCurrentSimTime) < percentComplete:
+            self.simulate(self.mCurrentSimTime + 1)
+
+        print("Returning true because percent complete is", matchingAction.getPercentComplete(self.mCurrentSimTime))
+
+        return True
+
     #Checks inactive timelines and determines if any should be moved to the active list
     def _moveTimelinesToActiveList(self):
         #TODO: This could be more performant, if performance is an issue
@@ -513,6 +541,7 @@ class BuildOrder:
         for timeline in self.mInactiveTimelines:
             timeline.printTimeline()
 
+#TODO: Move to own file
 class CurrentResources:
     def __init__(self, race, startingGold=STARTING_GOLD, startingLumber=STARTING_LUMBER, startingFood=STARTING_FOOD, startingFoodMax=None):
         self.mCurrentGold = startingGold
@@ -580,14 +609,18 @@ class CurrentResources:
         return self.mCurrentGold >= goldRequired and self.mCurrentLumber >= lumberRequired and self.mCurrentFood + foodRequired <= self.mCurrentFoodMax
 
     def __sub__(self, other):
-        self.mCurrentFood -= other.mCurrentFood
-        self.mCurrentGold -= other.mCurrentGold
-        self.mCurrentLumber -= other.mCurrentLumber
+        new = CurrentResources(Race.NIGHT_ELF, self.mCurrentGold, self.mCurrentLumber, self.mCurrentFood, self.mCurrentFoodMax)
+        new.mCurrentFood -= other.mCurrentFood
+        new.mCurrentGold -= other.mCurrentGold
+        new.mCurrentLumber -= other.mCurrentLumber
+        return new
 
     def __add__(self, other):
-        self.mCurrentFood += other.mCurrentFood
-        self.mCurrentGold += other.mCurrentGold
-        self.mCurrentLumber += other.mCurrentLumber
+        new = CurrentResources(Race.NIGHT_ELF, self.mCurrentGold, self.mCurrentLumber, self.mCurrentFood, self.mCurrentFoodMax)
+        new.mCurrentFood += other.mCurrentFood
+        new.mCurrentGold += other.mCurrentGold
+        new.mCurrentLumber += other.mCurrentLumber
+        return new
 
     def __eq__(self, other):
         #Don't attempt to compare if not the same type

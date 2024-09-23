@@ -56,14 +56,16 @@ class TestRealBuildOrders(unittest.TestCase):
         self.assertEqual(buildOrder.getCurrentSimTime(), 0)
 
         #0th wisp -- Altar
+        altarActionID = actionIDHandler.getNextID()
         self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(8 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 
-                                              180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
+                                              180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, altarActionID, False)))
         #Time should not advance yet
         self.assertEqual(buildOrder.getCurrentSimTime(), 0)
 
         #1st wisp -- moon well
+        moonWellActionID = actionIDHandler.getNextID()
         self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, "Moon Well", 
-                                                    180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
+                                                    180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, moonWellActionID, False)))
         #Time should advance until the time the first wisp is built
         self.assertEqual(buildOrder.getCurrentSimTime(), 14 * SECONDS_TO_SIMTIME)
 
@@ -96,9 +98,7 @@ class TestRealBuildOrders(unittest.TestCase):
         self.assertEqual(buildOrder.getCurrentSimTime(), 56 * SECONDS_TO_SIMTIME)
 
         #Moon well wisp to lumber when done
-        #TODO: Change to use trigger at 100% of those buildings once we have that trigger type working
-        buildOrder.simulate(66 * SECONDS_TO_SIMTIME)
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.PERCENT_OF_ONGOING_ACTION, 100, moonWellActionID), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
         self.assertEqual(buildOrder.getCurrentSimTime(), 66 * SECONDS_TO_SIMTIME)
 
         #@Altar -- build hero
@@ -106,7 +106,7 @@ class TestRealBuildOrders(unittest.TestCase):
         self.assertEqual(buildOrder.getCurrentSimTime(), 68 * SECONDS_TO_SIMTIME)
 
         #Altar wisp to lumber when done
-        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.PERCENT_OF_ONGOING_ACTION, 100, altarActionID), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
         self.assertEqual(buildOrder.getCurrentSimTime(), 68 * SECONDS_TO_SIMTIME)
 
         #5th wisp to lumber
