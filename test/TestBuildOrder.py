@@ -2,7 +2,8 @@ import unittest
 
 from copy import copy
 
-from SimEngine.BuildOrder import BuildOrder, CurrentResources
+from SimEngine.BuildOrder import BuildOrder
+from SimEngine.ResourceBank import ResourceBank
 from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME
 from SimEngine.Worker import Worker, WorkerTask
 from SimEngine.Trigger import Trigger, TriggerType
@@ -247,7 +248,7 @@ class TestBuildOrder(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
         #Add a bunch of resources so we don't run out (greedisgood)
-        buildOrder.mCurrentResources = buildOrder.mCurrentResources + CurrentResources(Race.NIGHT_ELF, 1000, 1000, 0)
+        buildOrder.mCurrentResources = buildOrder.mCurrentResources + ResourceBank(Race.NIGHT_ELF, 1000, 1000, 0)
 
         #Queue first wisp
         actionIDWispBuild = actionIDHandler.getNextID()
@@ -285,7 +286,7 @@ class TestBuildOrder(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
         #Add a bunch of resources so we don't run out (greedisgood)
-        buildOrder.mCurrentResources = buildOrder.mCurrentResources + CurrentResources(Race.NIGHT_ELF, 1000, 1000, 0)
+        buildOrder.mCurrentResources = buildOrder.mCurrentResources + ResourceBank(Race.NIGHT_ELF, 1000, 1000, 0)
 
         #Build fake building that takes 100 seconds
         actionIDBuild = actionIDHandler.getNextID()
@@ -308,7 +309,7 @@ class TestBuildOrder(unittest.TestCase):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
 
         #Add a bunch of resources so we don't run out (greedisgood)
-        buildOrder.mCurrentResources = buildOrder.mCurrentResources + CurrentResources(Race.NIGHT_ELF, 1000, 1000, 0)
+        buildOrder.mCurrentResources = buildOrder.mCurrentResources + ResourceBank(Race.NIGHT_ELF, 1000, 1000, 0)
 
         #Action ID is nonexistent
         badActionID = 100
