@@ -337,23 +337,6 @@ class BuildOrder:
 
         return True
 
-    #Commented out -- will rely on front-end for hero handling unless we eventually want to double-check it here
-    # def _buildHero(self, action):
-    #     #TODO: Enforce not building same hero twice as well
-    #     #Can't build any more heroes after the third one
-    #     if self.mHeroesBuilt >= 3:
-    #         return False
-
-    #     if self.mHeroesBuilt == 0:
-    #         #First hero doesn't cost gold or lumber
-    #         action.setCostToFree()
-
-    #     if self._doBuildUnit(action):
-    #         self.mHeroesBuilt += 1
-    #         return True
-    #     else:
-    #         return False
-
     #Return True if executed the action successfully, False if didn't execute or failed to execute
     #Will be built with the most idle worker currently doing the workerTask passed in
     def _buildStructure(self, action):
