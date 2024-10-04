@@ -263,16 +263,7 @@ class BuildOrder:
                 minAvailableTime, nextAvailableTimeline = self._getNextAvailableTimelineForAction(action)
 
         action.setStartTime(self.mCurrentSimTime)
-        #Create an event for when the resources should be deducted from our resource total
-        #TODO: Clean this up -- maybe somehow combine with how we're doing it in buildStructure -- or pull out or make more elegant somehow
-        lumberCost = 0
-        if action.mLumberCost:
-            lumberCost = action.mLumberCost
-        travelTime = 0
-        if action.mTravelTime:
-            travelTime = action.mTravelTime
-        self.mEventHandler.registerEvent(Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + travelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
-                                          action.mGoldCost * -1, lumberCost * -1, 0, 0))
+        self._registerPaymentForAction(action)
 
         if isUnitWorker(action.mName):
             events = [ Timeline.getNewTimelineEvent(self.mInactiveTimelines, action.getStartTime() + action.mDuration, action.mName, self.getNextTimelineID(),
@@ -287,6 +278,18 @@ class BuildOrder:
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
         self.simulate(self.mCurrentSimTime)
         return True
+
+    #Register an event to pay for an action at the appropriate time
+    def _registerPaymentForAction(self, action):
+        #Create an event for when the resources should be deducted from our resource total
+        lumberCost = 0
+        if action.mLumberCost:
+            lumberCost = action.mLumberCost
+        travelTime = 0
+        if action.mTravelTime:
+            travelTime = action.mTravelTime
+        self.mEventHandler.registerEvent(Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + travelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
+                                          action.mGoldCost * -1, lumberCost * -1, 0, 0))
 
     #Gets the time and the next timeline that can handle the action. If none can, returns None
     def _getNextAvailableTimelineForAction(self, action):
@@ -382,8 +385,7 @@ class BuildOrder:
         
         action.setStartTime(self.mCurrentSimTime)
         #Create an event for when the resources should be deducted from our resource total
-        self.mEventHandler.registerEvent(Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + action.mTravelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
-                                          action.mGoldCost * -1, action.mLumberCost * -1, 0, 0))
+        self._registerPaymentForAction(action)
 
         if not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources):
             print("Failed to build", action.mName)
