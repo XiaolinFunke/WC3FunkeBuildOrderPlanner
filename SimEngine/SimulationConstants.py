@@ -4,6 +4,7 @@ SECONDS_TO_SIMTIME = 10 #simtime is in deciseconds
 SIMTIME_TO_SECONDS = 1/SECONDS_TO_SIMTIME #simtime is in deciseconds
 
 TIMELINE_TYPE_GOLD_MINE = "Gold Mine"
+TIMELINE_TYPE_COPSE_OF_TREES = "Copse of Trees"
 
 class Race(Enum):
     HUMAN = auto()

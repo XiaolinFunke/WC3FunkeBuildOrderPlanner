@@ -162,6 +162,10 @@ class WorkerTimeline(Timeline):
         self.mTimeAtCurrentTaskSec = 0
         self.mProductiveTimeAtCurrentTaskSec = 0
 
+        #If this worker is on gold or lumber, it will have a reference to that gold mine or tree copse timeline here
+        #Otherwise, this will be None
+        self.mCurrentResourceSourceTimeline = None
+
     @staticmethod
     def getNewWorkerTimeline(workerName, timelineID, eventHandler):
         if not isUnitWorker(workerName):
@@ -180,31 +184,48 @@ class WorkerTimeline(Timeline):
             return WispTimeline(timelineID, eventHandler)
 
     #Convenience method for getting an event that changes a worker's task and can be reversed
-    def getChangeTaskEvent(self, newTask, simTime, eventName, eventID, goldMineTimeline):
+    #If task is being changed to gold or lumber, need to pass in that resource source timeline as well
+    def getChangeTaskEvent(self, newTask, simTime, eventName, eventID, resourceSourceTimeline = None):
         originalTask = self.mCurrentTask
-        event = Event(eventFunction = lambda: self.changeTask(goldMineTimeline, simTime, newTask), 
-                        reverseFunction = lambda: self.changeTask(goldMineTimeline, simTime, originalTask),
+        event = Event(eventFunction = lambda: self.changeTask(simTime, newTask, resourceSourceTimeline), 
+                        reverseFunction = lambda: self.changeTask(simTime, originalTask, self.mCurrentResourceSourceTimeline),
                       eventTime=simTime, recurPeriodSimtime = 0, eventName = eventName, eventID = eventID)
         return event
 
-    def changeTask(self, goldMineTimeline, currSimTime, newTask):
+    #Mark worker as working on a new task
+    #Also, if the worker is currently on a resource, remove them from that resource
+    def changeTask(self, currSimTime, newTask, resourceSourceTimeline = None):
         if self.mCurrentTask == newTask:
             return
 
+        if self.mCurrentTask == WorkerTask.GOLD or self.mCurrentTask == WorkerTask.LUMBER:
+            if not self.mCurrentResourceSourceTimeline:
+                print("Worker must move off of gold or lumber, but doesn't have a reference to any gold mine or copse of trees timeline!")
+                return
+
+        #Move off of current resource, if we were on one
         if self.mCurrentTask == WorkerTask.GOLD:
-            goldMineTimeline.removeWorkerFromMine(currSimTime)
+            self.mCurrentResourceSourceTimeline.removeWorkerFromMine(currSimTime)
         elif self.mCurrentTask == WorkerTask.LUMBER:
             #Lumber action is associated with an event to gain lumber. Remove that event here now that this worker is doing something else
+            #TODO: We should adjust something on the copse of trees here as well
             gainLumberEvent = self.getCurrOrPrevAction(currSimTime).getNewestAssociatedEvent()
             self.mEventHandler.unRegisterEvent(gainLumberEvent.getEventTime(), gainLumberEvent.getEventID())
 
+        #Mark worker as working on new task
         self.mCurrentTask = newTask
+        if newTask == WorkerTask.GOLD or newTask == WorkerTask.LUMBER:
+            if not resourceSourceTimeline:
+                print("Worker was told to go to gold or lumber, but no gold mine or copse of trees timeline reference was passed in!")
+                return
+            else:
+                self.mCurrentResourceSourceTimeline = resourceSourceTimeline
 
     def getCurrentTask(self):
         return self.mCurrentTask
 
-    def sendWorkerToMine(self, action, goldMineTimeline, currSimTime):
-        self.changeTask(goldMineTimeline, currSimTime, WorkerTask.GOLD)
+    def sendWorkerToMine(self, action, currSimTime, goldMineTimeline):
+        self.changeTask(currSimTime, WorkerTask.GOLD, goldMineTimeline)
         #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
         enterMineEvent = Event.getModifyWorkersInMineEvent(goldMineTimeline, currSimTime + action.mTravelTime, "Enter mine", self.mEventHandler.getNewEventID())
         action.setAssociatedEvents([enterMineEvent])
@@ -215,9 +236,10 @@ class WorkerTimeline(Timeline):
         self.mEventHandler.registerEvent(enterMineEvent)
         return True
 
-    def sendWorkerToLumber(self, action, goldMineTimeline, currSimTime, currentResources):
-        self.changeTask(goldMineTimeline, currSimTime, WorkerTask.LUMBER)
-        gainLumberEvent = Event.getModifyResourceCountEvent(currentResources, currSimTime + action.mTravelTime + (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), "Gain 5 lumber", 
+    def sendWorkerToLumber(self, action, currSimTime, copseOfTreesTimeline):
+        self.changeTask(currSimTime, WorkerTask.LUMBER, copseOfTreesTimeline)
+        #TODO: This should be handled by the Copse of Trees Timeline like we do for Gold Mine timeline
+        gainLumberEvent = Event.getModifyResourceCountEvent(copseOfTreesTimeline.mCurrentResources, currSimTime + action.mTravelTime + (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), "Gain 5 lumber", 
                                                             self.mEventHandler.getNewEventID(), 0, self.mLumberGainPerCycle, 0, 0, self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME)
         action.setAssociatedEvents([gainLumberEvent])
 
@@ -228,12 +250,11 @@ class WorkerTimeline(Timeline):
         self.mEventHandler.registerEvent(gainLumberEvent)
         return True
 
-    #TODO: Should all worker timelines just have a reference to the gold mine timeline? Seems a bit silly to keep passing it around
     #Return True if successful, False otherwise
-    def buildStructure(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources, goldMineTimeline):
+    def buildStructure(self, action, inactiveTimelines, getNextTimelineIDFunc, currentResources):
         newTimelineEvent = Timeline.getNewTimelineEvent( inactiveTimelines, action.mStartTime + action.mTravelTime + action.mDuration, action.mName, getNextTimelineIDFunc(), 
                                                         "Create timeline for " + action.mName, self.mEventHandler.getNewEventID(), self.mEventHandler )
-        setWorkerIdleEvent = self.getChangeTaskEvent( WorkerTask.IDLE, action.mStartTime + action.mTravelTime + action.mDuration, "Worker finished building " + action.mName, self.mEventHandler.getNewEventID(), goldMineTimeline )
+        setWorkerIdleEvent = self.getChangeTaskEvent( WorkerTask.IDLE, action.mStartTime + action.mTravelTime + action.mDuration, "Worker finished building " + action.mName, self.mEventHandler.getNewEventID() )
         events = [ newTimelineEvent, setWorkerIdleEvent ]
 
         increaseFoodMaxEvent = Event.getModifyResourceCountEvent(currentResources, action.mStartTime + action.mTravelTime + action.mDuration, "Add max food for " + action.mName, 
@@ -249,7 +270,7 @@ class WorkerTimeline(Timeline):
         #Must change task before adding action, since moving off of gold or lumber will assume the last action on the timeline is the gain 
         # gold or lumber action that it can grab the +gold or +lumber event from
         #TODO: Make this more elegant / less error prone?
-        self.changeTask(goldMineTimeline, action.mStartTime, WorkerTask.CONSTRUCTING)
+        self.changeTask(action.mStartTime, WorkerTask.CONSTRUCTING)
         self.addAction(action)
 
         return True
@@ -281,105 +302,3 @@ class PeonTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
         super().__init__(timelineType = Worker.Peon.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = None, lumberGainPerCycle = 10, goldCycleTimeSec = None, goldGainPerCycle = 10)
-
-class GoldMineTimeline(Timeline):
-    def __init__(self, timelineType, timelineID, eventHandler, race, currentResources):
-        super().__init__(timelineType, timelineID, eventHandler)
-        self.mNumWorkersInMine = 0
-        self.mRace = race
-        self.mCurrentResources = currentResources
-        if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
-            self.mMaxWorkersInMine = 5
-        else:
-            self.mMaxWorkersInMine = 1
-
-    #Sim time only needed for Undead and Elf, to bring their next +10 gold proportionally forward
-    #Return False if Action failed to add, True if succeeded
-    def addWorkerToMine(self, simTime):
-        if self.mineIsFull():
-            print("Tried to add a worker to mine when it's already full")
-            return False
-
-        if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
-            if self.mineIsEmpty():
-                #Time to mine for 1 worker (diminishes proportionally with number of workers)
-                timeToMine = TIME_TO_MINE_GOLD_BASE_SEC * SECONDS_TO_SIMTIME
-
-                #For first worker, we need to create the +10 gold event that we will use from here on out
-                gainGoldEvent = Event.getModifyResourceCountEvent(self.mCurrentResources, simTime + timeToMine, "Gain 10 gold", 
-                                                            self.mEventHandler.getNewEventID(), 10, 0, 0, 0, timeToMine)
-                self.mEventHandler.registerEvent(gainGoldEvent)
-            else:
-                gainGoldEvent = self.modifyGainGoldEvent(self.getNumWorkersInMine(), self.getNumWorkersInMine() + 1, simTime)
-
-            newWorkerInMineAction = AutomaticAction()
-            newWorkerInMineAction.setStartTime(simTime)
-            newWorkerInMineAction.setAssociatedEvents([gainGoldEvent])
-
-            if not self.addAction(newAction = newWorkerInMineAction):
-                print("Failed to add new worker action to mine timeline")
-                return False
-
-        self.mNumWorkersInMine += 1
-        return True
-
-    #Sim time only needed for Undead and Elf, to bring their next +10 gold proportionally forward
-    #Return False if Action failed to add, True if succeeded
-    def removeWorkerFromMine(self, simTime):
-        if self.mineIsEmpty():
-            print("Tried to remove a worker from mine when it's already empty")
-            return False
-
-        if self.mRace == Race.NIGHT_ELF or self.mRace == Race.UNDEAD:
-            gainGoldEvent = self.modifyGainGoldEvent(self.getNumWorkersInMine(), self.getNumWorkersInMine() - 1, simTime)
-
-            events = []
-            #Don't bother adding a None event if the mine now has 0 workers
-            if gainGoldEvent:
-                events = [gainGoldEvent]
-            removeWorkerFromMineAction = AutomaticAction()
-            removeWorkerFromMineAction.setStartTime(simTime)
-            removeWorkerFromMineAction.setAssociatedEvents(events)
-            if not self.addAction(newAction = removeWorkerFromMineAction):
-                print("Failed to add Remove Worker action from mine timeline")
-                return False
-
-        self.mNumWorkersInMine -= 1
-        return True
-
-    def modifyGainGoldEvent(self, oldNumWorkers, newNumWorkers, simTime):
-        #Already a worker in the mine, and a +10 gold event
-        #Next 10 gold gained will be proportionally faster now that we have another worker
-        #Will need to bring that event forward
-        #The event could also be for the current time, if multiple workers are added at exact same time (unrealistic, but happens in tests)
-        prevAction = self.getCurrOrPrevAction(simTime)
-        #The "New worker in mine" or "Remove worker from mine" action on the mine timeline will be associated with a gain gold event
-        gainGoldEvent = prevAction.getNewestAssociatedEvent()
-
-        if newNumWorkers != 0:
-            #The new time of the +10 gold event will be proportionally sooner or later
-            changeProportion = oldNumWorkers / newNumWorkers
-            #Use true time so we don't accumulate error, but ensure that never gives a negative result
-            goldEventNewSimTime = simTime + max(gainGoldEvent.getTrueTime() - simTime, 0) * changeProportion
-
-            #Re-register the event at the new time
-            unregisteredEvent = self.mEventHandler.unRegisterEvent(gainGoldEvent.getEventTime(), gainGoldEvent.getEventID())
-            newRecurPeriod = unregisteredEvent.getTrueRecurPeriodSimTime() * changeProportion
-            unregisteredEvent.setRecurPeriodSimTime(newRecurPeriod)
-
-            unregisteredEvent.setEventTime(goldEventNewSimTime)
-            self.mEventHandler.registerEvent(unregisteredEvent)
-            return unregisteredEvent
-        else:
-            #Zero workers, so we need to remove the event altogether
-            self.mEventHandler.unRegisterEvent(gainGoldEvent.getEventTime(), gainGoldEvent.getEventID())
-            return None
-
-    def mineIsFull(self):
-        return self.mNumWorkersInMine == self.mMaxWorkersInMine
-
-    def mineIsEmpty(self):
-        return self.mNumWorkersInMine == 0
-
-    def getNumWorkersInMine(self):
-        return self.mNumWorkersInMine

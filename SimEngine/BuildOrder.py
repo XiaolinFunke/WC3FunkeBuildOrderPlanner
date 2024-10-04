@@ -1,8 +1,9 @@
-from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_TYPE_GOLD_MINE, STARTING_FOOD, STARTING_GOLD, STARTING_LUMBER
+from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_TYPE_GOLD_MINE, TIMELINE_TYPE_COPSE_OF_TREES, STARTING_FOOD, STARTING_GOLD, STARTING_LUMBER
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.Trigger import TriggerType
 from SimEngine.EventHandler import EventHandler
-from SimEngine.Timeline import WispTimeline, GoldMineTimeline, Timeline
+from SimEngine.Timeline import WispTimeline, Timeline
+from SimEngine.ResourceSourceTimeline import GoldMineTimeline, CopseOfTreesTimeline
 from SimEngine.Action import ActionType, Action
 from SimEngine.Event import Event
 from SimEngine.ResourceBank import ResourceBank
@@ -35,6 +36,9 @@ class BuildOrder:
         if self.mRace == Race.NIGHT_ELF:
             goldMineTimeline = GoldMineTimeline(timelineType = TIMELINE_TYPE_GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler)
             self.mInactiveTimelines.append(goldMineTimeline)
+            #TODO: Maps generally have juse two sides of the trees to gather from that you think of as distinct. However, one side is closer, so we will just use the one side, for now...
+            copseOfTreesTimeline = CopseOfTreesTimeline(timelineType = TIMELINE_TYPE_COPSE_OF_TREES, timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler, currentResources = self.mCurrentResources)
+            self.mInactiveTimelines.append(copseOfTreesTimeline)
             for i in range(5):
                 self.mInactiveTimelines.append(WispTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
             self.mInactiveTimelines.append(Timeline(timelineType = "Tree of Life", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
@@ -148,13 +152,14 @@ class BuildOrder:
         if not workerTimeline:
             print("Could not get valid worker for moveWorker action!")
 
-        goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
         action.setStartTime(self.mCurrentSimTime)
         success = False
         if action.mDesiredWorkerTask == WorkerTask.LUMBER:
-            success = workerTimeline.sendWorkerToLumber(action, goldMineTimeline, self.mCurrentSimTime, self.mCurrentResources)
+            copseOfTreesTimeline = self._findMatchingTimeline(TIMELINE_TYPE_COPSE_OF_TREES)
+            success = workerTimeline.sendWorkerToLumber(action, self.mCurrentSimTime, copseOfTreesTimeline)
         elif action.mDesiredWorkerTask == WorkerTask.GOLD:
-            success = workerTimeline.sendWorkerToMine(action, goldMineTimeline, self.mCurrentSimTime)
+            goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
+            success = workerTimeline.sendWorkerToMine(action, self.mCurrentSimTime, goldMineTimeline)
 
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
         self.simulate(self.mCurrentSimTime)
@@ -359,8 +364,6 @@ class BuildOrder:
             print("Tried to simulate until resources were available for", action, "but they never were")
             return False
 
-        goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
-
         foundCorrectStartTime = False
         if action.mTravelTime == 0:
             #If there's no travel time, no need to simulate back and forth to account for travel time
@@ -375,8 +378,9 @@ class BuildOrder:
             if workerTimeline == None:
                 return False
             
+            resourceSource = workerTimeline.mCurrentResourceSourceTimeline
             #Move worker off of resource and simulate ahead to see if this start time works
-            workerTimeline.changeTask(goldMineTimeline, self.mCurrentSimTime, WorkerTask.ROAMING)
+            workerTimeline.changeTask(self.mCurrentSimTime, WorkerTask.ROAMING)
             #Simulate ahead to see if this start time will work
             self.simulate(self.mCurrentSimTime + action.mTravelTime)
             #If we have enough resources after the travel time has passed, then this start time will work
@@ -387,7 +391,7 @@ class BuildOrder:
             #Now that we've simulated ahead to check whether this time works, simulate back and reset
             self._simulateBackward(self.mCurrentSimTime - action.mTravelTime)
             #Put worker back to its previous task
-            workerTimeline.changeTask(goldMineTimeline, self.mCurrentSimTime, action.mCurrentWorkerTask)
+            workerTimeline.changeTask(self.mCurrentSimTime, action.mCurrentWorkerTask, resourceSource)
 
             if not foundCorrectStartTime:
                 #Increment so we are checking what happens if we remove the worker on the next simTime for the next iteration
@@ -398,7 +402,7 @@ class BuildOrder:
         self.mEventHandler.registerEvent(Event.getModifyResourceCountEvent(self.mCurrentResources, self.mCurrentSimTime + action.mTravelTime, "Pay for " + action.mName, self.mEventHandler.getNewEventID(), 
                                           action.mGoldCost * -1, action.mLumberCost * -1, 0, 0))
 
-        if not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources, goldMineTimeline):
+        if not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources):
             print("Failed to build", action.mName)
             return False
 
