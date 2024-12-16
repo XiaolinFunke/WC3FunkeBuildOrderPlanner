@@ -10,8 +10,6 @@ class Event:
         self.mReverseFunction = reverseFunction
 
         self.setRecurPeriodSimTime(recurPeriodSimtime)
-        #If this is an event that is a recurrence of an original event, will be True. False if it's an original event (whether it recurs or not)
-        self.mIsRecurrence = False
         #If this event has recurred, this will point to the previous and next event in the chain of recurring events
         self.mPrevRecurredEvent = None
         self.mNextRecurredEvent = None
@@ -21,17 +19,25 @@ class Event:
     #Convenience method for getting an event that modifies our current resources and can be reversed
     @staticmethod
     def getModifyResourceCountEvent(currentResources, simTime, eventName, eventID, goldChange, lumberChange, foodChange, foodMaxChange, recurPeriodSimTime = 0):
-        event = Event(eventFunction = lambda: currentResources.modifyResources(goldChange, lumberChange, foodChange, foodMaxChange), 
-                        reverseFunction = lambda: currentResources.modifyResources(goldChange * -1, lumberChange * -1, foodChange * -1, foodMaxChange * -1),
-                      eventTime=simTime, recurPeriodSimtime = recurPeriodSimTime, eventName = eventName, eventID = eventID)
+        def eventFunc():
+            currentResources.modifyResources(goldChange, lumberChange, foodChange, foodMaxChange)
+        def reverseFunc():
+            currentResources.modifyResources(goldChange * -1, lumberChange * -1, foodChange * -1, foodMaxChange * -1)
+
+        event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime = recurPeriodSimTime, 
+                      eventName = eventName, eventID = eventID)
         return event
 
     #Convenience method for getting an event that modifies the number of workers in the mine and can be reversed
     @staticmethod
     def getModifyWorkersInMineEvent(goldMineTimeline, simTime, eventName, eventID):
-        event = Event(eventFunction = lambda: goldMineTimeline.addWorkerToMine(simTime), 
-                        reverseFunction = lambda: goldMineTimeline.removeWorkerFromMine(simTime),
-                      eventTime=simTime, recurPeriodSimtime = 0, eventName = eventName, eventID = eventID)
+        #Must use defined funcs instead of lamdbas so that the event function returns None
+        def eventFunc():
+            goldMineTimeline.addWorkerToMine(simTime)
+        def reverseFunc():
+            goldMineTimeline.removeWorkerFromMine(simTime)
+        event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime = 0, 
+                      eventName = eventName, eventID = eventID)
         return event
 
     def __str__(self):
@@ -47,11 +53,11 @@ class Event:
         return self.mEventName
 
     #Return a new event with a new time based on this event's recur period
+    #@param eventID - The event ID of the new event resulting from this recurrence
     def recur(self, eventID):
         if self.doesRecur():
             newEvent = copy(self)
 
-            newEvent.mIsRecurrence = True
             newEvent.mEventID = eventID
 
             newEvent.mCurrRecurrenceError += newEvent.mErrorPerRecurrence
@@ -122,8 +128,11 @@ class Event:
             return
         self.mReverseFunction()
 
+    #Execute the function associated with this event
+    #@return If the event could not be executed, and must be delayed, return the amount of simTime to delay the event for
+    #If event does not have to be delayed, return None
     def execute(self):
         if not self.mFunction:
             print("Attempted to execute a function that was None. Event name was", self.mEventName, "and event ID was", self.mEventID)
             return
-        self.mFunction()
+        return self.mFunction()

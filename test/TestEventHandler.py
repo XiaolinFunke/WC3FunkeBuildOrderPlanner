@@ -11,7 +11,7 @@ class TestEventHandler(unittest.TestCase):
         def increment():
             self.testInt += 1
 
-        event = Event(eventFunction = lambda: increment(), reverseFunction = None, eventTime = 10,recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        event = Event(eventFunction = increment, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(event=event)
 
@@ -30,8 +30,8 @@ class TestEventHandler(unittest.TestCase):
         def increment2():
             self.testInt2 += 1
 
-        event1 = Event(eventFunction = lambda: increment1(), reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
-        event2 = Event(eventFunction = lambda: increment2(), reverseFunction = None, eventTime = 20, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        event1 = Event(eventFunction = increment1, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        event2 = Event(eventFunction = increment2, reverseFunction = None, eventTime = 20, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(event1)
         eventHandler.registerEvent(event2)
@@ -48,6 +48,37 @@ class TestEventHandler(unittest.TestCase):
         self.assertEqual(self.testInt1, 1)
         self.assertEqual(self.testInt2, 1)
 
+    def testDelayEvent(self):
+        eventHandler = EventHandler() 
+
+        self.testInt = 0
+        self.delaySimTime = 10
+        def incrementOrDelay():
+            if self.delaySimTime != 0:
+                return self.delaySimTime
+            self.testInt += 1
+            return 0
+
+        event = Event(eventFunction = incrementOrDelay, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+
+        eventHandler.registerEvent(event=event)
+
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEvents(10)
+        #Should be delayed rather than executed
+        self.assertEqual(self.testInt, 0)
+
+        self.delaySimTime = 2
+        eventHandler.executeEvents(20)
+        #Should be delayed again
+        self.assertEqual(self.testInt, 0)
+
+        self.delaySimTime = 0
+        eventHandler.executeEvents(22)
+        #Should finally be executed
+        self.assertEqual(self.testInt, 1)
+
+
     def testUnregisterEvent(self):
         eventHandler = EventHandler() 
 
@@ -56,7 +87,7 @@ class TestEventHandler(unittest.TestCase):
             self.testInt += 1
 
         eventSimTime = 10
-        event = Event(eventFunction = lambda: increment(), reverseFunction = None, eventTime = eventSimTime, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        event = Event(eventFunction = increment, reverseFunction = None, eventTime = eventSimTime, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(event)
         eventHandler.unRegisterEvent(eventSimTime=eventSimTime, eventID=event.getEventID())
@@ -72,7 +103,7 @@ class TestEventHandler(unittest.TestCase):
         def increment():
             self.testInt += 1
 
-        event = Event(eventFunction = lambda: increment(), reverseFunction = None, eventTime = 10, recurPeriodSimtime = 10, eventID = eventHandler.getNewEventID())
+        event = Event(eventFunction = increment, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 10, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(event)
 
@@ -97,7 +128,7 @@ class TestEventHandler(unittest.TestCase):
             self.testInt += 1
 
         recurPeriodSimtime = 10.1
-        event = Event(eventFunction = lambda: increment(), reverseFunction = None, eventTime = 10, recurPeriodSimtime = recurPeriodSimtime, eventID = eventHandler.getNewEventID())
+        event = Event(eventFunction = increment, reverseFunction = None, eventTime = 10, recurPeriodSimtime = recurPeriodSimtime, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(event)
 
@@ -117,7 +148,7 @@ class TestEventHandler(unittest.TestCase):
             self.testInt += 1
 
         recurPeriodSimtime = 1.2
-        event = Event(eventFunction = lambda: increment(), reverseFunction = None, eventTime = 1.4, recurPeriodSimtime = recurPeriodSimtime, eventID = eventHandler.getNewEventID())
+        event = Event(eventFunction = increment, reverseFunction = None, eventTime = 1.4, recurPeriodSimtime = recurPeriodSimtime, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(event)
 
@@ -137,7 +168,7 @@ class TestEventHandler(unittest.TestCase):
         def increment():
             self.testInt += 1
 
-        event = Event(eventFunction = lambda: increment(), reverseFunction = None, eventTime = 10, recurPeriodSimtime = 10, eventID = eventHandler.getNewEventID())
+        event = Event(eventFunction = increment, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 10, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(event)
 
@@ -172,7 +203,7 @@ class TestEventHandler(unittest.TestCase):
         self.testInt = 0
         def increment():
             self.testInt += 1
-        event = Event(eventFunction = lambda: increment(), reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        event = Event(eventFunction = increment, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(event)
 
@@ -183,8 +214,8 @@ class TestEventHandler(unittest.TestCase):
         self.testInt2 = 0
         def increment2():
             self.testInt2 += 1
-        event2 = Event(eventFunction = lambda: increment2(), reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
-        event3 = Event(eventFunction = lambda: increment2(), reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        event2 = Event(eventFunction = increment2, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        event3 = Event(eventFunction = increment2, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
         eventHandler.registerEvent(event2)
         eventHandler.registerEvent(event3)
 
@@ -200,8 +231,10 @@ class TestEventHandler(unittest.TestCase):
         self.testInt = 0
         def increment():
             self.testInt += 1
-        incrementEvent = Event(eventFunction = lambda: increment(), reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
-        triggerEvent = Event(eventFunction = lambda: eventHandler.registerEvent(incrementEvent), reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        def triggerEventFunc():
+            eventHandler.registerEvent(incrementEvent)
+        incrementEvent = Event(eventFunction = increment, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+        triggerEvent = Event(eventFunction = triggerEventFunc, reverseFunction = None, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
 
         eventHandler.registerEvent(triggerEvent)
 

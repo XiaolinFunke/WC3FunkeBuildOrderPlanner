@@ -24,9 +24,12 @@ class Timeline:
         if isUnitWorker(timelineName):
             getNewTimelineFunc = lambda: WorkerTimeline.getNewWorkerTimeline(timelineName, timelineID, eventHandler)
                     
-        event = Event(eventFunction = lambda: inactiveTimelines.append(getNewTimelineFunc()), 
-                        reverseFunction = lambda: removeTimeline(timelineID),
-                      eventTime=simTime, recurPeriodSimtime=0, eventID=eventID, eventName=eventName)
+        def eventFunc():
+            inactiveTimelines.append(getNewTimelineFunc())
+        def reverseFunc():
+            removeTimeline(timelineID)
+        event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime=0, 
+                      eventID=eventID, eventName=eventName)
 
         return event
 
@@ -187,9 +190,12 @@ class WorkerTimeline(Timeline):
     #If task is being changed to gold or lumber, need to pass in that resource source timeline as well
     def getChangeTaskEvent(self, newTask, simTime, eventName, eventID, resourceSourceTimeline = None):
         originalTask = self.mCurrentTask
-        event = Event(eventFunction = lambda: self.changeTask(simTime, newTask, resourceSourceTimeline), 
-                        reverseFunction = lambda: self.changeTask(simTime, originalTask, self.mCurrentResourceSourceTimeline),
-                      eventTime=simTime, recurPeriodSimtime = 0, eventName = eventName, eventID = eventID)
+        def eventFunc():
+            self.changeTask(simTime, newTask, resourceSourceTimeline)
+        def reverseFunc():
+            self.changeTask(simTime, originalTask, self.mCurrentResourceSourceTimeline)
+        event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime = 0, 
+                      eventName = eventName, eventID = eventID)
         return event
 
     #Mark worker as working on a new task

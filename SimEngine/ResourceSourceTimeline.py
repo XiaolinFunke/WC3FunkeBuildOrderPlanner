@@ -93,14 +93,12 @@ class GoldMineTimeline(ResourceSourceTimeline):
             #Use true time so we don't accumulate error, but ensure that never gives a negative result
             goldEventNewSimTime = simTime + max(gainGoldEvent.getTrueTime() - simTime, 0) * changeProportion
 
-            #Re-register the event at the new time
-            unregisteredEvent = self.mEventHandler.unRegisterEvent(gainGoldEvent.getEventTime(), gainGoldEvent.getEventID())
-            newRecurPeriod = unregisteredEvent.getTrueRecurPeriodSimTime() * changeProportion
-            unregisteredEvent.setRecurPeriodSimTime(newRecurPeriod)
+            #Re-register the event at the new time and set its new recur period
+            self.mEventHandler.rescheduleEvent(gainGoldEvent, goldEventNewSimTime - gainGoldEvent.getEventTime())
+            newRecurPeriod = gainGoldEvent.getTrueRecurPeriodSimTime() * changeProportion
+            gainGoldEvent.setRecurPeriodSimTime(newRecurPeriod)
 
-            unregisteredEvent.setEventTime(goldEventNewSimTime)
-            self.mEventHandler.registerEvent(unregisteredEvent)
-            return unregisteredEvent
+            return gainGoldEvent
         else:
             #Zero workers, so we need to remove the event altogether
             self.mEventHandler.unRegisterEvent(gainGoldEvent.getEventTime(), gainGoldEvent.getEventID())

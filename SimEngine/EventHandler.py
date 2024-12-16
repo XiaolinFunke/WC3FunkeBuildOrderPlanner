@@ -33,11 +33,13 @@ class EventHandler:
             print(", " + self.mEventsExecutedInOrder[i], end='')
         print()
 
-    def registerEvent(self, event):
+    #Register an event to be executed at a particular simTime
+    #If the event is in an EventGroup, that should also be registered
+    def registerEvent(self, event, eventGroup = None):
         if event.getEventTime() not in self.mEvents:
-            self.mEvents[event.getEventTime()] = [event]
+            self.mEvents[event.getEventTime()] = [ (event, eventGroup) ]
         else:
-            self.mEvents[event.getEventTime()].append(event)
+            self.mEvents[event.getEventTime()].append( (event, eventGroup) )
         
     #Return True if we have no non-recurring events at or past the simtime passed in
     def containsOnlyRecurringEvents(self, simTime):
@@ -47,7 +49,7 @@ class EventHandler:
             if eventSimTime < simTime: 
                 continue
 
-            for event in self.mEvents[eventSimTime]:
+            for event, eventGroup in self.mEvents[eventSimTime]:
                 if not event.doesRecur():
                     return False
         return True
@@ -75,7 +77,7 @@ class EventHandler:
         #by the events we are executing
         i = len(self.mEvents[simTime]) - 1
         while i >= 0:
-            event = self.mEvents[simTime][i]
+            event, eventGroup = self.mEvents[simTime][i]
             if executeRemainingEvents:
                 self.mEventsExecutedInOrder.append('R' + str(event.getEventID()))
                 event.reverse()
@@ -97,7 +99,7 @@ class EventHandler:
             if time in self.mEvents and len(self.mEvents[time]) != 0:
                 self.mLastSimTimeExecuted = time
                 numEvents = len(self.mEvents[time])
-                self.mLastEventExecuted = self.mEvents[time][numEvents - 1].getEventID()
+                self.mLastEventExecuted = self.mEvents[time][numEvents - 1][0].getEventID()
                 break
         else: #No break
             #No event found, just unset them
@@ -116,11 +118,18 @@ class EventHandler:
         #Use index and while loop so that we also execute any events that may be added to this list
         #by the events we are executing
         i = 0
-        while i < len(self.mEvents[simTime]):
-            event = self.mEvents[simTime][i]
+        eventsForTime = self.mEvents[simTime]
+        while i < len(eventsForTime):
+            event, eventGroup = eventsForTime[i]
             if executeRemainingEvents:
                 self.mEventsExecutedInOrder.append(str(event.getEventID()))
-                event.execute()
+                amtDelayedSimTime = event.execute()
+                #Events will return a simTime delay number if they could not be executed and need to be delayed
+                if amtDelayedSimTime:
+                    #Re-register the event for the new time, along with remaining events in its event group, if it has any
+                    self.rescheduleEvent(event, amtDelayedSimTime, eventGroup)
+                    #Just continue, so its like we never executed this event (since we didn't successfully execute it)
+                    continue
                 self.mLastEventExecuted = event.getEventID()
                 if event.doesRecur():
                     newEvent = event.recur(self.getNewEventID())
@@ -131,12 +140,29 @@ class EventHandler:
             i += 1
         self.mLastSimTimeExecuted = simTime
 
+    #Reschedule an event by an amount given by amtToDelaySimTime
+    #Will also reschedule remaining events in the event group if one is passed in
+    def rescheduleEvent(self, event, amtToDelaySimTime, eventGroup = None):
+        self.unRegisterEvent(event.getEventTime(), event.getEventID())
+        event.setEventTime(event.getEventTime() + amtToDelaySimTime)
+        self.registerEvent(event, eventGroup)
+
+        if eventGroup:
+            #This event is a part of an event group, so the remaining events in the group should be delayed along with this one
+            otherEventsToDelay = eventGroup.getRemainingEvents(event.getEventID())
+            if otherEventsToDelay:
+                for eventToDelay in otherEventsToDelay:
+                    #Make sure we don't have rescheduleRestOfGroup as True here, since then events in the group would be getting rescheduled multiple times
+                    self.rescheduleEvent(eventToDelay, amtToDelaySimTime, False)
+
+
     #Returns the unregistered event, in case we want to reschedule it
     #If no event matches, return None
     def unRegisterEvent(self, eventSimTime, eventID):
         eventsForTime = self.mEvents[eventSimTime]
         for i in range(len(eventsForTime)):
-            if eventsForTime[i].getEventID() == eventID:
+            event, eventGroup = eventsForTime[i]
+            if event.getEventID() == eventID:
                 return eventsForTime.pop(i)
         return None
 
