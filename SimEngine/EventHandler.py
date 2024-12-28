@@ -1,8 +1,6 @@
-from SimEngine.Timeline import WorkerTimeline, Timeline
-
 class EventHandler:
     def __init__(self):
-        #Simtime -> list of events (functions to execute at that time)
+        #Simtime -> list of (event, eventGroup) pairs
         self.mEvents = {}
         self.mNextEventID = 0
 
@@ -121,6 +119,7 @@ class EventHandler:
         eventsForTime = self.mEvents[simTime]
         while i < len(eventsForTime):
             event, eventGroup = eventsForTime[i]
+            #TODO: Refactor this once tests are passing
             if executeRemainingEvents:
                 self.mEventsExecutedInOrder.append(str(event.getEventID()))
                 amtDelayedSimTime = event.execute()
@@ -131,7 +130,17 @@ class EventHandler:
                     #Just continue, so its like we never executed this event (since we didn't successfully execute it)
                     continue
                 self.mLastEventExecuted = event.getEventID()
-                if event.doesRecur():
+                if eventGroup.doesRecur() and event.doesRecur():
+                    print("Error: cannot have an event that recurs within an event group that recurs. Will ignore the individual event's recurrence and recur only the group")
+                elif eventGroup.doesRecur():
+                    if eventGroup.isLastEventInGroup(event.getEventID()):
+                        newEventIDs = []
+                        for i in range(eventGroup.size()):
+                            newEventIDs.append(self.getNewEventID())
+                        newEventGroup = eventGroup.recur(newEventIDs)
+                        for newEvent in newEventGroup.mOrderedEventList:
+                            self.registerEvent(newEvent, newEventGroup)
+                elif event.doesRecur():
                     newEvent = event.recur(self.getNewEventID())
                     self.registerEvent(newEvent)
             #This event was the last one we executed, so we should start executing the events for this simtime from here on
@@ -141,19 +150,20 @@ class EventHandler:
         self.mLastSimTimeExecuted = simTime
 
     #Reschedule an event by an amount given by amtToDelaySimTime
-    #Will also reschedule remaining events in the event group if one is passed in
-    def rescheduleEvent(self, event, amtToDelaySimTime, eventGroup = None):
+    #Will also reschedule remaining events in the event group if rescheduleRestOfGroup is true
+    def rescheduleEvent(self, event, amtToDelaySimTime, eventGroup = None, rescheduleRestOfGroup = True):
         self.unRegisterEvent(event.getEventTime(), event.getEventID())
         event.setEventTime(event.getEventTime() + amtToDelaySimTime)
+        event.addAmtDelayed(amtToDelaySimTime)
         self.registerEvent(event, eventGroup)
 
-        if eventGroup:
+        if eventGroup and rescheduleRestOfGroup:
             #This event is a part of an event group, so the remaining events in the group should be delayed along with this one
             otherEventsToDelay = eventGroup.getRemainingEvents(event.getEventID())
             if otherEventsToDelay:
                 for eventToDelay in otherEventsToDelay:
                     #Make sure we don't have rescheduleRestOfGroup as True here, since then events in the group would be getting rescheduled multiple times
-                    self.rescheduleEvent(eventToDelay, amtToDelaySimTime, False)
+                    self.rescheduleEvent(eventToDelay, amtToDelaySimTime, eventGroup, False)
 
 
     #Returns the unregistered event, in case we want to reschedule it
@@ -169,8 +179,10 @@ class EventHandler:
     def printScheduledEvents(self):
         #Print events sorted by simtime
         print("Scheduled events:")
-        for simTime, events in sorted(self.mEvents.items(), key=lambda x: x[0]):
-            print("simTime", simTime, ":", events)
+        for eventSimTime in self.mEvents:
+            for event, eventGroup in self.mEvents[eventSimTime]:
+                print("simTime", eventSimTime, ":", event, " - ", eventGroup)
+        return True
 
     def getNewEventID(self):
         eventID = self.mNextEventID

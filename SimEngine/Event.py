@@ -16,6 +16,9 @@ class Event:
         self.mEventName = eventName
         self.mEventID = eventID
 
+        #Tracks the amount of time this event has been delayed, since it was first scheduled
+        self.mAmtDelayedSimTime = 0
+
     #Convenience method for getting an event that modifies our current resources and can be reversed
     @staticmethod
     def getModifyResourceCountEvent(currentResources, simTime, eventName, eventID, goldChange, lumberChange, foodChange, foodMaxChange, recurPeriodSimTime = 0):
@@ -59,6 +62,7 @@ class Event:
             newEvent = copy(self)
 
             newEvent.mEventID = eventID
+            newEvent.mAmtDelayedSimTime = 0
 
             newEvent.mCurrRecurrenceError += newEvent.mErrorPerRecurrence
             newEvent.mEventTime += newEvent.mRecurPeriodSimTime
@@ -88,6 +92,10 @@ class Event:
     #Get the time this event is scheduled for
     def getEventTime(self):
         return self.mEventTime
+
+    #Add to the variable that tracks how long this event has been delayed for
+    def addAmtDelayed(self, amtSimTime):
+        self.mAmtDelayedSimTime += amtSimTime
 
     #Get the time this event WOULD BE scheduled for, if we could simulate
     #perfectly accurately

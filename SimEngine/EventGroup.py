@@ -25,19 +25,41 @@ class EventGroup:
         print("Error: getRemainingEvents called for event with ID ", eventID, " but no event with that ID exists in the event group")
         return None
 
+    #Get the number of events in the group
+    def size(self):
+        return len(self.mOrderedEventList)
+
+    #Returns true if the last event in the group has the ID passed in
+    #False otherwise
+    def isLastEventInGroup(self, eventID):
+        return self.mOrderedEventList[-1].getEventID() == eventID
+
     def doesRecur(self):
         return self.mRecurrenceGapSimTime > 0
 
     #Return a new event group with new events that have recurred and have new times based on the recurrence gap
-    def recur(self):
+    ##param newEventIDs - The event IDs of the new events resulting from this recurrence
+    def recur(self, newEventIDs):
+        if len(newEventIDs) != len(self.mOrderedEventList):
+            print("Error: Cannot recur event group because we passed in", len(newEventIDs), "event IDs, but ordered event list has", len(self.mOrderedEventList), "events")
+            return None
+
         if self.doesRecur() and len(self.mOrderedEventList) > 0:
             recurredEvents = []
             #Calculate the recur period -- can change if events are moved forward or back, so must be calculated here
-            recurPeriodSimTime = event[-1].getEventTime() - event[0].getEventTime() + self.mRecurrenceGapSimTime
+            recurPeriodSimTime = self.mOrderedEventList[-1].getEventTime() - self.mOrderedEventList[0].getEventTime() + self.mRecurrenceGapSimTime
 
-            for event in self.mOrderedEventList:
-                event.setRecurPeriodSimTime(recurPeriodSimTime)
-                recurredEvents.append(event.recur())
+            for i in range(len(self.mOrderedEventList)):
+                event = self.mOrderedEventList[i]
+                #We want the events in the group to have the same gaps between them as they originally did,
+                #so we want to account for any delays that may have made them have a different gap between them and the first event in the group
+                relativeAmtDelayed = event.mAmtDelayedSimTime - self.mOrderedEventList[0].mAmtDelayedSimTime
+                event.setRecurPeriodSimTime(recurPeriodSimTime - relativeAmtDelayed)
+                newEvent = event.recur(newEventIDs[i])
+                recurredEvents.append(newEvent)
+                #Set recur period back to 0 after, since these events should only recur when we recur the group
+                event.setRecurPeriodSimTime(0)
+                newEvent.setRecurPeriodSimTime(0)
 
             newEventGroup = copy(self)
             newEventGroup.mOrderedEventList = recurredEvents
@@ -50,3 +72,9 @@ class EventGroup:
         else:
             print("Error: Tried to recur an event group that doesn't recur or doesn't have any events")
             return None
+
+    def __str__(self):
+        return "EventGroup: " + str(self.mOrderedEventList)
+
+    def __repr__(self):
+        return self.__str__()
