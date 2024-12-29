@@ -505,8 +505,6 @@ class BuildOrder:
         while matchingAction.getPercentComplete(self.mCurrentSimTime) < percentComplete:
             self.simulate(self.mCurrentSimTime + 1)
 
-        print("Returning true because percent complete is", matchingAction.getPercentComplete(self.mCurrentSimTime))
-
         return True
 
     #Checks inactive timelines and determines if any should be moved to the active list

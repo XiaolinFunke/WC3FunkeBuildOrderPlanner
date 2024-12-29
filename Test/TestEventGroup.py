@@ -187,11 +187,6 @@ class TestEventGroup(unittest.TestCase):
         eventHandler.executeEvents(120)
         self.assertEqual(self.testInt, 12)
 
-    #Test that a recurred event group will be properly delayed if any event in the original event group is delayed
-    # def testRecurredEventGroupIsDelayed(self):
-    #     #Test first event, middle event, and last event
-    #     pass
-
     # def testReverseRecurredEventGroup(self):
     #     pass
 

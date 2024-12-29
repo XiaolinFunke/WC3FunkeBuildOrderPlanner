@@ -130,10 +130,10 @@ class EventHandler:
                     #Just continue, so its like we never executed this event (since we didn't successfully execute it)
                     continue
                 self.mLastEventExecuted = event.getEventID()
-                if eventGroup.doesRecur() and event.doesRecur():
-                    print("Error: cannot have an event that recurs within an event group that recurs. Will ignore the individual event's recurrence and recur only the group")
-                elif eventGroup.doesRecur():
-                    if eventGroup.isLastEventInGroup(event.getEventID()):
+                if eventGroup != None and eventGroup.doesRecur():
+                    if event.doesRecur():
+                        print("Error: cannot have an event that recurs within an event group that recurs. Will ignore the individual event's recurrence and recur only the group")
+                    elif eventGroup.isLastEventInGroup(event.getEventID()):
                         newEventIDs = []
                         for i in range(eventGroup.size()):
                             newEventIDs.append(self.getNewEventID())
