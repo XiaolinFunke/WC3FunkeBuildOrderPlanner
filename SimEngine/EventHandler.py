@@ -1,3 +1,5 @@
+from SimEngine.EventGroup import EventGroup
+
 class EventHandler:
     def __init__(self):
         #Simtime -> list of (event, eventGroup) pairs
@@ -77,14 +79,7 @@ class EventHandler:
         while i >= 0:
             event, eventGroup = self.mEvents[simTime][i]
             if executeRemainingEvents:
-                self.mEventsExecutedInOrder.append('R' + str(event.getEventID()))
-                event.reverse()
-                #If this event recurs, unregister its recurrence, so the recurrence doesn't get doubled when we simulate forward again
-                if event.doesRecur():
-                    #Remove the next recurring event from the chain of recurring events
-                    event.mNextRecurredEvent.mPrevRecurredEvent = None
-                    self.unRegisterEvent(event.mNextRecurredEvent.getEventTime(), event.mNextRecurredEvent.getEventID())
-                    event.mNextRecurredEvent = None
+                self._reverseEvent(event)
             #This event was the last one we executed, so we should start executing the events for this simtime from here on
             elif event.getEventID() == self.mLastEventExecuted:
                 executeRemainingEvents = True
@@ -104,6 +99,29 @@ class EventHandler:
             self.mLastSimTimeExecuted = -1
             self.mLastEventExecuted = -1
 
+    def _reverseEvent(self, event):
+        if not event.mIsDisabled:
+            self.mEventsExecutedInOrder.append('R' + str(event.getEventID()))
+            event.reverse()
+            #If this event recurs, unregister its recurrence, so the recurrence doesn't get doubled when we simulate forward again
+            if event.doesRecur():
+                #Remove the next recurring event from the chain of recurring events
+                event.mNextRecurredEvent.mPrevRecurredEvent = None
+                self.unRegisterEvent(event.mNextRecurredEvent.getEventTime(), event.mNextRecurredEvent.getEventID())
+                event.mNextRecurredEvent = None
+
+        #Even if this event is disabled, we still want to check if it has spawned or disabled any other events
+        #because it may be disabled due to being delayed 
+        #Unregister any events that this event spawned by being delayed
+        for spawnedEvent in event.mDelaySpawnedEvents:
+            self.unRegisterEvent(spawnedEvent.getEventTime(), spawnedEvent.getEventID())
+        event.mDelaySpawnedEvents = []
+
+        #Undo any events that this event disabled by being delayed
+        for disabledEvent in event.mDelayDisabledEvents:
+            disabledEvent.mIsDisabled = False
+        event.mDelayDisabledEvents = []
+
     def executeEvents(self, simTime):
         if simTime not in self.mEvents:
             return
@@ -119,52 +137,88 @@ class EventHandler:
         eventsForTime = self.mEvents[simTime]
         while i < len(eventsForTime):
             event, eventGroup = eventsForTime[i]
-            #TODO: Refactor this once tests are passing
             if executeRemainingEvents:
-                self.mEventsExecutedInOrder.append(str(event.getEventID()))
-                amtDelayedSimTime = event.execute()
-                #Events will return a simTime delay number if they could not be executed and need to be delayed
-                if amtDelayedSimTime:
-                    #Re-register the event for the new time, along with remaining events in its event group, if it has any
-                    self.rescheduleEvent(event, amtDelayedSimTime, eventGroup)
-                    #Just continue, so its like we never executed this event (since we didn't successfully execute it)
-                    continue
-                self.mLastEventExecuted = event.getEventID()
-                if eventGroup != None and eventGroup.doesRecur():
-                    if event.doesRecur():
-                        print("Error: cannot have an event that recurs within an event group that recurs. Will ignore the individual event's recurrence and recur only the group")
-                    elif eventGroup.isLastEventInGroup(event.getEventID()):
-                        newEventIDs = []
-                        for i in range(eventGroup.size()):
-                            newEventIDs.append(self.getNewEventID())
-                        newEventGroup = eventGroup.recur(newEventIDs)
-                        for newEvent in newEventGroup.mOrderedEventList:
-                            self.registerEvent(newEvent, newEventGroup)
-                elif event.doesRecur():
-                    newEvent = event.recur(self.getNewEventID())
-                    self.registerEvent(newEvent)
+                self._executeEvent(event, eventGroup)
             #This event was the last one we executed, so we should start executing the events for this simtime from here on
             elif event.getEventID() == self.mLastEventExecuted:
                 executeRemainingEvents = True
             i += 1
         self.mLastSimTimeExecuted = simTime
 
+    def _executeEvent(self, event, eventGroup):
+        if event.mIsDisabled:
+            return
+
+        self.mEventsExecutedInOrder.append(str(event.getEventID()))
+        amtDelayedSimTime = event.execute()
+        self.mLastEventExecuted = event.getEventID()
+        #Events will return a simTime delay number if they could not be executed and need to be delayed
+        if amtDelayedSimTime:
+            #Re-register the event for the new time, along with remaining events in its event group, if it has any
+            self._delayEvent(event, amtDelayedSimTime, eventGroup)
+            return
+
+        #Handle recurrence
+        if eventGroup != None and eventGroup.doesRecur():
+            if event.doesRecur():
+                print("Error: cannot have an event that recurs within an event group that recurs. Will ignore the individual event's recurrence and recur only the group")
+            elif eventGroup.isLastEventInGroup(event.getEventID()):
+                newEventIDs = []
+                for i in range(eventGroup.size()):
+                    newEventIDs.append(self.getNewEventID())
+                newEventGroup = eventGroup.recur(newEventIDs)
+                for newEvent in newEventGroup.mOrderedEventList:
+                    self.registerEvent(newEvent, newEventGroup)
+        elif event.doesRecur():
+            newEvent = event.recur(self.getNewEventID())
+            self.registerEvent(newEvent)
+
     #Reschedule an event by an amount given by amtToDelaySimTime
-    #Will also reschedule remaining events in the event group if rescheduleRestOfGroup is true
-    def rescheduleEvent(self, event, amtToDelaySimTime, eventGroup = None, rescheduleRestOfGroup = True):
+    #Any other events in the event group will also be rescheduled
+    #The original events will still exist, they will just be disabled -- this is to make executing in reverse easier
+    def _delayEvent(self, event, amtToDelaySimTime, eventGroup = None):
+        if eventGroup:
+            #This event is a part of an event group, so the other events in the group should be delayed along with this one
+            eventsToDelay = eventGroup.mOrderedEventList
+        else:
+            eventsToDelay = [ event ]
+
+        newEventsInOrder = []
+        #Disable any new events that are based on events we have already executed
+        #They need to exist for recurrence purposes, but they've already been executed
+        #The old events will be the inverse of this -- we'll keep any we've already executed enabled and disable the rest
+        disableOldEvents = False
+        for eventToDelay in eventsToDelay:
+            #Don't unregister the event, since we will need that to still be in place for when we execute backward
+            newEvent = eventToDelay.delay(self.getNewEventID(), amtToDelaySimTime)
+            newEventsInOrder.append(newEvent)
+
+            #Once we get to the events we haven't executed yet, we should start disabling the old events and stop disabling the new ones
+            if eventToDelay.getEventID() == event.getEventID():
+                disableOldEvents = True
+            if disableOldEvents:
+                #Only disable if it isn't already disabled, otherwise we will enable it when going in reverse when it shouldn't be enabled
+                if not eventToDelay.mIsDisabled:
+                    eventToDelay.mIsDisabled = True
+                    event.mDelayDisabledEvents.append(eventToDelay)
+            else:
+                newEvent.mIsDisabled = True
+
+        event.mDelaySpawnedEvents = newEventsInOrder
+
+        newEventGroup = None
+        if eventGroup:
+            newEventGroup = EventGroup(newEventsInOrder, eventGroup.mRecurrenceGapSimTime)
+
+        for newEvent in newEventsInOrder:
+            self.registerEvent(newEvent, newEventGroup)
+
+    #Reschedule an event by an amount given by amtToDelaySimTime
+    #Will only reschedule this event, does not affect other events in the group
+    def rescheduleEvent(self, event, amtToDelaySimTime, eventGroup = None):
         self.unRegisterEvent(event.getEventTime(), event.getEventID())
         event.setEventTime(event.getEventTime() + amtToDelaySimTime)
-        event.addAmtDelayed(amtToDelaySimTime)
         self.registerEvent(event, eventGroup)
-
-        if eventGroup and rescheduleRestOfGroup:
-            #This event is a part of an event group, so the remaining events in the group should be delayed along with this one
-            otherEventsToDelay = eventGroup.getRemainingEvents(event.getEventID())
-            if otherEventsToDelay:
-                for eventToDelay in otherEventsToDelay:
-                    #Make sure we don't have rescheduleRestOfGroup as True here, since then events in the group would be getting rescheduled multiple times
-                    self.rescheduleEvent(eventToDelay, amtToDelaySimTime, eventGroup, False)
-
 
     #Returns the unregistered event, in case we want to reschedule it
     #If no event matches, return None

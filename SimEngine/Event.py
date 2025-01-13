@@ -16,8 +16,15 @@ class Event:
         self.mEventName = eventName
         self.mEventID = eventID
 
-        #Tracks the amount of time this event has been delayed, since it was first scheduled
-        self.mAmtDelayedSimTime = 0
+        #This event will not be executed if True
+        self.mIsDisabled = False
+
+        #When an event is delayed, it will disable itself (so we know to skip it when going executing in reverse)
+        #It will also spawn a new event at a later time
+        #If in an event group, it may do these two things for multiple events. Track them here so we can handle them
+        #correctly when executing in reverse
+        self.mDelayDisabledEvents = []
+        self.mDelaySpawnedEvents = []
 
     #Convenience method for getting an event that modifies our current resources and can be reversed
     @staticmethod
@@ -44,7 +51,10 @@ class Event:
         return event
 
     def __str__(self):
-        return "Event:\"" + self.mEventName + "\" - ID " + str(self.mEventID)
+        disabledStr = ""
+        if self.mIsDisabled:
+            disabledStr = "[Disabled]"
+        return disabledStr + " Event:\"" + self.mEventName + "\" - ID " + str(self.mEventID)
 
     def __repr__(self):
         return self.__str__()
@@ -59,10 +69,7 @@ class Event:
     #@param eventID - The event ID of the new event resulting from this recurrence
     def recur(self, eventID):
         if self.doesRecur():
-            newEvent = copy(self)
-
-            newEvent.mEventID = eventID
-            newEvent.mAmtDelayedSimTime = 0
+            newEvent = self._duplicateEvent(eventID)
 
             newEvent.mCurrRecurrenceError += newEvent.mErrorPerRecurrence
             newEvent.mEventTime += newEvent.mRecurPeriodSimTime
@@ -82,6 +89,25 @@ class Event:
             print("Error: Tried to recur an event that doesn't recur")
             return None
 
+    #Copy the current event and return a new one that is the same
+    #except for fields that it doesn't make sense to copy
+    #@param eventID - The event ID to give the new event
+    def _duplicateEvent(self, eventID):
+        newEvent = copy(self)
+        newEvent.mEventID = eventID
+        newEvent.mIsDisabled = False
+        newEvent.mDelayDisabledEvents = []
+        newEvent.mDelaySpawnedEvents = []
+        return newEvent
+
+    #Return a new event with a new time based on the amount to be delayed by
+    #@param eventID - The event ID of the new event
+    #@param amtToDelaySimTime - The amount of time the event should be delayed
+    def delay(self, eventID, amtToDelaySimTime):
+        newEvent = self._duplicateEvent(eventID)
+        newEvent.mEventTime += amtToDelaySimTime
+        return newEvent
+
     #Automatically rounded (note, python3 uses banker's rounding to avoid bias)
     def setEventTime(self, newEventTime):
         roundedTime = round(newEventTime)
@@ -92,10 +118,6 @@ class Event:
     #Get the time this event is scheduled for
     def getEventTime(self):
         return self.mEventTime
-
-    #Add to the variable that tracks how long this event has been delayed for
-    def addAmtDelayed(self, amtSimTime):
-        self.mAmtDelayedSimTime += amtSimTime
 
     #Get the time this event WOULD BE scheduled for, if we could simulate
     #perfectly accurately

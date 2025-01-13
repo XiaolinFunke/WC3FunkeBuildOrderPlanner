@@ -187,8 +187,8 @@ class TestEventGroup(unittest.TestCase):
         eventHandler.executeEvents(120)
         self.assertEqual(self.testInt, 12)
 
+    #TODO:
     # def testReverseRecurredEventGroup(self):
     #     pass
 
-    #TODO: Add a test for reversing events that are delayed
     #TODO: And one for reversing events that are delayed because another event in their group was delayed

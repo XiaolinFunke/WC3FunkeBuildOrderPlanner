@@ -78,7 +78,6 @@ class TestEventHandler(unittest.TestCase):
         #Should finally be executed
         self.assertEqual(self.testInt, 1)
 
-
     def testUnregisterEvent(self):
         eventHandler = EventHandler() 
 
@@ -155,11 +154,12 @@ class TestEventHandler(unittest.TestCase):
         #If we don't take into account the event time's error, we'd increment at time 1, 2, and 3
         #If we do, we should increment at time 1, 3 and 4
         #Real would be time 1.4, 2.6, 3.8
-        simTime = 2
-        eventHandler.executeEventsInRange(0, simTime)
+        eventHandler.executeEventsInRange(0, 2)
         self.assertEqual(self.testInt, 1)
-        eventHandler.executeEventsInRange(simTime, 3)
+        eventHandler.executeEventsInRange(2, 3)
         self.assertEqual(self.testInt, 2)
+        eventHandler.executeEventsInRange(3, 4)
+        self.assertEqual(self.testInt, 3)
 
     def testUnregisterRecurringEvent(self):
         eventHandler = EventHandler() 
@@ -317,4 +317,66 @@ class TestEventHandler(unittest.TestCase):
         eventHandler.executeEvents(20)
         self.assertEqual(self.testInt, 0)
         eventHandler.executeEvents(25)
+        self.assertEqual(self.testInt, 0)
+
+    #Test that reversing works properly even if the event was delayed originally
+    #It should be reversed back to the previous time
+    def testReverseDelayedEvent(self):
+        eventHandler = EventHandler() 
+
+        self.testInt = 0
+        self.delaySimTime = 10
+        def incrementOrDelay():
+            if self.delaySimTime != 0:
+                return self.delaySimTime
+            self.testInt += 1
+            return 0
+        def decrement():
+            self.testInt -= 1
+        incrementEvent = Event(eventFunction = incrementOrDelay, reverseFunction = decrement, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
+
+        eventHandler.registerEvent(incrementEvent)
+
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEvents(10)
+        #Event should be delayed
+        self.assertEqual(self.testInt, 0)
+
+        eventHandler.executeEvents(20)
+        #Event should be delayed again
+        self.assertEqual(self.testInt, 0)
+
+        self.delaySimTime = 0
+        eventHandler.executeEvents(30)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.reverseEvents(30)
+        self.assertEqual(self.testInt, 0)
+
+        #Now that we have reversed the event at 20, the event at 30 should no longer exist, since it was spawned by the event at 20
+        eventHandler.reverseEvents(20)
+        self.assertEqual(self.testInt, 0)
+        eventHandler.executeEvents(30)
+        self.assertEqual(self.testInt, 0)
+
+        #The event at 20 should be successful now, rather than being delayed, so the event at 30 should still not exist after this is executed
+        eventHandler.executeEvents(20)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.executeEvents(30)
+        self.assertEqual(self.testInt, 1)
+
+        #Now, we can reverse the event at 10 and test the same thing again
+        eventHandler.reverseEvents(20)
+        self.assertEqual(self.testInt, 0)
+        eventHandler.reverseEvents(10)
+        self.assertEqual(self.testInt, 0)
+        #Event at 20 shouldn't exist anymore
+        eventHandler.executeEvents(20)
+        self.assertEqual(self.testInt, 0)
+
+        #The event at 10 should be successful now, rather than being delayed, so the event at 20 should still not exist after this is executed
+        eventHandler.executeEvents(10)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.executeEvents(20)
+        self.assertEqual(self.testInt, 1)
+        eventHandler.reverseEvents(10)
         self.assertEqual(self.testInt, 0)
