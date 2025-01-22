@@ -1,7 +1,7 @@
-from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, GOLD_MINED_PER_TRIP, TIME_TO_MINE_GOLD_BASE_SEC
+from SimEngine.SimulationConstants import SECONDS_TO_SIMTIME
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.Event import Event
-from SimEngine.Action import AutomaticAction
+from SimEngine.EventGroup import EventGroup
 
 # Represents a single timeline on the planner. For example, the production queue of a barracks, or blacksmith, etc.
 class Timeline:
@@ -41,6 +41,18 @@ class Timeline:
 
     def getNumActions(self):
         return len(self.mActions)
+
+    #Remove an action from the timeline by action ID
+    #@return the Action removed
+    def removeAction(self, actionID):
+        for i in range(len(self.mActions)):
+            if self.mActions[i].mActionID == actionID:
+                return self.mActions.pop(i)
+
+    #Returns the latest action on the Timeline
+    #Return None if no actions on Timeline
+    def getLatestAction(self):
+        return self.mActions[-1]
 
     #Returns the next action based on the sim time
     #Return None if no actions >= that sim time
@@ -165,6 +177,12 @@ class WorkerTimeline(Timeline):
         self.mTimeAtCurrentTaskSec = 0
         self.mProductiveTimeAtCurrentTaskSec = 0
 
+        #Amount of resources the worker has on it, and whether it's gold or lumber
+        self.mAmtResourcesCarried = 0
+        self.mIsCarryingGold = True
+        #TODO: Ghoul should have 20, wisp and acolyte 0
+        self.mMaxAmtCarried = 10
+
         #If this worker is on gold or lumber, it will have a reference to that gold mine or tree copse timeline here
         #Otherwise, this will be None
         self.mCurrentResourceSourceTimeline = None
@@ -185,6 +203,95 @@ class WorkerTimeline(Timeline):
             return PeonTimeline(timelineID, eventHandler)
         elif workerName == Worker.Wisp.name:
             return WispTimeline(timelineID, eventHandler)
+
+    #Convenience method for getting an event that adds a resource to a Worker and can be reversed
+    @staticmethod
+    def getAddResourceToWorkerEvent(workerTimeline, isResourceGold, amtToAdd, simTime, eventName, eventID):
+        def eventFunc():
+            workerTimeline.addResource(isResourceGold, amtToAdd)
+        def reverseFunc():
+            workerTimeline.removeResources(isResourceGold, amtToAdd)
+        event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime=0, 
+                      eventID=eventID, eventName=eventName)
+
+        return event
+
+    #TODO: Do these methods actually need to be static?
+    #Convenience method for getting an event that returns the resources from a Worker to the overall resources and can be reversed
+    @staticmethod
+    def getReturnResourcesFromWorkerEvent(workerTimeline, isResourceGold, amtToReturn, currentResources, simTime, eventName, eventID):
+        def eventFunc():
+            workerTimeline.returnResources(currentResources, amtToReturn, isResourceGold)
+        def reverseFunc():
+            #Add the resource back to the worker from our resource totals
+            workerTimeline.addResource(isResourceGold, amtToReturn)
+            if isResourceGold:
+                currentResources.deductGold(amtToReturn)
+            else:
+                currentResources.deductLumber(amtToReturn)
+        event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime=0, 
+                      eventID=eventID, eventName=eventName)
+
+        return event
+
+    #addResource - Add a resource to the worker
+    #@param isResourceGold - True if resource is gold, false if lumber
+    #@param amtToAdd - How much to add to the worker
+    #Return True if successful
+    def addResource(self, isResourceGold, amtToAdd):
+        #TODO: Some workers can only carry some resources, or none at all. Should check that here
+        #Should also check the max amount
+
+        if self.mIsCarryingGold == isResourceGold and self.mAmtResourcesCarried >= self.mMaxAmtCarried:
+            print("Tried to add resource to worker that is already at capacity for that resource. isGold is", isResourceGold)
+            return False
+
+        #Worker is not at full capacity, so we can add these resources
+        if self.mIsCarryingGold == isResourceGold:
+            self.mAmtResourcesCarried = min(self.mAmtResourcesCarried + amtToAdd, self.mMaxAmtCarried)
+        else:
+            #Worker had the other resource on it or no resource at all, so we just overwrite with the new resource
+            self.mAmtResourcesCarried = amtToAdd
+            self.mIsCarryingGold = isResourceGold
+        return True
+
+    def removeResource(self, isResourceGold, amtToRemove):
+        if self.mIsCarryingGold != isResourceGold:
+            print("Tried to remove resources from worker when it isn't carrying any of that resource. isResourceGold is", isResourceGold)
+            return False
+        
+        if amtToRemove > self.mAmtResourcesCarried:
+            print("Tried to remove more resources from worker than it is actually carrying. Tried to remove", amtToRemove, "when it only carried", self.mAmtResourcesCarried)
+            return False
+        
+        self.mAmtResourcesCarried -= amtToRemove
+        return True
+
+    #Add the resources on this worker to the total resources
+    #@param currentResources - The current resource totals
+    #@param amtToReturn - (Optional) If None, ignore. Otherwise, ensure this is the amount being returned and error if not
+    #@param isResourceGold - (Optional) If None, ignore. Otherwise, ensure this is the resource being returned and error if not
+    #@return True if successful, False otherwise
+    def returnResources(self, currentResources, amtToReturn = None, isResourceGold = None):
+        if self.mAmtResourcesCarried == 0:
+            print("Tried to return resources on a worker that has no resources")
+            return False
+        if amtToReturn and self.mAmtResourcesCarried != amtToReturn:
+            print("Tried to return resources on a worker, but it is carrying", self.mAmtResourcesCarried, "and we are expecting to return", amtToReturn)
+            return False
+        if isResourceGold and isResourceGold != self.mIsCarryingGold:
+            print("Tried to return resources on a worker, but it is ", self.mIsCarryingGold, "that it is carrying gold, and we are expecting it to be", isResourceGold)
+            return False
+
+        goldChange = 0
+        lumberChange = 0
+        if self.mIsCarryingGold:
+            goldChange = self.mAmtResourcesCarried
+        else:
+            lumberChange = self.mAmtResourcesCarried
+
+        currentResources.modifyResources(goldChange, lumberChange)
+        self.mAmtResourcesCarried = 0
 
     #Convenience method for getting an event that changes a worker's task and can be reversed
     #If task is being changed to gold or lumber, need to pass in that resource source timeline as well
@@ -230,17 +337,51 @@ class WorkerTimeline(Timeline):
     def getCurrentTask(self):
         return self.mCurrentTask
 
+    #TODO: This is a WorkerTimeline, so probably don't need to specify "Worker" in the function name
     def sendWorkerToMine(self, action, currSimTime, goldMineTimeline):
         self.changeTask(currSimTime, WorkerTask.GOLD, goldMineTimeline)
-        #For example, a unit could be building a building, which would be an uninteruptable task (for elf and orc at least)
-        enterMineEvent = Event.getModifyWorkersInMineEvent(goldMineTimeline, currSimTime + action.mTravelTime, "Enter mine", self.mEventHandler.getNewEventID())
-        action.setAssociatedEvents([enterMineEvent])
+
+        miningEvents, miningEventGroup = self._getGoldMiningEvents(action, currSimTime, goldMineTimeline)
+
+        action.setAssociatedEvents([miningEvents])
         if not self.addAction(action):
             print("Failed to add go to mine action to timeline")
             return False
 
-        self.mEventHandler.registerEvent(enterMineEvent)
+        for miningEvent in miningEvents:
+            self.mEventHandler.registerEvent(miningEvent, miningEventGroup)
         return True
+
+    #Get the events associated with gold mining - will be overridden depending on the worker type to get the appropraite event(s)
+    #@return [events], eventGroup
+    #eventGroup may be None if events only contains 1 event
+    def _getGoldMiningEvents(self, action, currSimTime, goldMineTimeline):
+        #Must be implemented by derived classes
+        print("Error: getGoldMiningEvents is not implemented for this class")
+
+    def _getGoldMiningEventsElfUD(self, action, currSimTime, goldMineTimeline):
+        enterMineStartTime = currSimTime + action.mTravelTime
+        enterMineEvent = Event.getModifyWorkersInMineEvent(goldMineTimeline, enterMineStartTime, "Enter mine", self.mEventHandler.getNewEventID())
+
+        miningEvents = [enterMineEvent]
+
+        return miningEvents, None
+
+    def _getGoldMiningEventsOrcHu(self, action, currSimTime, goldMineTimeline):
+        GOLD_MINED_PER_TRIP = 10
+        #Amount of time worker will stay in mine getting the gold, for Hu and Orc
+        TIME_IN_MINE_SEC = 1
+        enterMineStartTime = currSimTime + action.mTravelTime
+        enterMineEvent = Event.getModifyWorkersInMineEvent(goldMineTimeline, enterMineStartTime, "Enter mine", self.mEventHandler.getNewEventID())
+        exitMineStartTime = enterMineStartTime + (TIME_IN_MINE_SEC * SECONDS_TO_SIMTIME)
+        exitMineEvent = WorkerTimeline.getAddResourceToWorkerEvent(self, True, GOLD_MINED_PER_TRIP, exitMineStartTime, "Exit mine", self.mEventHandler.getNewEventID())
+        returnGoldStartTime = exitMineStartTime + goldMineTimeline.mTimeToWalkToMine
+        returnGoldEvent = WorkerTimeline.getReturnResourcesFromWorkerEvent(self, True, GOLD_MINED_PER_TRIP, goldMineTimeline.mCurrentResources, returnGoldStartTime, "Return gold", self.mEventHandler.getNewEventID())
+
+        miningEvents = [enterMineEvent, exitMineEvent, returnGoldEvent]
+        miningEventGroup = EventGroup(miningEvents, goldMineTimeline.mTimeToWalkToMine)
+
+        return miningEvents, miningEventGroup
 
     def sendWorkerToLumber(self, action, currSimTime, copseOfTreesTimeline):
         self.changeTask(currSimTime, WorkerTask.LUMBER, copseOfTreesTimeline)
@@ -289,10 +430,16 @@ class WispTimeline(WorkerTimeline):
         super().__init__(timelineType = Worker.Wisp.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = 8, lumberGainPerCycle = 5, goldCycleTimeSec = 5, goldGainPerCycle = 10)
 
+    def _getGoldMiningEvents(self, action, currSimTime, goldMineTimeline):
+        return super()._getGoldMiningEventsElfUD(action, currSimTime, goldMineTimeline)
+
 class AcolyteTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
         super().__init__(timelineType = Worker.Acolyte.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = None, lumberGainPerCycle = None, goldCycleTimeSec = 5, goldGainPerCycle = 10)
+
+    def _getGoldMiningEvents(self, action, currSimTime, goldMineTimeline):
+        return super()._getGoldMiningEventsElfUD(action, currSimTime, goldMineTimeline)
 
 class GhoulTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
@@ -304,7 +451,13 @@ class PeasantTimeline(WorkerTimeline):
         super().__init__(timelineType = Worker.Peasant.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = None, lumberGainPerCycle = 10, goldCycleTimeSec = None, goldGainPerCycle = 10)
 
+    def _getGoldMiningEvents(self, action, currSimTime, goldMineTimeline):
+        return super()._getGoldMiningEventsOrcHu(action, currSimTime, goldMineTimeline)
+
 class PeonTimeline(WorkerTimeline):
     def __init__(self, timelineID, eventHandler):
         super().__init__(timelineType = Worker.Peon.name, timelineID = timelineID, eventHandler=eventHandler, 
                          lumberCycleTimeSec = None, lumberGainPerCycle = 10, goldCycleTimeSec = None, goldGainPerCycle = 10)
+
+    def _getGoldMiningEvents(self, action, currSimTime, goldMineTimeline):
+        return super()._getGoldMiningEventsOrcHu(action, currSimTime, goldMineTimeline)

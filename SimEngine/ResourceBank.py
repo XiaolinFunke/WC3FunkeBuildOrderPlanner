@@ -22,7 +22,7 @@ class ResourceBank:
 
         return dict
 
-    def modifyResources(self, goldChange, lumberChange, foodChange, foodMaxChange):
+    def modifyResources(self, goldChange, lumberChange, foodChange = 0, foodMaxChange = 0):
         self.mCurrentGold += goldChange
         self.mCurrentLumber += lumberChange
         self.mCurrentFood += foodChange

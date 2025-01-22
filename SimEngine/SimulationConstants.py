@@ -21,7 +21,3 @@ STARTING_FOOD_MAX_MAP = {
     Race.HUMAN: 12,
     Race.ORC: 11
 }
-
-GOLD_MINED_PER_TRIP = 10
-#Time to mine for 1 worker
-TIME_TO_MINE_GOLD_BASE_SEC = 5

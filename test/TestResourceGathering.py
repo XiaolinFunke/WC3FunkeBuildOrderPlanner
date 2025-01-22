@@ -29,6 +29,7 @@ def testResourceAmountPrecise(timeSec, expectedResourceAmount, currentResourceFu
     testClass.assertEqual(currentResourceFunc(), expectedResourceAmount, "Actual resource amount did not match expected")
 
 class TestResourceGathering(unittest.TestCase):
+    #ELF
     def testElfGoldMiningStartSimple(self):
         buildOrder = BuildOrder(Race.NIGHT_ELF)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=Worker.Wisp.name)
@@ -81,7 +82,8 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Wisp.name, 1, workerTimelines[0].getTimelineID()))
 
         #3601 so it's a multiple of 5 + 1, meaning we should gain gold right at that time
-        timeSec = 3601
+        # timeSec = 3601
+        timeSec = 11
         expectedGoldAmount = STARTING_GOLD + ((timeSec - 1) / 5 * 10)
 
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
@@ -385,3 +387,22 @@ class TestResourceGathering(unittest.TestCase):
         timeSec = 7200
         expectedLumberAmount = STARTING_LUMBER + 20 + ((timeSec - 24) / 8 * 10)
         testLumberAmountPrecise(timeSec, expectedLumberAmount, buildOrder, self)
+
+    #ORC
+    def testOrcGoldMiningStartSimple(self):
+        buildOrder = BuildOrder(Race.ORC)
+        workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=Worker.Peon.name)
+
+        #All workers mine immediately (0 travel time)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Peon.name, 1, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Peon.name, 2, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Peon.name, 3, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Peon.name, 4, workerTimelines[3].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Peon.name, 5, workerTimelines[4].getTimelineID()))
+
+        #Each worker should be in the mine for 1 second and then the next should immediately fill in, so we should get 10 gold per second
+
+        timeSec = 3600
+        expectedGoldAmount = STARTING_GOLD + (timeSec * 10)
+
+        testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)

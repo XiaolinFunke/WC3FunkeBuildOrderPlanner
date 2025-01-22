@@ -2,7 +2,7 @@ from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.Trigger import TriggerType
 from SimEngine.EventHandler import EventHandler
-from SimEngine.Timeline import WispTimeline, Timeline
+from SimEngine.Timeline import WispTimeline, PeonTimeline, Timeline
 from SimEngine.ResourceSourceTimeline import GoldMineTimeline, CopseOfTreesTimeline
 from SimEngine.Action import ActionType, Action
 from SimEngine.Event import Event
@@ -32,19 +32,26 @@ class BuildOrder:
         self.mEventHandler = EventHandler()
         self.mCurrentSimTime = 0
 
-        #Give initial starting units
+        goldMineTimeline = GoldMineTimeline(timelineType = TIMELINE_TYPE_GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler)
+        self.mInactiveTimelines.append(goldMineTimeline)
+        #TODO: Maps generally have juse two sides of the trees to gather from that you think of as distinct. However, one side is closer, so we will just use the one side, for now...
+        copseOfTreesTimeline = CopseOfTreesTimeline(timelineType = TIMELINE_TYPE_COPSE_OF_TREES, timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler, currentResources = self.mCurrentResources)
+        self.mInactiveTimelines.append(copseOfTreesTimeline)
+
+        #TODO: Adding these always for now, but later can have them only on some maps
+        self.mInactiveTimelines.append(Timeline(timelineType = "Tavern", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
+        self.mInactiveTimelines.append(Timeline(timelineType = "Goblin Merchant", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
+
         if self.mRace == Race.NIGHT_ELF:
-            goldMineTimeline = GoldMineTimeline(timelineType = TIMELINE_TYPE_GOLD_MINE, timelineID = self.getNextTimelineID(), race = self.mRace, currentResources = self.mCurrentResources, eventHandler=self.mEventHandler)
-            self.mInactiveTimelines.append(goldMineTimeline)
-            #TODO: Maps generally have juse two sides of the trees to gather from that you think of as distinct. However, one side is closer, so we will just use the one side, for now...
-            copseOfTreesTimeline = CopseOfTreesTimeline(timelineType = TIMELINE_TYPE_COPSE_OF_TREES, timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler, currentResources = self.mCurrentResources)
-            self.mInactiveTimelines.append(copseOfTreesTimeline)
+            #Give initial starting units
             for i in range(5):
                 self.mInactiveTimelines.append(WispTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
             self.mInactiveTimelines.append(Timeline(timelineType = "Tree of Life", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
-            #TODO: Adding these always for now, but later can have them only on some maps
-            self.mInactiveTimelines.append(Timeline(timelineType = "Tavern", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
-            self.mInactiveTimelines.append(Timeline(timelineType = "Goblin Merchant", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
+        elif self.mRace == Race.ORC:
+            #Give initial starting units
+            for i in range(5):
+                self.mInactiveTimelines.append(PeonTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
+            self.mInactiveTimelines.append(Timeline(timelineType = "Great Hall", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
 
     def simulateOrderedActionList(self, orderedActionList):
         for action in orderedActionList:

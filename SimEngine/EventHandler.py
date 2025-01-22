@@ -162,7 +162,7 @@ class EventHandler:
         amtDelayedSimTime = event.execute()
         self.mLastEventExecuted = event.getEventID()
         #Events will return a simTime delay number if they could not be executed and need to be delayed
-        if amtDelayedSimTime:
+        if amtDelayedSimTime and amtDelayedSimTime != 0:
             #Re-register the event for the new time, along with remaining events in its event group, if it has any
             self._delayEvent(event, amtDelayedSimTime, eventGroup)
             return
@@ -242,7 +242,8 @@ class EventHandler:
     def printScheduledEvents(self):
         #Print events sorted by simtime
         print("Scheduled events:")
-        for eventSimTime in self.mEvents:
+        sortedEvents = dict(sorted(self.mEvents.items()))
+        for eventSimTime in sortedEvents:
             for event, eventGroup in self.mEvents[eventSimTime]:
                 print("simTime", eventSimTime, ":", event, " - ", eventGroup)
         return True

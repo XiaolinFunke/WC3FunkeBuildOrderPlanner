@@ -296,8 +296,8 @@ class BuildUpgradeAction(Action):
 #Represents an action that the user does not actually take, but is placed on the timeline by the simulation engine automatically
 #For example, adding and removing a worker from a mine
 class AutomaticAction(Action):
-    def __init__(self):
-        super().__init__(None, 0, 0, None, 0, None, -1, False)
+    def __init__(self, duration = 0):
+        super().__init__(None, 0, 0, None, duration, None, -1, False)
         self.mIsInvisibleToUser = True
 
     #Automatic actions don't concern the user and won't be serialized
