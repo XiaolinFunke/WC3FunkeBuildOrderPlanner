@@ -402,6 +402,21 @@ class TestResourceGathering(unittest.TestCase):
 
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
+    def testOrcGoldMiningTwoWorkers(self):
+        buildOrder = BuildOrder(Race.ORC)
+        workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=Worker.Peon.name)
+
+        #Worker mines immediately (0 travel time)
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Peon.name, 1, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(0, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Peon.name, 2, workerTimelines[1].getTimelineID()))
+
+        #Gain gold at 3,4 8,9 13,14 seconds, etc.
+        #3603 so it's a multiple of 5 + 4, meaning we should gain gold right at that time
+        timeSec = 3604
+        expectedGoldAmount = STARTING_GOLD + (((timeSec + 1) * 2 / 5) * 10)
+
+        testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
+
     def testOrcGoldMiningStartSimple(self):
         buildOrder = BuildOrder(Race.ORC)
         workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=Worker.Peon.name)

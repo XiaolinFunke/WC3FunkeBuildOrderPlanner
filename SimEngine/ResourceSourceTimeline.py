@@ -65,15 +65,20 @@ class GoldMineTimeline(ResourceSourceTimeline):
             newWorkerInMineAction = AutomaticAction(duration = 1 * SECONDS_TO_SIMTIME)
             #Check the next time for action, so we don't have 2 workers in the mine at the same time
             nextPossibleTime = self.getNextPossibleTimeForAction(simTime)
-            newWorkerInMineAction.setStartTime(nextPossibleTime)
 
-            if not self.addAction(newAction = newWorkerInMineAction):
-                print("Failed to add new worker action to mine timeline at time", nextPossibleTime)
-                return -1
-
-            #Return the amount we had to delay
-            if newWorkerInMineAction.getStartTime() != simTime:
-                return newWorkerInMineAction.getStartTime() - simTime
+            #TODO: This means this worker isn't holding its place in the mine with an action yet, so theoretically, another worker could take it. However,
+            #I think that this event would be executed first if they were also delayed to this time, so I think the only time it would happen
+            #is if they were originally scheduled for exactly the time this is delayed until... in which case, does it really matter which worker is the one to get the spot?
+            #Not even sure if WC3 will always take the first worker, but I guess it probably does -- I guess which worker it is COULD matter in the extremely rare case where one of them has lumber in their hand or something
+            if nextPossibleTime == simTime:
+                newWorkerInMineAction.setStartTime(nextPossibleTime)
+                if not self.addAction(newAction = newWorkerInMineAction):
+                    print("Failed to add new worker action to mine timeline at time", nextPossibleTime, ". Printing Timeline")
+                    self.printTimeline()
+                    return -1
+            else:
+                #Return the amount we need to delay
+                return nextPossibleTime - simTime
         return 0
 
     #Sim time only needed for Undead and Elf, to bring their next +10 gold proportionally forward
