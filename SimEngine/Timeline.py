@@ -24,9 +24,9 @@ class Timeline:
         if isUnitWorker(timelineName):
             getNewTimelineFunc = lambda: WorkerTimeline.getNewWorkerTimeline(timelineName, timelineID, eventHandler)
                     
-        def eventFunc():
+        def eventFunc(currSimTime):
             inactiveTimelines.append(getNewTimelineFunc())
-        def reverseFunc():
+        def reverseFunc(currSimTime):
             removeTimeline(timelineID)
         event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime=0, 
                       eventID=eventID, eventName=eventName)
@@ -207,9 +207,9 @@ class WorkerTimeline(Timeline):
     #Convenience method for getting an event that adds a resource to a Worker and can be reversed
     @staticmethod
     def getAddResourceToWorkerEvent(workerTimeline, isResourceGold, amtToAdd, simTime, eventName, eventID):
-        def eventFunc():
+        def eventFunc(currSimTime):
             workerTimeline.addResource(isResourceGold, amtToAdd)
-        def reverseFunc():
+        def reverseFunc(currSimTime):
             workerTimeline.removeResources(isResourceGold, amtToAdd)
         event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime=0, 
                       eventID=eventID, eventName=eventName)
@@ -220,9 +220,9 @@ class WorkerTimeline(Timeline):
     #Convenience method for getting an event that returns the resources from a Worker to the overall resources and can be reversed
     @staticmethod
     def getReturnResourcesFromWorkerEvent(workerTimeline, isResourceGold, amtToReturn, currentResources, simTime, eventName, eventID):
-        def eventFunc():
+        def eventFunc(currSimTime):
             workerTimeline.returnResources(currentResources, amtToReturn, isResourceGold)
-        def reverseFunc():
+        def reverseFunc(currSimTime):
             #Add the resource back to the worker from our resource totals
             workerTimeline.addResource(isResourceGold, amtToReturn)
             if isResourceGold:
@@ -297,9 +297,9 @@ class WorkerTimeline(Timeline):
     #If task is being changed to gold or lumber, need to pass in that resource source timeline as well
     def getChangeTaskEvent(self, newTask, simTime, eventName, eventID, resourceSourceTimeline = None):
         originalTask = self.mCurrentTask
-        def eventFunc():
+        def eventFunc(currSimTime):
             self.changeTask(simTime, newTask, resourceSourceTimeline)
-        def reverseFunc():
+        def reverseFunc(currSimTime):
             self.changeTask(simTime, originalTask, self.mCurrentResourceSourceTimeline)
         event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime = 0, 
                       eventName = eventName, eventID = eventID)

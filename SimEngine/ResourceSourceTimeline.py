@@ -64,10 +64,11 @@ class GoldMineTimeline(ResourceSourceTimeline):
             #If we are delayed, all other events in the event group will be too
             newWorkerInMineAction = AutomaticAction(duration = 1 * SECONDS_TO_SIMTIME)
             #Check the next time for action, so we don't have 2 workers in the mine at the same time
-            newWorkerInMineAction.setStartTime(self.getNextPossibleTimeForAction(simTime))
+            nextPossibleTime = self.getNextPossibleTimeForAction(simTime)
+            newWorkerInMineAction.setStartTime(nextPossibleTime)
 
             if not self.addAction(newAction = newWorkerInMineAction):
-                print("Failed to add new worker action to mine timeline")
+                print("Failed to add new worker action to mine timeline at time", nextPossibleTime)
                 return -1
 
             #Return the amount we had to delay

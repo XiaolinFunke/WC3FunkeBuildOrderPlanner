@@ -297,7 +297,7 @@ class BuildUpgradeAction(Action):
 #For example, adding and removing a worker from a mine
 class AutomaticAction(Action):
     def __init__(self, duration = 0):
-        super().__init__(None, 0, 0, None, duration, None, -1, False)
+        super().__init__(None, 0, 0, None, duration, None, None, -1, False)
         self.mIsInvisibleToUser = True
 
     #Automatic actions don't concern the user and won't be serialized

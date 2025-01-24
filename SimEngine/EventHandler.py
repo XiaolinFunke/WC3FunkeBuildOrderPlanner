@@ -79,7 +79,7 @@ class EventHandler:
         while i >= 0:
             event, eventGroup = self.mEvents[simTime][i]
             if executeRemainingEvents:
-                self._reverseEvent(event, eventGroup)
+                self._reverseEvent(event, eventGroup, simTime)
             #This event was the last one we executed, so we should start executing the events for this simtime from here on
             elif event.getEventID() == self.mLastEventExecuted:
                 executeRemainingEvents = True
@@ -99,10 +99,10 @@ class EventHandler:
             self.mLastSimTimeExecuted = -1
             self.mLastEventExecuted = -1
 
-    def _reverseEvent(self, event, eventGroup):
+    def _reverseEvent(self, event, eventGroup, currSimTime):
         if not event.mIsDisabled:
             self.mEventsExecutedInOrder.append('R' + str(event.getEventID()))
-            event.reverse()
+            event.reverse(currSimTime)
             if eventGroup != None and eventGroup.doesRecur():
                 if event.doesRecur():
                     print("Error: cannot have an event that recurs within an event group that recurs. Will ignore the individual event's recurrence and recur only the group")
@@ -147,19 +147,19 @@ class EventHandler:
         while i < len(eventsForTime):
             event, eventGroup = eventsForTime[i]
             if executeRemainingEvents:
-                self._executeEvent(event, eventGroup)
+                self._executeEvent(event, eventGroup, simTime)
             #This event was the last one we executed, so we should start executing the events for this simtime from here on
             elif event.getEventID() == self.mLastEventExecuted:
                 executeRemainingEvents = True
             i += 1
         self.mLastSimTimeExecuted = simTime
 
-    def _executeEvent(self, event, eventGroup):
+    def _executeEvent(self, event, eventGroup, currSimTime):
         if event.mIsDisabled:
             return
 
         self.mEventsExecutedInOrder.append(str(event.getEventID()))
-        amtDelayedSimTime = event.execute()
+        amtDelayedSimTime = event.execute(currSimTime)
         self.mLastEventExecuted = event.getEventID()
         #Events will return a simTime delay number if they could not be executed and need to be delayed
         if amtDelayedSimTime and amtDelayedSimTime != 0:

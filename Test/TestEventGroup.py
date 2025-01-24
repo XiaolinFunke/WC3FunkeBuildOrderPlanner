@@ -24,7 +24,7 @@ class TestEventGroup(unittest.TestCase):
 
         self.testInt = 0
         self.delayAmount = 10
-        def incrementOrDelay():
+        def incrementOrDelay(currSimTime):
             if self.delayAmount != 0:
                 return self.delayAmount
             self.testInt += 1
@@ -73,7 +73,7 @@ class TestEventGroup(unittest.TestCase):
 
         self.testInt = 0
         self.delayAmount = 0
-        def incrementOrDelay():
+        def incrementOrDelay(currSimTime):
             if self.delayAmount != 0:
                 return self.delayAmount
             self.testInt += 1
@@ -122,7 +122,7 @@ class TestEventGroup(unittest.TestCase):
 
         self.testInt = 0
         self.delayAmount = 0
-        def incrementOrDelay():
+        def incrementOrDelay(currSimTime):
             if self.delayAmount != 0:
                 return self.delayAmount
             self.testInt += 1
@@ -193,12 +193,12 @@ class TestEventGroup(unittest.TestCase):
 
         self.testInt = 0
         self.delayAmount = 0
-        def incrementOrDelay():
+        def incrementOrDelay(currSimTime):
             if self.delayAmount != 0:
                 return self.delayAmount
             self.testInt += 1
             return 0
-        def decrement():
+        def decrement(currSimTime):
             self.testInt -= 1
 
         event1 = Event(eventFunction = incrementOrDelay, reverseFunction = decrement, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
@@ -282,12 +282,12 @@ class TestEventGroup(unittest.TestCase):
 
         self.testInt = 0
         self.delayAmount = 0
-        def incrementOrDelay():
+        def incrementOrDelay(currSimTime):
             if self.delayAmount != 0:
                 return self.delayAmount
             self.testInt += 1
             return 0
-        def decrement():
+        def decrement(currSimTime):
             self.testInt -= 1
 
         event1 = Event(eventFunction = incrementOrDelay, reverseFunction = decrement, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())
@@ -322,12 +322,12 @@ class TestEventGroup(unittest.TestCase):
 
         self.testInt = 0
         self.delayAmount = 0
-        def incrementOrDelay():
+        def incrementOrDelay(currSimTime):
             if self.delayAmount != 0:
                 return self.delayAmount
             self.testInt += 1
             return 0
-        def decrement():
+        def decrement(currSimTime):
             self.testInt -= 1
 
         event1 = Event(eventFunction = incrementOrDelay, reverseFunction = decrement, eventTime = 10, recurPeriodSimtime = 0, eventID = eventHandler.getNewEventID())

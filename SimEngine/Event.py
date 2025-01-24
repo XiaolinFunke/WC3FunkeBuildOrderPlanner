@@ -29,9 +29,9 @@ class Event:
     #Convenience method for getting an event that modifies our current resources and can be reversed
     @staticmethod
     def getModifyResourceCountEvent(currentResources, simTime, eventName, eventID, goldChange, lumberChange, foodChange, foodMaxChange, recurPeriodSimTime = 0):
-        def eventFunc():
+        def eventFunc(currSimTime):
             currentResources.modifyResources(goldChange, lumberChange, foodChange, foodMaxChange)
-        def reverseFunc():
+        def reverseFunc(currSimTime):
             currentResources.modifyResources(goldChange * -1, lumberChange * -1, foodChange * -1, foodMaxChange * -1)
 
         event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime = recurPeriodSimTime, 
@@ -43,13 +43,15 @@ class Event:
     @staticmethod
     def getModifyWorkersInMineEvent(goldMineTimeline, simTime, eventName, eventID):
         #Must use defined funcs instead of lamdbas so that the event function returns None
-        def eventFunc():
+        #Must pass the current sim time, can't just use the simTime from the getModifyWorkersInMinEvent method,
+        #since this Event could be recurred, and then that simTime would be inaccurate
+        def eventFunc(currSimTime):
             #For Orc and Human workers, we may have to delay adding to the mine if a worker is already in it
-            delayVal = goldMineTimeline.addWorkerToMine(simTime)
+            delayVal = goldMineTimeline.addWorkerToMine(currSimTime)
             if delayVal > 0:
                 return delayVal
-        def reverseFunc():
-            goldMineTimeline.removeWorkerFromMine(simTime)
+        def reverseFunc(currSimTime):
+            goldMineTimeline.removeWorkerFromMine(currSimTime)
         event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime = 0, 
                       eventName = eventName, eventID = eventID)
         return event
@@ -156,17 +158,18 @@ class Event:
                 mostRecentRecurrence = mostRecentRecurrence.mNextRecurredEvent
 
     #Execute the reverse event
-    def reverse(self):
+    def reverse(self, currSimTime):
         if not self.mReverseFunction:
             print("Attempted to execute a reverse function that was None. Event name was", self.mEventName, "and event ID was", self.mEventID)
             return
-        self.mReverseFunction()
+        self.mReverseFunction(currSimTime)
 
     #Execute the function associated with this event
     #@return If the event could not be executed, and must be delayed, return the amount of simTime to delay the event for
+    #@param currSimTime - The current simtime, to pass to the function, since some event functions need it
     #If event does not have to be delayed, return None
-    def execute(self):
+    def execute(self, currSimTime):
         if not self.mFunction:
             print("Attempted to execute a function that was None. Event name was", self.mEventName, "and event ID was", self.mEventID)
             return
-        return self.mFunction()
+        return self.mFunction(currSimTime)
