@@ -106,8 +106,9 @@ class GoldMineTimeline(ResourceSourceTimeline):
         else:
             #Human and Orc
             #Get the "Worker in mine" automatic action added to this timeline by addWorkerToMine and remove it
-            workerInMineAction = self.getLatestAction()
-            self.removeAction(workerInMineAction.mActionID)
+            workerInMineAction = self.getCurrentAction(simTime)
+            if workerInMineAction != None:
+                self.removeAction(workerInMineAction.mActionID)
 
         return True
 
