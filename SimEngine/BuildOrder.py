@@ -2,7 +2,7 @@ from SimEngine.SimulationConstants import Race, STARTING_FOOD_MAX_MAP, TIMELINE_
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
 from SimEngine.Trigger import TriggerType
 from SimEngine.EventHandler import EventHandler
-from SimEngine.Timeline import WispTimeline, PeonTimeline, Timeline
+from SimEngine.Timeline import WispTimeline, PeonTimeline, PeasantTimeline, Timeline
 from SimEngine.ResourceSourceTimeline import GoldMineTimeline, CopseOfTreesTimeline
 from SimEngine.Action import ActionType, Action
 from SimEngine.Event import Event
@@ -52,6 +52,11 @@ class BuildOrder:
             for i in range(5):
                 self.mInactiveTimelines.append(PeonTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
             self.mInactiveTimelines.append(Timeline(timelineType = "Great Hall", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
+        elif self.mRace == Race.HUMAN:
+            #Give initial starting units
+            for i in range(5):
+                self.mInactiveTimelines.append(PeasantTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
+            self.mInactiveTimelines.append(Timeline(timelineType = "Town Hall", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
 
     def simulateOrderedActionList(self, orderedActionList):
         for action in orderedActionList:

@@ -36,6 +36,10 @@ class EventHandler:
     #Register an event to be executed at a particular simTime
     #If the event is in an EventGroup, that should also be registered
     def registerEvent(self, event, eventGroup = None):
+        if not isinstance(event.getEventTime(), int):
+            print("Cannot register an event at a non-integer time");
+            return
+
         if event.getEventTime() not in self.mEvents:
             self.mEvents[event.getEventTime()] = [ (event, eventGroup) ]
         else:
