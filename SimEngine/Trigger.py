@@ -4,7 +4,7 @@ class Trigger():
     def __init__(self, triggerType, triggerValue = None, actionID = None):
         self.mTriggerType = triggerType
         #Not used for ASAP trigger type
-        #Integer for other types, except NEXT_WORKER, for which it's a string designating the worker type
+        #Integer for other types, except NEXT_WORKER_BUILT, for which it's a string designating the worker type
         self.mValue = triggerValue
 
         #Only used for PERCENT_OF_ONGOING_ACTION trigger type -- specifies the action whose percentage we're looking at
