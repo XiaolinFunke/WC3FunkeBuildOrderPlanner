@@ -1,0 +1,61 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Simulated Timelines Schema",
+    "description": "Defines the format for the JSON that represents the timelines for each build order (max 4 for team builds) in the WC3 Build Order Planner",
+    "type": "array",
+    "items": {
+        "description": "Each item represents a single player's build order, in the array of all player build order's for the team",
+        "type": "object",
+        "minItems": 1,
+        "maxItems": 4,
+        "properties": {
+            "currentSimTime": {
+                "description": "The current sim time for this build",
+                "type": "integer",
+                "minimum": 0
+            },
+            "currentResources": {
+                "description": "The resources currently available to the player at this time",
+                "type": "object",
+                "properties": {
+                    "currentGold": {
+                        "description": "The amount of gold the player currently has",
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "currentLumber": {
+                        "description": "The amount of lumber the player currently has",
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "currentFood": {
+                        "description": "The amount of food the player is currently using",
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "currentFoodMax": {
+                        "description": "The current maximum food cap for the player",
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "required": [ "currentGold", "currentLumber", "currentFood", "currentFoodMax" ]
+            },
+            "activeTimelines": {
+                "description": "An array of timelines that have actions on them (which makes them 'active')",
+                "type": "array",
+                "items": {
+                    "$ref": "urn:TimelineObject"
+                }
+            },
+            "inactiveTimelines": {
+                "description": "An array of timeline that have no actions on them (which makes them 'inactive')",
+                "type": "array",
+                "items": {
+                    "$ref": "urn:TimelineObject"
+                }
+            }
+        },
+        "required": [ "currentSimTime", "currentResources", "activeTimelines", "inactiveTimelines" ]
+    }
+}

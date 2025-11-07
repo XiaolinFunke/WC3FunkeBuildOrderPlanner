@@ -1,538 +1,5 @@
 [
   {
-    "currentSimTime": 1860,
-    "activeTimelines": [
-      {
-        "timelineType": "Wisp",
-        "timelineID": 4,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 0,
-            "travelTime": 10,
-            "startTime": 0,
-            "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "GOLD"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 5,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 1,
-            "travelTime": 12.0,
-            "startTime": 0,
-            "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "GOLD"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 6,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 2,
-            "travelTime": 15.0,
-            "startTime": 0,
-            "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "GOLD"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 7,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 3,
-            "travelTime": 18.0,
-            "startTime": 0,
-            "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "GOLD"
-          }
-        ]
-      },
-      {
-        "timelineType": "Tree of Life",
-        "timelineID": 9,
-        "actions": [
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 4,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 0
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 7,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 140
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 9,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 280
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 11,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 420
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 13,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 560
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 17,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 700
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 19,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 840
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 23,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 980
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 25,
-            "name": "Wisp",
-            "duration": 140,
-            "startTime": 1120
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 8,
-        "actions": [
-          {
-            "actionType": "BuildStructureAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 5,
-            "name": "Altar of Elders",
-            "duration": 600,
-            "travelTime": 80,
-            "startTime": 0,
-            "currentWorkerTask": "IDLE"
-          },
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "PERCENT_OF_ONGOING_ACTION",
-              "value": 100,
-              "actionID": 5
-            },
-            "actionID": 15,
-            "travelTime": 20,
-            "startTime": 680,
-            "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "LUMBER"
-          },
-          {
-            "actionType": "BuildStructureAction",
-            "trigger": {
-              "triggerType": "LUMBER_AMOUNT",
-              "value": 155
-            },
-            "actionID": 20,
-            "name": "Hunter's Hall",
-            "duration": 600,
-            "travelTime": 20,
-            "startTime": 940,
-            "currentWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 10,
-        "actions": [
-          {
-            "actionType": "BuildStructureAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 6,
-            "name": "Moon Well",
-            "duration": 500,
-            "travelTime": 20,
-            "startTime": 140,
-            "currentWorkerTask": "IN_PRODUCTION"
-          },
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "PERCENT_OF_ONGOING_ACTION",
-              "value": 100,
-              "actionID": 6
-            },
-            "actionID": 14,
-            "travelTime": 20,
-            "startTime": 660,
-            "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 13,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 8,
-            "travelTime": 15,
-            "startTime": 280,
-            "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "GOLD"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 14,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 10,
-            "travelTime": 20,
-            "startTime": 420,
-            "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 15,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 12,
-            "travelTime": 20,
-            "startTime": 560,
-            "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
-          },
-          {
-            "actionType": "BuildStructureAction",
-            "trigger": {
-              "triggerType": "LUMBER_AMOUNT",
-              "value": 50
-            },
-            "actionID": 26,
-            "name": "Ancient of War",
-            "duration": 600,
-            "travelTime": 20,
-            "startTime": 1140,
-            "currentWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Altar of Elders",
-        "timelineID": 11,
-        "actions": [
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 8,
-            "name": "Keeper of the Grove",
-            "duration": 550,
-            "startTime": 680
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 16,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 16,
-            "travelTime": 20,
-            "startTime": 700,
-            "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
-          },
-          {
-            "actionType": "BuildStructureAction",
-            "trigger": {
-              "triggerType": "LUMBER_AMOUNT",
-              "value": 35
-            },
-            "actionID": 28,
-            "name": "Moon Well",
-            "duration": 500,
-            "travelTime": 20,
-            "startTime": 1280,
-            "currentWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 17,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 18,
-            "travelTime": 20,
-            "startTime": 840,
-            "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
-          },
-          {
-            "actionType": "BuildStructureAction",
-            "trigger": {
-              "triggerType": "LUMBER_AMOUNT",
-              "value": 155
-            },
-            "actionID": 21,
-            "name": "Ancient of War",
-            "duration": 600,
-            "travelTime": 20,
-            "startTime": 940,
-            "currentWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 18,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 22,
-            "travelTime": 20,
-            "startTime": 980,
-            "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 21,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 24,
-            "travelTime": 20,
-            "startTime": 1120,
-            "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Wisp",
-        "timelineID": 22,
-        "actions": [
-          {
-            "actionType": "WorkerMovementAction",
-            "trigger": {
-              "triggerType": "NEXT_WORKER_BUILT",
-              "value": "Wisp"
-            },
-            "actionID": 27,
-            "travelTime": 20,
-            "startTime": 1260,
-            "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
-          }
-        ]
-      },
-      {
-        "timelineType": "Ancient of War",
-        "timelineID": 20,
-        "actions": [
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 29,
-            "name": "Huntress",
-            "duration": 300,
-            "startTime": 1560
-          },
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 31,
-            "name": "Huntress",
-            "duration": 300,
-            "startTime": 1860
-          }
-        ]
-      },
-      {
-        "timelineType": "Ancient of War",
-        "timelineID": 23,
-        "actions": [
-          {
-            "actionType": "BuildUnitAction",
-            "trigger": {
-              "triggerType": "ASAP"
-            },
-            "actionID": 30,
-            "name": "Huntress",
-            "duration": 300,
-            "startTime": 1760
-          }
-        ]
-      }
-    ],
-    "inactiveTimelines": [
-      {
-        "timelineType": "Gold Mine",
-        "timelineID": 0,
-        "actions": []
-      },
-      {
-        "timelineType": "Copse of Trees",
-        "timelineID": 1,
-        "actions": []
-      },
-      {
-        "timelineType": "Tavern",
-        "timelineID": 2,
-        "actions": []
-      },
-      {
-        "timelineType": "Goblin Merchant",
-        "timelineID": 3,
-        "actions": []
-      },
-      {
-        "timelineType": "Moon Well",
-        "timelineID": 12,
-        "actions": []
-      },
-      {
-        "timelineType": "Hunter's Hall",
-        "timelineID": 19,
-        "actions": []
-      },
-      {
-        "timelineType": "Moon Well",
-        "timelineID": 24,
-        "actions": []
-      }
-    ],
-    "currentResources": {
-      "currentGold": 485,
-      "currentLumber": 115,
-      "currentFood": 5,
-      "currentFoodMax": 30
-    }
-  }
-]
-
-
-[
-  {
     "orderedActionList": [
       {
         "actionType": "BuildUnitAction",
@@ -544,6 +11,7 @@
         "duration": 140,
         "goldCost": 60,
         "lumberCost": 0,
+        "startTime": null,
         "requiredTimelineType": "Tree of Life",
         "foodCost": 1
       },
@@ -554,6 +22,7 @@
         },
         "actionID": 1,
         "travelTime": 10,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "desiredWorkerTask": "GOLD",
@@ -566,6 +35,7 @@
         },
         "actionID": 2,
         "travelTime": 12,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "desiredWorkerTask": "GOLD",
@@ -578,6 +48,7 @@
         },
         "actionID": 3,
         "travelTime": 14,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "desiredWorkerTask": "GOLD",
@@ -590,6 +61,7 @@
         },
         "actionID": 4,
         "travelTime": 16,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "desiredWorkerTask": "LUMBER",
@@ -606,6 +78,7 @@
         "travelTime": 20,
         "goldCost": 180,
         "lumberCost": 50,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "foodProvided": 0,
@@ -623,6 +96,7 @@
         "travelTime": 15,
         "goldCost": 180,
         "lumberCost": 40,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IN_PRODUCTION",
         "foodProvided": 10,
@@ -640,6 +114,7 @@
         "travelTime": 0,
         "goldCost": 210,
         "lumberCost": 100,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "GOLD",
         "foodProvided": 0,
@@ -655,6 +130,7 @@
         "duration": 550,
         "goldCost": 0,
         "lumberCost": 0,
+        "startTime": null,
         "requiredTimelineType": "Altar of Elders",
         "foodCost": 5
       },
@@ -669,6 +145,7 @@
         "duration": 600,
         "goldCost": 125,
         "lumberCost": 75,
+        "startTime": null,
         "requiredTimelineType": "Hunter's Hall"
       }
     ]
@@ -686,6 +163,7 @@
         "duration": 140,
         "goldCost": 60,
         "lumberCost": 0,
+        "startTime": null,
         "requiredTimelineType": "Tree of Life",
         "foodCost": 1
       },
@@ -696,6 +174,7 @@
         },
         "actionID": 1,
         "travelTime": 10,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "desiredWorkerTask": "GOLD",
@@ -708,6 +187,7 @@
         },
         "actionID": 2,
         "travelTime": 12,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "desiredWorkerTask": "GOLD",
@@ -720,6 +200,7 @@
         },
         "actionID": 3,
         "travelTime": 14,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "desiredWorkerTask": "LUMBER",
@@ -732,6 +213,7 @@
         },
         "actionID": 4,
         "travelTime": 16,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "desiredWorkerTask": "LUMBER",
@@ -748,6 +230,7 @@
         "duration": 140,
         "goldCost": 60,
         "lumberCost": 0,
+        "startTime": null,
         "requiredTimelineType": "Tree of Life",
         "foodCost": 1
       },
@@ -762,6 +245,7 @@
         "travelTime": 20,
         "goldCost": 180,
         "lumberCost": 50,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IDLE",
         "foodProvided": 0,
@@ -779,6 +263,7 @@
         "travelTime": 15,
         "goldCost": 180,
         "lumberCost": 40,
+        "startTime": null,
         "requiredTimelineType": "Wisp",
         "currentWorkerTask": "IN_PRODUCTION",
         "foodProvided": 10,
@@ -793,6 +278,7 @@
         "name": "Scroll of Town Portal",
         "travelTime": 150,
         "goldCost": -195,
+        "startTime": null,
         "requiredTimelineType": "Goblin Merchant"
       },
       {
@@ -805,6 +291,7 @@
         "duration": 550,
         "goldCost": 0,
         "lumberCost": 0,
+        "startTime": null,
         "requiredTimelineType": "Altar of Elders",
         "foodCost": 5
       }

@@ -1,0 +1,27 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Ordered Action List Schema",
+    "description": "Defines the format for an ordered action list JSON that respresents an array of player build orders (max 4 for team builds) in the WC3 Build Order Planner",
+    "type": "array",
+    "items": {
+        "description": "Each item represents a single player's build order, in the array of all player build order's for the team",
+        "type": "object",
+        "minItems": 1,
+        "maxItems": 4,
+        "properties": {
+            "race": {
+                "description": "String identifying the race for this player's build order",
+                "type": "string",
+                "enum": [ "HUMAN", "ORC", "NIGHT_ELF", "UNDEAD" ]
+            },
+            "orderedActionList": {
+                "description": "Array of actions, in order, representing a single player's build order",
+                "type": "array",
+                "items": {
+                    "$ref": "urn:ActionObject"
+                }
+            }
+        },
+        "required" : [ "race", "orderedActionList" ]
+    }
+}

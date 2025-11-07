@@ -1,0 +1,470 @@
+[
+  {
+    "currentSimTime": 1856,
+    "activeTimelines": [
+      {
+        "timelineType": "Tree of Life",
+        "timelineID": 9,
+        "actions": [
+          {
+            "actionType": "BuildUnitAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 0,
+            "name": "Wisp",
+            "duration": 140,
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 0,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 4,
+        "actions": [
+          {
+            "actionType": "WorkerMovementAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 1,
+            "travelTime": 10,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
+          },
+          {
+            "actionType": "BuildStructureAction",
+            "trigger": {
+              "triggerType": "GOLD_AMOUNT",
+              "value": 300
+            },
+            "actionID": 7,
+            "name": "Hunter's Hall",
+            "duration": 600,
+            "travelTime": 0,
+            "goldCost": 210,
+            "lumberCost": 100,
+            "startTime": 140,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "GOLD",
+            "foodProvided": 0,
+            "consumesWorker": false
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 5,
+        "actions": [
+          {
+            "actionType": "WorkerMovementAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 2,
+            "travelTime": 12,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 6,
+        "actions": [
+          {
+            "actionType": "WorkerMovementAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 3,
+            "travelTime": 14,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 7,
+        "actions": [
+          {
+            "actionType": "WorkerMovementAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 4,
+            "travelTime": 16,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 8,
+        "actions": [
+          {
+            "actionType": "BuildStructureAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 5,
+            "name": "Altar of Elders",
+            "duration": 600,
+            "travelTime": 20,
+            "goldCost": 180,
+            "lumberCost": 50,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "foodProvided": 0,
+            "consumesWorker": false
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 10,
+        "actions": [
+          {
+            "actionType": "BuildStructureAction",
+            "trigger": {
+              "triggerType": "NEXT_WORKER_BUILT",
+              "value": "Wisp"
+            },
+            "actionID": 6,
+            "name": "Moon Well",
+            "duration": 500,
+            "travelTime": 15,
+            "goldCost": 180,
+            "lumberCost": 40,
+            "startTime": 140,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IN_PRODUCTION",
+            "foodProvided": 10,
+            "consumesWorker": false
+          }
+        ]
+      },
+      {
+        "timelineType": "Altar of Elders",
+        "timelineID": 11,
+        "actions": [
+          {
+            "actionType": "BuildUnitAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 8,
+            "name": "Demon Hunter",
+            "duration": 550,
+            "goldCost": 0,
+            "lumberCost": 0,
+            "startTime": 620,
+            "requiredTimelineType": "Altar of Elders",
+            "foodCost": 5
+          }
+        ]
+      },
+      {
+        "timelineType": "Hunter's Hall",
+        "timelineID": 13,
+        "actions": [
+          {
+            "actionType": "BuildUpgradeAction",
+            "trigger": {
+              "triggerType": "LUMBER_AMOUNT",
+              "value": 75
+            },
+            "actionID": 9,
+            "name": "Strength of the Moon",
+            "duration": 600,
+            "goldCost": 125,
+            "lumberCost": 75,
+            "startTime": 1856,
+            "requiredTimelineType": "Hunter's Hall"
+          }
+        ]
+      }
+    ],
+    "inactiveTimelines": [
+      {
+        "timelineType": "Gold Mine",
+        "timelineID": 0,
+        "actions": []
+      },
+      {
+        "timelineType": "Copse of Trees",
+        "timelineID": 1,
+        "actions": []
+      },
+      {
+        "timelineType": "Tavern",
+        "timelineID": 2,
+        "actions": []
+      },
+      {
+        "timelineType": "Goblin Merchant",
+        "timelineID": 3,
+        "actions": []
+      },
+      {
+        "timelineType": "Moon Well",
+        "timelineID": 12,
+        "actions": []
+      }
+    ],
+    "currentResources": {
+      "currentGold": 865,
+      "currentLumber": 0,
+      "currentFood": 5,
+      "currentFoodMax": 20
+    }
+  },
+  {
+    "currentSimTime": 760,
+    "activeTimelines": [
+      {
+        "timelineType": "Tree of Life",
+        "timelineID": 9,
+        "actions": [
+          {
+            "actionType": "BuildUnitAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 0,
+            "name": "Wisp",
+            "duration": 140,
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 0,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
+          },
+          {
+            "actionType": "BuildUnitAction",
+            "trigger": {
+              "triggerType": "NEXT_WORKER_BUILT",
+              "value": "Wisp"
+            },
+            "actionID": 5,
+            "name": "Wisp",
+            "duration": 140,
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 140,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 4,
+        "actions": [
+          {
+            "actionType": "WorkerMovementAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 1,
+            "travelTime": 10,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 5,
+        "actions": [
+          {
+            "actionType": "WorkerMovementAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 2,
+            "travelTime": 12,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 6,
+        "actions": [
+          {
+            "actionType": "WorkerMovementAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 3,
+            "travelTime": 14,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 7,
+        "actions": [
+          {
+            "actionType": "WorkerMovementAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 4,
+            "travelTime": 16,
+            "startTime": 0,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 8,
+        "actions": [
+          {
+            "actionType": "BuildStructureAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 6,
+            "name": "Altar of Elders",
+            "duration": 600,
+            "travelTime": 20,
+            "goldCost": 180,
+            "lumberCost": 50,
+            "startTime": 140,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "foodProvided": 0,
+            "consumesWorker": false
+          }
+        ]
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 11,
+        "actions": [
+          {
+            "actionType": "BuildStructureAction",
+            "trigger": {
+              "triggerType": "NEXT_WORKER_BUILT",
+              "value": "Wisp"
+            },
+            "actionID": 7,
+            "name": "Moon Well",
+            "duration": 500,
+            "travelTime": 15,
+            "goldCost": 180,
+            "lumberCost": 40,
+            "startTime": 280,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IN_PRODUCTION",
+            "foodProvided": 10,
+            "consumesWorker": false
+          }
+        ]
+      },
+      {
+        "timelineType": "Goblin Merchant",
+        "timelineID": 3,
+        "actions": [
+          {
+            "actionType": "ShopAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 8,
+            "name": "Scroll of Town Portal",
+            "travelTime": 150,
+            "goldCost": -195,
+            "startTime": 280,
+            "requiredTimelineType": "Goblin Merchant"
+          }
+        ]
+      },
+      {
+        "timelineType": "Altar of Elders",
+        "timelineID": 12,
+        "actions": [
+          {
+            "actionType": "BuildUnitAction",
+            "trigger": {
+              "triggerType": "ASAP"
+            },
+            "actionID": 9,
+            "name": "Keeper of the Grove",
+            "duration": 550,
+            "goldCost": 0,
+            "lumberCost": 0,
+            "startTime": 760,
+            "requiredTimelineType": "Altar of Elders",
+            "foodCost": 5
+          }
+        ]
+      }
+    ],
+    "inactiveTimelines": [
+      {
+        "timelineType": "Gold Mine",
+        "timelineID": 0,
+        "actions": []
+      },
+      {
+        "timelineType": "Copse of Trees",
+        "timelineID": 1,
+        "actions": []
+      },
+      {
+        "timelineType": "Tavern",
+        "timelineID": 2,
+        "actions": []
+      },
+      {
+        "timelineType": "Wisp",
+        "timelineID": 10,
+        "actions": []
+      }
+    ],
+    "currentResources": {
+      "currentGold": 505,
+      "currentLumber": 150,
+      "currentFood": 5,
+      "currentFoodMax": 10
+    }
+  }
+]

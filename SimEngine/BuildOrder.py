@@ -90,6 +90,7 @@ class BuildOrder:
                 return False
 
         #Set a preliminary start time for the action, that may be pushed back (but not forward)
+        #TODO: getActionType should just be based on the subclass of Action we are using -- checking type seems not ideal compared to using polymorphism and getting rid of that enum
         action.mStartTime = self.mCurrentSimTime
         if action.getActionType() == ActionType.BuildUnit or action.getActionType() == ActionType.BuildUpgrade or action.getActionType() == ActionType.Shop:
             success = self._executeAction(action)
@@ -218,7 +219,7 @@ class BuildOrder:
             'orderedActionList' : []
         }
         for action in self.mOrderedActionList:
-            dict['orderedActionList'].append(action.getAsDictForSerialization(False))
+            dict['orderedActionList'].append(action.getAsDictForSerialization())
 
         return dict
 

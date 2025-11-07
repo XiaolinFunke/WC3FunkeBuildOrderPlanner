@@ -19,7 +19,7 @@ class Action:
         self.mTrigger = trigger
         #Start time starts at the beginning of the travel time 
         #In simtime
-        self.mStartTime = -1
+        self.mStartTime = None
         #Duration does not include travel time - So full duration is duration + travel time
         #If action has infinite duration, will be None
         self.mDuration = duration
@@ -37,8 +37,7 @@ class Action:
 
     #TODO: Any fancy way we could mark variables as ones that should be serialized rather than having to specify here?
     #Pare down to only relevant fields for JSON encoding and get as dict
-    #@param isOnTimeline - If True, include stuff like start time and duration (needed for when we're printing the Timelines as JSON, but not for ordered action list)
-    def getAsDictForSerialization(self, isOnTimeline = True):
+    def getAsDictForSerialization(self):
         dict = {
             'actionType' : self.__class__.__name__,
             'trigger' : self.mTrigger.getAsDictForSerialization(),
@@ -48,14 +47,11 @@ class Action:
         if self.mName != None: dict['name'] = self.mName
         if self.mDuration != None: dict['duration'] = self.mDuration
         if self.mTravelTime != None: dict['travelTime'] = self.mTravelTime
+        if self.mGoldCost != None: dict['goldCost'] = self.mGoldCost
+        if self.mLumberCost != None: dict['lumberCost'] = self.mLumberCost
 
-        #The info we need to know about is different depending on whether we've already placed it on a timeline or have yet to
-        if isOnTimeline:
-            dict['startTime'] = self.mStartTime
-        else:
-            if self.mGoldCost != None: dict['goldCost'] = self.mGoldCost
-            if self.mLumberCost != None: dict['lumberCost'] = self.mLumberCost
-            dict['requiredTimelineType'] = self.mRequiredTimelineType
+        dict['startTime'] = self.mStartTime
+        dict['requiredTimelineType'] = self.mRequiredTimelineType
 
         return dict
 
@@ -158,7 +154,7 @@ class Action:
         travelTime = self.mTravelTime
         if self.mTravelTime == None:
             travelTime = 0
-        if self.mStartTime == -1:
+        if self.mStartTime == None:
             scheduleStr = "(Unscheduled)"
         else:
             scheduleStr = "(" + str(travelTime + self.getStartTime()) + " - " + str(travelTime + self.getStartTime() + duration) + ")"
@@ -180,11 +176,10 @@ class BuildUnitAction(Action):
     def getActionType(self):
         return ActionType.BuildUnit
 
-    def getAsDictForSerialization(self, isOnTimeline = True):
-        dict = super().getAsDictForSerialization(isOnTimeline)
+    def getAsDictForSerialization(self):
+        dict = super().getAsDictForSerialization()
 
-        if not isOnTimeline:
-            dict['foodCost'] = self.mFoodCost
+        dict['foodCost'] = self.mFoodCost
 
         return dict
 
@@ -213,14 +208,12 @@ class BuildStructureAction(Action):
     def getActionType(self):
         return ActionType.BuildStructure
 
-    def getAsDictForSerialization(self, isOnTimeline = True):
-        dict = super().getAsDictForSerialization(isOnTimeline)
+    def getAsDictForSerialization(self):
+        dict = super().getAsDictForSerialization()
         
         dict['currentWorkerTask'] = self.mCurrentWorkerTask.name
-
-        if not isOnTimeline:
-            dict['foodProvided'] = self.mFoodProvided
-            dict['consumesWorker'] = self.mConsumesWorker
+        dict['foodProvided'] = self.mFoodProvided
+        dict['consumesWorker'] = self.mConsumesWorker
 
         return dict
 
@@ -258,13 +251,11 @@ class WorkerMovementAction(Action):
     def getActionType(self):
         return ActionType.WorkerMovement
 
-    def getAsDictForSerialization(self, isOnTimeline = True):
-        dict = super().getAsDictForSerialization(isOnTimeline)
+    def getAsDictForSerialization(self):
+        dict = super().getAsDictForSerialization()
         dict['currentWorkerTask'] = self.mCurrentWorkerTask.name
         dict['desiredWorkerTask'] = self.mDesiredWorkerTask.name
-
-        if not isOnTimeline:
-            dict['workerTimelineID'] = self.mWorkerTimelineID
+        dict['workerTimelineID'] = self.mWorkerTimelineID
 
         return dict
 
@@ -301,7 +292,7 @@ class AutomaticAction(Action):
         self.mIsInvisibleToUser = True
 
     #Automatic actions don't concern the user and won't be serialized
-    def getAsDictForSerialization(self, isOnTimeline = True):
+    def getAsDictForSerialization(self):
         return None
 
     #Automatic actions don't concern the user and won't be deserialized

@@ -1,0 +1,103 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Action Object",
+    "description": "Defines an Action object, to be used by the ordered action list and simulated timelines schemas",
+    "type": "object",
+    "properties": {
+        "actionType": {
+            "description": "String representing the type of action",
+            "type": "string",
+            "enum": [ "BuildUnitAction", "BuildStructureAction", "ShopAction", "WorkerMovementAction", "BuildUpgradeAction" ]
+        },
+        "trigger": {
+            "description": "The trigger represents the time/reason why the action is taken (at a certain amount of gold/lumber, etc.)",
+            "type": "object",
+            "properties": {
+                "triggerType": {
+                    "description": "The type of trigger. Describes what type of in-game marker is triggering the player to take the action",
+                    "type": "string",
+                    "enum": [ "ASAP", "GOLD_AMOUNT", "LUMBER_AMOUNT", "FOOD_AMOUNT", "NEXT_WORKER_BUILT", "PERCENT_OF_ONGOING_ACTION" ]
+                },
+                "value": {
+                    "description": "Not used for the ASAP trigger type. Integer for all other trigger types, except NEXT_WORKER_BUILT, for which it's a string designating the worker type",
+                    "type": ["integer", "string"],
+                    "minimum": 0
+                },
+                "actionID": {
+                    "description": "Only used for the PERCENT_OF_ONGOING_ACTION trigger type. Specifies the action whose percentage we're looking at",
+                    "type": "integer",
+                    "minimum": 0
+                }
+
+            },
+            "required": [ "triggerType" ]
+        },
+        "actionID": {
+            "description": "A unique integer identifying the action",
+            "type": "integer",
+            "minimum": 0
+        },
+        "requiredTimelineType": {
+            "description": "The type of timeline that this action must go on",
+            "type": "string"
+        },
+        "startTime": {
+            "description": "The start time of the action, in simTime. Should be null until the action is scheduled on a timeline",
+            "type": [ "integer", "null" ],
+            "minimum": 0
+        },
+        "travelTime": {
+            "description": "The amount of time taken to travel before executing the action, in simTime",
+            "type": "integer",
+            "minimum": 0
+        },
+        "currentWorkerTask": {
+            "description": "Choose a worker executing this task to use for the action",
+            "type": "string",
+            "enum": [ "GOLD", "LUMBER", "CONSTRUCTING", "ROAMING", "IN_PRODUCTION", "IDLE" ]
+        },
+        "desiredWorkerTask": {
+            "description": "The task the worker should go to. Used only for the Worker Movement Action",
+            "type": "string",
+            "enum": [ "GOLD", "LUMBER", "CONSTRUCTING", "ROAMING", "IN_PRODUCTION", "IDLE" ]
+        },
+        "workerTimelineID": {
+            "description": "Used to specify a particular worker to execute the action, rather than just one that is on a particular task. Used only for the Worker Movement Action. If null, the SimEngine will choose the best worker on that resource for you",
+            "type": [ "integer", "null" ],
+            "minimum": 0
+        },
+        "goldCost": {
+            "description": "Used to specify the gold cost associated with the action, if there is one. Can be negative, to indicate getting gold back, for example, from selling an item",
+            "type": "integer"
+        },
+        "lumberCost": {
+            "description": "Used to specify the lumber cost associated with the action, if there is one",
+            "type": "integer",
+            "minimum": 0
+        },
+        "foodCost": {
+            "description": "Used to specify the food cost associated with the action, if there is one. Only used for the Build Unit Action",
+            "type": "integer",
+            "minimum": 0
+        },
+        "foodProvided": {
+            "description": "Used to specify the amount of food the building provides, if any. Only used for the Build Structure Action",
+            "type": "integer",
+            "minimum": 0
+        },
+        "consumesWorker": {
+            "description": "If true, the worker will be consumed upon finishing the building. If false, it will not. Only used for the Build Structure Action",
+            "type": "boolean"
+        },
+        "duration": {
+            "description": "The amount of simTime the action will take to complete",
+            "type": "integer",
+            "exclusiveMinimum": 0
+        },
+        "name": {
+            "description": "The name of the action. Used to identify the action to the user",
+            "type": "string"
+        }
+    },
+    "required": [ "actionType", "trigger", "actionID", "requiredTimelineType", "startTime" ]
+}

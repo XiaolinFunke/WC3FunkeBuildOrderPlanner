@@ -14,8 +14,10 @@
             "actionID": 0,
             "travelTime": 10,
             "startTime": 0,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "GOLD"
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
           }
         ]
       },
@@ -31,8 +33,10 @@
             "actionID": 1,
             "travelTime": 12.0,
             "startTime": 0,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "GOLD"
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
           }
         ]
       },
@@ -48,8 +52,10 @@
             "actionID": 2,
             "travelTime": 15.0,
             "startTime": 0,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "GOLD"
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
           }
         ]
       },
@@ -65,8 +71,10 @@
             "actionID": 3,
             "travelTime": 18.0,
             "startTime": 0,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "GOLD"
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
           }
         ]
       },
@@ -82,7 +90,11 @@
             "actionID": 4,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 0
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 0,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           },
           {
             "actionType": "BuildUnitAction",
@@ -92,7 +104,11 @@
             "actionID": 7,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 140
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 140,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           },
           {
             "actionType": "BuildUnitAction",
@@ -102,7 +118,11 @@
             "actionID": 9,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 280
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 280,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           },
           {
             "actionType": "BuildUnitAction",
@@ -112,7 +132,11 @@
             "actionID": 11,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 420
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 420,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           },
           {
             "actionType": "BuildUnitAction",
@@ -122,7 +146,11 @@
             "actionID": 13,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 560
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 560,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           },
           {
             "actionType": "BuildUnitAction",
@@ -132,7 +160,11 @@
             "actionID": 17,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 700
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 700,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           },
           {
             "actionType": "BuildUnitAction",
@@ -142,7 +174,11 @@
             "actionID": 19,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 840
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 840,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           },
           {
             "actionType": "BuildUnitAction",
@@ -152,7 +188,11 @@
             "actionID": 23,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 980
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 980,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           },
           {
             "actionType": "BuildUnitAction",
@@ -162,7 +202,11 @@
             "actionID": 25,
             "name": "Wisp",
             "duration": 140,
-            "startTime": 1120
+            "goldCost": 60,
+            "lumberCost": 0,
+            "startTime": 1120,
+            "requiredTimelineType": "Tree of Life",
+            "foodCost": 1
           }
         ]
       },
@@ -179,8 +223,13 @@
             "name": "Altar of Elders",
             "duration": 600,
             "travelTime": 80,
+            "goldCost": 180,
+            "lumberCost": 50,
             "startTime": 0,
-            "currentWorkerTask": "IDLE"
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IDLE",
+            "foodProvided": 0,
+            "consumesWorker": false
           },
           {
             "actionType": "WorkerMovementAction",
@@ -192,8 +241,10 @@
             "actionID": 15,
             "travelTime": 20,
             "startTime": 680,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           },
           {
             "actionType": "BuildStructureAction",
@@ -205,8 +256,13 @@
             "name": "Hunter's Hall",
             "duration": 600,
             "travelTime": 20,
+            "goldCost": 210,
+            "lumberCost": 100,
             "startTime": 940,
-            "currentWorkerTask": "LUMBER"
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "LUMBER",
+            "foodProvided": 0,
+            "consumesWorker": false
           }
         ]
       },
@@ -224,8 +280,13 @@
             "name": "Moon Well",
             "duration": 500,
             "travelTime": 20,
+            "goldCost": 180,
+            "lumberCost": 40,
             "startTime": 140,
-            "currentWorkerTask": "IN_PRODUCTION"
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "IN_PRODUCTION",
+            "foodProvided": 10,
+            "consumesWorker": false
           },
           {
             "actionType": "WorkerMovementAction",
@@ -237,8 +298,10 @@
             "actionID": 14,
             "travelTime": 20,
             "startTime": 660,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IDLE",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           }
         ]
       },
@@ -255,8 +318,10 @@
             "actionID": 8,
             "travelTime": 15,
             "startTime": 280,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "GOLD"
+            "desiredWorkerTask": "GOLD",
+            "workerTimelineID": null
           }
         ]
       },
@@ -273,8 +338,10 @@
             "actionID": 10,
             "travelTime": 20,
             "startTime": 420,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           }
         ]
       },
@@ -291,8 +358,10 @@
             "actionID": 12,
             "travelTime": 20,
             "startTime": 560,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           },
           {
             "actionType": "BuildStructureAction",
@@ -304,8 +373,13 @@
             "name": "Ancient of War",
             "duration": 600,
             "travelTime": 20,
+            "goldCost": 150,
+            "lumberCost": 60,
             "startTime": 1140,
-            "currentWorkerTask": "LUMBER"
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "LUMBER",
+            "foodProvided": 0,
+            "consumesWorker": true
           }
         ]
       },
@@ -321,7 +395,11 @@
             "actionID": 8,
             "name": "Keeper of the Grove",
             "duration": 550,
-            "startTime": 680
+            "goldCost": 0,
+            "lumberCost": 0,
+            "startTime": 680,
+            "requiredTimelineType": "Altar of Elders",
+            "foodCost": 5
           }
         ]
       },
@@ -338,8 +416,10 @@
             "actionID": 16,
             "travelTime": 20,
             "startTime": 700,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           },
           {
             "actionType": "BuildStructureAction",
@@ -351,8 +431,13 @@
             "name": "Moon Well",
             "duration": 500,
             "travelTime": 20,
+            "goldCost": 180,
+            "lumberCost": 40,
             "startTime": 1280,
-            "currentWorkerTask": "LUMBER"
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "LUMBER",
+            "foodProvided": 10,
+            "consumesWorker": false
           }
         ]
       },
@@ -369,8 +454,10 @@
             "actionID": 18,
             "travelTime": 20,
             "startTime": 840,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           },
           {
             "actionType": "BuildStructureAction",
@@ -382,8 +469,13 @@
             "name": "Ancient of War",
             "duration": 600,
             "travelTime": 20,
+            "goldCost": 150,
+            "lumberCost": 60,
             "startTime": 940,
-            "currentWorkerTask": "LUMBER"
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "LUMBER",
+            "foodProvided": 0,
+            "consumesWorker": true
           }
         ]
       },
@@ -400,8 +492,10 @@
             "actionID": 22,
             "travelTime": 20,
             "startTime": 980,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           }
         ]
       },
@@ -418,8 +512,10 @@
             "actionID": 24,
             "travelTime": 20,
             "startTime": 1120,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           }
         ]
       },
@@ -436,8 +532,10 @@
             "actionID": 27,
             "travelTime": 20,
             "startTime": 1260,
+            "requiredTimelineType": "Wisp",
             "currentWorkerTask": "IN_PRODUCTION",
-            "desiredWorkerTask": "LUMBER"
+            "desiredWorkerTask": "LUMBER",
+            "workerTimelineID": null
           }
         ]
       },
@@ -453,7 +551,11 @@
             "actionID": 29,
             "name": "Huntress",
             "duration": 300,
-            "startTime": 1560
+            "goldCost": 195,
+            "lumberCost": 20,
+            "startTime": 1560,
+            "requiredTimelineType": "Ancient of War",
+            "foodCost": 3
           },
           {
             "actionType": "BuildUnitAction",
@@ -463,7 +565,11 @@
             "actionID": 31,
             "name": "Huntress",
             "duration": 300,
-            "startTime": 1860
+            "goldCost": 195,
+            "lumberCost": 20,
+            "startTime": 1860,
+            "requiredTimelineType": "Ancient of War",
+            "foodCost": 3
           }
         ]
       },
@@ -479,7 +585,11 @@
             "actionID": 30,
             "name": "Huntress",
             "duration": 300,
-            "startTime": 1760
+            "goldCost": 195,
+            "lumberCost": 20,
+            "startTime": 1760,
+            "requiredTimelineType": "Ancient of War",
+            "foodCost": 3
           }
         ]
       }

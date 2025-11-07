@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Timeline Object",
+    "description": "Defines a Timeline object, to be used by the simulated timelines schema",
+    "type": "object",
+    "properties": {
+        "timelineType": {
+            "description": "String representing the type of timeline - Ex: Barracks, Wisp, Peasant, etc.",
+            "type": "string"
+        },
+        "timelineID": {
+            "description": "The unique ID of this timeline",
+            "type": "integer"
+        },
+        "actions": {
+            "description": "The list of actions that have been scheduled on this timeline",
+            "type": "array",
+            "items": {
+                "$ref": "urn:ActionObject"
+            }
+        }
+    },
+    "required": [ "timelineType", "timelineID", "actions" ]
+}
