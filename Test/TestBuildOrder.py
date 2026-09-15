@@ -206,10 +206,10 @@ class TestBuildOrder(unittest.TestCase):
 
         #Now, at time 5 seconds we should have 335/70 resources left
         #We should have enough gold for this, but are short 30 lumber
-        #We have one worker mining (5 lumber every 8 seconds, starting at second 5), so we should have the required amount of lumber by time 53s
-        #Travel time to build it is 7 seconds, so the start time should actually be pushed back to 46s, NOT 53s 
+        #We have one worker mining (5 lumber every 7.5 seconds, starting at second 5), so we should have the required amount of lumber by time 50s
+        #Travel time to build it is 7 seconds, so the start time should actually be pushed back to 43s, NOT 50s 
         self.assertEqual(buildOrder.simulateAction(BuildStructureAction(7 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Hunter's Hall", 210, 100, 0, 60 * SECONDS_TO_SIMTIME, "Wisp", 1)), True) 
-        self.assertEqual(buildOrder.getCurrentSimTime(), 46 * SECONDS_TO_SIMTIME)
+        self.assertEqual(buildOrder.getCurrentSimTime(), 43 * SECONDS_TO_SIMTIME)
 
     #Test that the travel time works properly with the NEXT_WORKER_BUILT trigger. We don't want the travel time to start before the worker is actually finished, assuming we are building with that worker (won't necessarily be the case, but usually it will be, and we don't really know)
     #It should also work if we don't yet have enough resources -- it should just be pushed back slightly

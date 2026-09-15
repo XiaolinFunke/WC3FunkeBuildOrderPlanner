@@ -268,8 +268,8 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder.simulate(18 * SECONDS_TO_SIMTIME)
         buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.GOLD, WorkerTask.LUMBER, Worker.Wisp.name, 5, workerTimelines[0].getTimelineID()))
 
-        #First 5 lumber should be mined at 27 seconds
-        timeSec = 27
+        #First 5 lumber should be mined at 26.5 seconds
+        timeSec = 26.5
         expectedLumberAmount = STARTING_LUMBER + 5
 
         testLumberAmountPrecise(timeSec, expectedLumberAmount, buildOrder, self)
@@ -284,9 +284,9 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, 3, workerTimelines[2].getTimelineID()))
         buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, 4, workerTimelines[3].getTimelineID()))
 
-        #3601 because it's 1 + a multiple of 8, so we should get lumber at that time
+        #3601 because it's 1 + a multiple of 7.5, so we should get lumber at that time
         timeSec = 3601
-        expectedLumberAmount = STARTING_LUMBER + (5 * 4 * (timeSec - 1)/ 8)
+        expectedLumberAmount = STARTING_LUMBER + (5 * 4 * (timeSec - 1)/ 7.5)
 
         testLumberAmountPrecise(timeSec, expectedLumberAmount, buildOrder, self)
 
@@ -302,10 +302,10 @@ class TestResourceGathering(unittest.TestCase):
         buildOrder.simulate(2 * SECONDS_TO_SIMTIME)
         buildOrder.simulateAction(WorkerMovementAction(2*SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.LUMBER, Worker.Wisp.name, 4, workerTimelines[3].getTimelineID()))
 
-        #3601 because it's 1 + a multiple of 8, so we should get lumber at that time from the first worker
+        #3601 because it's 1 + a multiple of 7.5, so we should get lumber at that time from the first worker
         timeSec = 3601
         #Subtract 15 because not all the wisps have gotten their lumber yet
-        expectedLumberAmount = STARTING_LUMBER + (5 * 4 * (timeSec - 1) / 8) - 15
+        expectedLumberAmount = STARTING_LUMBER + (5 * 4 * (timeSec - 1) / 7.5) - 15
         testLumberAmountPrecise(timeSec, expectedLumberAmount, buildOrder, self)
         #Other 3 wisps should get their lumber 1 second later than the previous
         testLumberAmountPrecise(timeSec + 1, expectedLumberAmount + 5, buildOrder, self)
@@ -380,11 +380,11 @@ class TestResourceGathering(unittest.TestCase):
         expectedGoldAmount = STARTING_GOLD + 120 + ((timeSec - 15) * (3/5) * 10)
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
-        #We have 1 worker lumbering for 15 seconds (5 lumber, 5 more at 16 seconds, 24 seconds, etc.)
-        #And then we add a second for the rest (first 5 lumber at 23 seconds)
-        #so, at 24 seconds we have +20 lumber. Will have 10 more at 32 seconds, 10 more every 8 seconds
+        #We have 1 worker lumbering for 15 seconds (10 lumber, 5 more at 21.5 seconds, 29 seconds, etc.)
+        #And then we add a second for the rest (first 5 lumber at 22.5 seconds)
+        #so, at 22.5 seconds we have +20 lumber. Will have 10 more at 30 seconds, 10 more every 7.5 seconds
         timeSec = 7200
-        expectedLumberAmount = STARTING_LUMBER + 20 + ((timeSec - 24) / 8 * 10)
+        expectedLumberAmount = STARTING_LUMBER + 20 + ((timeSec - 22.5) / 7.5 * 10)
         testLumberAmountPrecise(timeSec, expectedLumberAmount, buildOrder, self)
 
     #ORC

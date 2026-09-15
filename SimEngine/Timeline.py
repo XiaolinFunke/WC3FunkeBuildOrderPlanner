@@ -426,9 +426,11 @@ class WorkerTimeline(Timeline):
         print(self.mTimelineType, "Timeline (ID:", str(self.mTimelineID), "):", self.mCurrentTask, self.mActions)
 
 class WispTimeline(WorkerTimeline):
+    WISP_LUMBER_CYCLE_TIME_SEC=7.5
+
     def __init__(self, timelineID, eventHandler):
         super().__init__(timelineType = Worker.Wisp.name, timelineID = timelineID, eventHandler=eventHandler, 
-                         lumberCycleTimeSec = 8, lumberGainPerCycle = 5, goldCycleTimeSec = 5, goldGainPerCycle = 10)
+                         lumberCycleTimeSec = WispTimeline.WISP_LUMBER_CYCLE_TIME_SEC, lumberGainPerCycle = 5, goldCycleTimeSec = 5, goldGainPerCycle = 10)
 
     def _getGoldMiningEvents(self, action, currSimTime, goldMineTimeline):
         return super()._getGoldMiningEventsElfUD(action, currSimTime, goldMineTimeline)
