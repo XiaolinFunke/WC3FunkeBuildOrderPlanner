@@ -305,7 +305,7 @@
         "actionType": "BuildStructureAction",
         "trigger": {
           "triggerType": "LUMBER_AMOUNT",
-          "value": 155
+          "value": 150
         },
         "actionID": 20,
         "name": "Hunter's Hall",
@@ -323,7 +323,7 @@
         "actionType": "BuildStructureAction",
         "trigger": {
           "triggerType": "LUMBER_AMOUNT",
-          "value": 155
+          "value": 150
         },
         "actionID": 21,
         "name": "Ancient of War",
@@ -397,7 +397,7 @@
         "actionType": "BuildStructureAction",
         "trigger": {
           "triggerType": "LUMBER_AMOUNT",
-          "value": 50
+          "value": 55
         },
         "actionID": 26,
         "name": "Ancient of War",
@@ -412,26 +412,12 @@
         "consumesWorker": true
       },
       {
-        "actionType": "WorkerMovementAction",
-        "trigger": {
-          "triggerType": "NEXT_WORKER_BUILT",
-          "value": "Wisp"
-        },
-        "actionID": 27,
-        "travelTime": 20,
-        "startTime": null,
-        "requiredTimelineType": "Wisp",
-        "currentWorkerTask": "IN_PRODUCTION",
-        "desiredWorkerTask": "LUMBER",
-        "workerTimelineID": null
-      },
-      {
         "actionType": "BuildStructureAction",
         "trigger": {
           "triggerType": "LUMBER_AMOUNT",
-          "value": 35
+          "value": 30
         },
-        "actionID": 28,
+        "actionID": 27,
         "name": "Moon Well",
         "duration": 500,
         "travelTime": 20,
@@ -442,6 +428,20 @@
         "currentWorkerTask": "LUMBER",
         "foodProvided": 10,
         "consumesWorker": false
+      },
+      {
+        "actionType": "WorkerMovementAction",
+        "trigger": {
+          "triggerType": "NEXT_WORKER_BUILT",
+          "value": "Wisp"
+        },
+        "actionID": 28,
+        "travelTime": 20,
+        "startTime": null,
+        "requiredTimelineType": "Wisp",
+        "currentWorkerTask": "IN_PRODUCTION",
+        "desiredWorkerTask": "LUMBER",
+        "workerTimelineID": null
       },
       {
         "actionType": "BuildUnitAction",

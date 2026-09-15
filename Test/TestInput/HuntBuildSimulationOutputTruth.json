@@ -1,6 +1,6 @@
 [
   {
-    "currentSimTime": 1860,
+    "currentSimTime": 1845,
     "activeTimelines": [
       {
         "timelineType": "Wisp",
@@ -250,7 +250,7 @@
             "actionType": "BuildStructureAction",
             "trigger": {
               "triggerType": "LUMBER_AMOUNT",
-              "value": 155
+              "value": 150
             },
             "actionID": 20,
             "name": "Hunter's Hall",
@@ -258,7 +258,7 @@
             "travelTime": 20,
             "goldCost": 210,
             "lumberCost": 100,
-            "startTime": 940,
+            "startTime": 925,
             "requiredTimelineType": "Wisp",
             "currentWorkerTask": "LUMBER",
             "foodProvided": 0,
@@ -302,6 +302,24 @@
             "currentWorkerTask": "IDLE",
             "desiredWorkerTask": "LUMBER",
             "workerTimelineID": null
+          },
+          {
+            "actionType": "BuildStructureAction",
+            "trigger": {
+              "triggerType": "LUMBER_AMOUNT",
+              "value": 150
+            },
+            "actionID": 21,
+            "name": "Ancient of War",
+            "duration": 600,
+            "travelTime": 20,
+            "goldCost": 150,
+            "lumberCost": 60,
+            "startTime": 925,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "LUMBER",
+            "foodProvided": 0,
+            "consumesWorker": true
           }
         ]
       },
@@ -362,24 +380,6 @@
             "currentWorkerTask": "IN_PRODUCTION",
             "desiredWorkerTask": "LUMBER",
             "workerTimelineID": null
-          },
-          {
-            "actionType": "BuildStructureAction",
-            "trigger": {
-              "triggerType": "LUMBER_AMOUNT",
-              "value": 50
-            },
-            "actionID": 26,
-            "name": "Ancient of War",
-            "duration": 600,
-            "travelTime": 20,
-            "goldCost": 150,
-            "lumberCost": 60,
-            "startTime": 1140,
-            "requiredTimelineType": "Wisp",
-            "currentWorkerTask": "LUMBER",
-            "foodProvided": 0,
-            "consumesWorker": true
           }
         ]
       },
@@ -420,24 +420,6 @@
             "currentWorkerTask": "IN_PRODUCTION",
             "desiredWorkerTask": "LUMBER",
             "workerTimelineID": null
-          },
-          {
-            "actionType": "BuildStructureAction",
-            "trigger": {
-              "triggerType": "LUMBER_AMOUNT",
-              "value": 35
-            },
-            "actionID": 28,
-            "name": "Moon Well",
-            "duration": 500,
-            "travelTime": 20,
-            "goldCost": 180,
-            "lumberCost": 40,
-            "startTime": 1280,
-            "requiredTimelineType": "Wisp",
-            "currentWorkerTask": "LUMBER",
-            "foodProvided": 10,
-            "consumesWorker": false
           }
         ]
       },
@@ -463,19 +445,19 @@
             "actionType": "BuildStructureAction",
             "trigger": {
               "triggerType": "LUMBER_AMOUNT",
-              "value": 155
+              "value": 30
             },
-            "actionID": 21,
-            "name": "Ancient of War",
-            "duration": 600,
+            "actionID": 27,
+            "name": "Moon Well",
+            "duration": 500,
             "travelTime": 20,
-            "goldCost": 150,
-            "lumberCost": 60,
-            "startTime": 940,
+            "goldCost": 180,
+            "lumberCost": 40,
+            "startTime": 1235,
             "requiredTimelineType": "Wisp",
             "currentWorkerTask": "LUMBER",
-            "foodProvided": 0,
-            "consumesWorker": true
+            "foodProvided": 10,
+            "consumesWorker": false
           }
         ]
       },
@@ -516,6 +498,24 @@
             "currentWorkerTask": "IN_PRODUCTION",
             "desiredWorkerTask": "LUMBER",
             "workerTimelineID": null
+          },
+          {
+            "actionType": "BuildStructureAction",
+            "trigger": {
+              "triggerType": "LUMBER_AMOUNT",
+              "value": 55
+            },
+            "actionID": 26,
+            "name": "Ancient of War",
+            "duration": 600,
+            "travelTime": 20,
+            "goldCost": 150,
+            "lumberCost": 60,
+            "startTime": 1130,
+            "requiredTimelineType": "Wisp",
+            "currentWorkerTask": "LUMBER",
+            "foodProvided": 0,
+            "consumesWorker": true
           }
         ]
       },
@@ -529,7 +529,7 @@
               "triggerType": "NEXT_WORKER_BUILT",
               "value": "Wisp"
             },
-            "actionID": 27,
+            "actionID": 28,
             "travelTime": 20,
             "startTime": 1260,
             "requiredTimelineType": "Wisp",
@@ -553,7 +553,7 @@
             "duration": 300,
             "goldCost": 195,
             "lumberCost": 20,
-            "startTime": 1560,
+            "startTime": 1545,
             "requiredTimelineType": "Ancient of War",
             "foodCost": 3
           },
@@ -567,7 +567,7 @@
             "duration": 300,
             "goldCost": 195,
             "lumberCost": 20,
-            "startTime": 1860,
+            "startTime": 1845,
             "requiredTimelineType": "Ancient of War",
             "foodCost": 3
           }
@@ -587,7 +587,7 @@
             "duration": 300,
             "goldCost": 195,
             "lumberCost": 20,
-            "startTime": 1760,
+            "startTime": 1750,
             "requiredTimelineType": "Ancient of War",
             "foodCost": 3
           }
@@ -632,8 +632,8 @@
       }
     ],
     "currentResources": {
-      "currentGold": 485,
-      "currentLumber": 115,
+      "currentGold": 455,
+      "currentLumber": 130,
       "currentFood": 5,
       "currentFoodMax": 30
     }

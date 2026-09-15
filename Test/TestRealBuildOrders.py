@@ -128,12 +128,12 @@ class TestRealBuildOrders(unittest.TestCase):
         #@160 lumber, build AoW and HH
         #Lumber wisps start mining at 44s, 58s, 68s, 70s, 72s, 86s, 100s, 114s, 128s
         #We already have 60 lumber leftover from start, so we need to gather 100
-        #If they gather 5 lumber every 8 seconds, that means we will get to 160 lumber at 96s
-        #We will make the trigger 155 lumber, since we will have that at 94s, just before the 2s travel time (the trigger is when the wisp STARTS the action, before travel time)
-        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 155), WorkerTask.LUMBER, "Hunter's Hall", 210, 100, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
-        self.assertEqual(buildOrder.getCurrentSimTime(), 94 * SECONDS_TO_SIMTIME)
-        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 155), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
-        self.assertEqual(buildOrder.getCurrentSimTime(), 94 * SECONDS_TO_SIMTIME)
+        #If they gather 5 lumber every 7.5 seconds, that means we will get to 160 lumber at 94.5s
+        #We will make the trigger 150 lumber, since we will have that at 92.5s, just before the 2s travel time (the trigger is when the wisp STARTS the action, before travel time)
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 150), WorkerTask.LUMBER, "Hunter's Hall", 210, 100, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 92.5 * SECONDS_TO_SIMTIME)
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 150), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 92.5 * SECONDS_TO_SIMTIME)
 
         #7th wisp to lumber
         self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
@@ -152,29 +152,36 @@ class TestRealBuildOrders(unittest.TestCase):
         self.assertEqual(buildOrder.getCurrentSimTime(), 112 * SECONDS_TO_SIMTIME)
 
         #@60 lumber -- 2nd AoW
-        #Really triggering at 50 lumber to account for travel time
-        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.LUMBER_AMOUNT, 50), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
-        self.assertEqual(buildOrder.getCurrentSimTime(), 114 * SECONDS_TO_SIMTIME)
-        
+        #Really triggering at 55 lumber to account for travel time
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.LUMBER_AMOUNT, 55), WorkerTask.LUMBER, "Ancient of War", 150, 60, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), True)))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 113 * SECONDS_TO_SIMTIME)
+
+        #@40 lumber -- 2nd well
+        #Really triggering at 30 lumber to account for travel time
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.LUMBER_AMOUNT, 30), WorkerTask.LUMBER, "Moon Well", 
+                                                    180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
+        self.assertEqual(buildOrder.getCurrentSimTime(), 123.5 * SECONDS_TO_SIMTIME)
+
         #9th wisp to lumber
         self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.NEXT_WORKER_BUILT, Worker.Wisp.name), WorkerTask.IN_PRODUCTION, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
         self.assertEqual(buildOrder.getCurrentSimTime(), 126 * SECONDS_TO_SIMTIME)
 
-        #@40 lumber -- 2nd well
-        #Really triggering at 35 lumber to account for travel time
-        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(2 * SECONDS_TO_SIMTIME), Trigger(TriggerType.LUMBER_AMOUNT, 35), WorkerTask.LUMBER, "Moon Well", 
-                                                    180, 40, 10, 50 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDHandler.getNextID(), False)))
-        self.assertEqual(buildOrder.getCurrentSimTime(), 128 * SECONDS_TO_SIMTIME)
-
         #Should have the money for these 3 hunts as soon as they are able to be produced
         #@AoW -- 1st Hunt
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), "Huntress", 195, 20, 3, 30 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Ancient of War")))
-        self.assertEqual(buildOrder.getCurrentSimTime(), 156 * SECONDS_TO_SIMTIME)
+        self.assertEqual(buildOrder.getCurrentSimTime(), 154.5 * SECONDS_TO_SIMTIME)
 
         #@2nd Aow -- 2nd Hunt
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), "Huntress", 195, 20, 3, 30 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Ancient of War")))
-        self.assertEqual(buildOrder.getCurrentSimTime(), 176 * SECONDS_TO_SIMTIME)
+        self.assertEqual(buildOrder.getCurrentSimTime(), 175 * SECONDS_TO_SIMTIME)
 
         #@1st Hunt -- 3rd Hunt
         self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), "Huntress", 195, 20, 3, 30 * SECONDS_TO_SIMTIME, actionIDHandler.getNextID(), "Ancient of War")))
-        self.assertEqual(buildOrder.getCurrentSimTime(), 186 * SECONDS_TO_SIMTIME)
+        self.assertEqual(buildOrder.getCurrentSimTime(), 184.5 * SECONDS_TO_SIMTIME)
+
+        #To get as JSON for the REST unit tests
+        #Wrap in a list, since the sim engine deals in team build orders
+        #print(json.dumps([buildOrder.getSimTimeAndTimelinesAsDictForSerialization()], indent = 2))
+        #Actions in the input generally should have a startTime of null, so replace that with a regex
+        #jsonStr = json.dumps([buildOrder.getRaceAndActionListAsDictForSerialization()], indent = 2)
+        #print( re.sub(r'"startTime":\s*\d+,', '"startTime": null,', jsonStr))
