@@ -242,8 +242,10 @@ class ShopAction(Action):
         return action
 
 class WorkerMovementAction(Action):
-    def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, actionID, workerTimelineID = None):
-        super().__init__(None, None, None, trigger, None, requiredTimelineType, travelTime, actionID, True)
+    #Duration is only used if mDesiredWorkerTask is ROAMING
+    #Because that is the only task for which we would often want to set a specific amount of time, rather than just doing it until the worker is needed for something else
+    def __init__(self, travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, actionID, duration = None, workerTimelineID = None):
+        super().__init__(None, None, None, trigger, duration, requiredTimelineType, travelTime, actionID, True)
         self.mCurrentWorkerTask = currentWorkerTask
         self.mDesiredWorkerTask = desiredWorkerTask
         self.mWorkerTimelineID = workerTimelineID
@@ -266,7 +268,7 @@ class WorkerMovementAction(Action):
         desiredWorkerTask = WorkerTask[actionDict['desiredWorkerTask']]
         strTimelineID = actionDict['workerTimelineID']
         workerTimelineID = None if strTimelineID == None else int(strTimelineID)
-        action = WorkerMovementAction(travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, actionID, workerTimelineID)
+        action = WorkerMovementAction(travelTime, trigger, currentWorkerTask, desiredWorkerTask, requiredTimelineType, actionID, duration, workerTimelineID)
 
         return action
 

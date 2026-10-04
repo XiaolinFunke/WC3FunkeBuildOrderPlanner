@@ -298,16 +298,16 @@ class WorkerTimeline(Timeline):
     def getChangeTaskEvent(self, newTask, simTime, eventName, eventID, resourceSourceTimeline = None):
         originalTask = self.mCurrentTask
         def eventFunc(currSimTime):
-            self.changeTask(simTime, newTask, resourceSourceTimeline)
+            self._changeTask(simTime, newTask, resourceSourceTimeline)
         def reverseFunc(currSimTime):
-            self.changeTask(simTime, originalTask, self.mCurrentResourceSourceTimeline)
+            self._changeTask(simTime, originalTask, self.mCurrentResourceSourceTimeline)
         event = Event(eventFunction = eventFunc, reverseFunction = reverseFunc, eventTime=simTime, recurPeriodSimtime = 0, 
                       eventName = eventName, eventID = eventID)
         return event
 
     #Mark worker as working on a new task
     #Also, if the worker is currently on a resource, remove them from that resource
-    def changeTask(self, currSimTime, newTask, resourceSourceTimeline = None):
+    def _changeTask(self, currSimTime, newTask, resourceSourceTimeline = None):
         if self.mCurrentTask == newTask:
             return
 
@@ -324,6 +324,17 @@ class WorkerTimeline(Timeline):
             #TODO: We should adjust something on the copse of trees here as well
             gainLumberEvent = self.getCurrOrPrevAction(currSimTime).getNewestAssociatedEvent()
             self.mEventHandler.unRegisterEvent(gainLumberEvent.getEventTime(), gainLumberEvent.getEventID())
+        elif self.mCurrentTask == WorkerTask.ROAMING:
+            #Remove the event that turns a worker idle after its done roaming, since we are interrupting the roaming
+            roamingAction = self.getCurrOrPrevAction(currSimTime)
+            doneRoamingEvent = roamingAction.getNewestAssociatedEvent()
+            self.mEventHandler.unRegisterEvent(doneRoamingEvent.getEventTime(), doneRoamingEvent.getEventID())
+            #We interrupted the roaming, so its duration should be updated to reflect that
+            #TODO: Once we start using the isInterruptable bool on Actions, should this work like that?
+            roamingAction.mDuration = max(currSimTime - roamingAction.mStartTime - roamingAction.mTravelTime, 0)
+            if roamingAction.mDuration == 0:
+                print("Tried to change a roaming worker to another task, but that would make the roaming action have 0 duration!")
+                return
 
         #Mark worker as working on new task
         self.mCurrentTask = newTask
@@ -339,11 +350,11 @@ class WorkerTimeline(Timeline):
 
     #TODO: This is a WorkerTimeline, so probably don't need to specify "Worker" in the function name
     def sendWorkerToMine(self, action, currSimTime, goldMineTimeline):
-        self.changeTask(currSimTime, WorkerTask.GOLD, goldMineTimeline)
+        self._changeTask(currSimTime, WorkerTask.GOLD, goldMineTimeline)
 
         miningEvents, miningEventGroup = self._getGoldMiningEvents(action, currSimTime, goldMineTimeline)
 
-        action.setAssociatedEvents([miningEvents])
+        action.setAssociatedEvents(miningEvents)
         if not self.addAction(action):
             print("Failed to add go to mine action to timeline")
             return False
@@ -352,7 +363,24 @@ class WorkerTimeline(Timeline):
             self.mEventHandler.registerEvent(miningEvent, miningEventGroup)
         return True
 
-    #Get the events associated with gold mining - will be overridden depending on the worker type to get the appropraite event(s)
+    # TODO: Don't think these worker movement actions need to pass in currSimTime -- can just get that from action.mStartTime
+    def sendWorkerToRoam(self, action, currSimTime):
+        self._changeTask(currSimTime, WorkerTask.ROAMING)
+
+        #After roaming, worker should just become idle
+        #Unlike other worker movement actions, sending a worker to roam should have a duration
+        doneRoamingEvent = self.getChangeTaskEvent( WorkerTask.IDLE, action.mStartTime + action.mTravelTime + action.mDuration, "Finish Roaming", self.mEventHandler.getNewEventID() )
+
+        action.setAssociatedEvents([doneRoamingEvent])
+        if not self.addAction(action):
+            print("Failed to add worker roam action to timeline")
+            return False
+
+        self.mEventHandler.registerEvent(doneRoamingEvent)
+
+        return True
+
+    #Get the events associated with gold mining - will be overridden depending on the worker type to get the appropriate event(s)
     #@return [events], eventGroup
     #eventGroup may be None if events only contains 1 event
     def _getGoldMiningEvents(self, action, currSimTime, goldMineTimeline):
@@ -384,7 +412,7 @@ class WorkerTimeline(Timeline):
         return miningEvents, miningEventGroup
 
     def sendWorkerToLumber(self, action, currSimTime, copseOfTreesTimeline):
-        self.changeTask(currSimTime, WorkerTask.LUMBER, copseOfTreesTimeline)
+        self._changeTask(currSimTime, WorkerTask.LUMBER, copseOfTreesTimeline)
         #TODO: This should be handled by the Copse of Trees Timeline like we do for Gold Mine timeline
         gainLumberEvent = Event.getModifyResourceCountEvent(copseOfTreesTimeline.mCurrentResources, currSimTime + action.mTravelTime + (self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME), "Gain 5 lumber", 
                                                             self.mEventHandler.getNewEventID(), 0, self.mLumberGainPerCycle, 0, 0, self.mLumberCycleTimeSec * SECONDS_TO_SIMTIME)
@@ -417,7 +445,7 @@ class WorkerTimeline(Timeline):
         #Must change task before adding action, since moving off of gold or lumber will assume the last action on the timeline is the gain 
         # gold or lumber action that it can grab the +gold or +lumber event from
         #TODO: Make this more elegant / less error prone?
-        self.changeTask(action.mStartTime, WorkerTask.CONSTRUCTING)
+        self._changeTask(action.mStartTime, WorkerTask.CONSTRUCTING)
         self.addAction(action)
 
         return True

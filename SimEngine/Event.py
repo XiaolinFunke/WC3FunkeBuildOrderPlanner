@@ -38,12 +38,12 @@ class Event:
                       eventName = eventName, eventID = eventID)
         return event
 
-    #TODO: If we're storing the "getXEvent functions in the classes they are concerned with and not here, then these should be moved"
+    #TODO: If we're storing the "getXEvent functions" in the classes they are concerned with and not here, then these should be moved
     #Convenience method for getting an event that modifies the number of workers in the mine and can be reversed
     @staticmethod
     def getModifyWorkersInMineEvent(goldMineTimeline, simTime, eventName, eventID):
         #Must use defined funcs instead of lamdbas so that the event function returns None
-        #Must pass the current sim time, can't just use the simTime from the getModifyWorkersInMinEvent method,
+        #Must pass the current sim time, can't just use the simTime from the getModifyWorkersInMineEvent method,
         #since this Event could be recurred, and then that simTime would be inaccurate
         def eventFunc(currSimTime):
             #For Orc and Human workers, we may have to delay adding to the mine if a worker is already in it

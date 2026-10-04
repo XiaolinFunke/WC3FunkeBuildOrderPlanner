@@ -114,7 +114,7 @@ class GoldMineTimeline(ResourceSourceTimeline):
 
     def modifyGainGoldEvent(self, oldNumWorkers, newNumWorkers, simTime):
         #Already a worker in the mine, and a +10 gold event
-        #Next 10 gold gained will be proportionally faster now that we have another worker
+        #Next 10 gold gained will be proportionally faster now that we have another worker (or slower, if fewer workers)
         #Will need to bring that event forward
         #The event could also be for the current time, if multiple workers are added at exact same time (unrealistic, but happens in tests)
         prevAction = self.getCurrOrPrevAction(simTime)

@@ -151,6 +151,8 @@ class BuildOrder:
 
         if action.mCurrentWorkerTask == WorkerTask.IDLE:
             workerTimeline = self._getIdleWorker(action.mRequiredTimelineType)
+        elif action.mCurrentWorkerTask == WorkerTask.ROAMING:
+            workerTimeline = self._getIdleWorker(action.mRequiredTimelineType, True)
         elif action.mCurrentWorkerTask == WorkerTask.GOLD or action.mCurrentWorkerTask == WorkerTask.LUMBER:
             workerTimeline = self._getMostIdleWorkerOnResource(action.mRequiredTimelineType, action.mCurrentWorkerTask == WorkerTask.GOLD)
         elif action.mCurrentWorkerTask == WorkerTask.IN_PRODUCTION:
@@ -173,6 +175,8 @@ class BuildOrder:
         elif action.mDesiredWorkerTask == WorkerTask.GOLD:
             goldMineTimeline = self._findMatchingTimeline(TIMELINE_TYPE_GOLD_MINE)
             success = workerTimeline.sendWorkerToMine(action, self.mCurrentSimTime, goldMineTimeline)
+        elif action.mDesiredWorkerTask == WorkerTask.ROAMING:
+            success = workerTimeline.sendWorkerToRoam(action, self.mCurrentSimTime)
 
         #After each action, simulate the current time again, in case new events have been added that should be executed before the next command comes in
         self.simulate(self.mCurrentSimTime)
@@ -379,7 +383,7 @@ class BuildOrder:
             
             resourceSource = workerTimeline.mCurrentResourceSourceTimeline
             #Move worker off of resource and simulate ahead to see if this start time works
-            workerTimeline.changeTask(self.mCurrentSimTime, WorkerTask.ROAMING)
+            workerTimeline._changeTask(self.mCurrentSimTime, WorkerTask.IDLE)
             #Simulate ahead to see if this start time will work
             self.simulate(self.mCurrentSimTime + action.mTravelTime)
             #If we have enough resources after the travel time has passed, then this start time will work
@@ -390,7 +394,9 @@ class BuildOrder:
             #Now that we've simulated ahead to check whether this time works, simulate back and reset
             self._simulateBackward(self.mCurrentSimTime - action.mTravelTime)
             #Put worker back to its previous task
-            workerTimeline.changeTask(self.mCurrentSimTime, action.mCurrentWorkerTask, resourceSource)
+            #TODO: Why don't we want to use the sendWorkerToMine or sendWorkerToLumber functions? Seems using those here causes unit test errors, but not entirely sure why. 
+            # Should document and understand how those functions work better
+            workerTimeline._changeTask(self.mCurrentSimTime, action.mCurrentWorkerTask, resourceSource)
 
             if not foundCorrectStartTime:
                 #Increment so we are checking what happens if we remove the worker on the next simTime for the next iteration
@@ -408,7 +414,8 @@ class BuildOrder:
         self.simulate(self.mCurrentSimTime)
         return True
 
-    def _getIdleWorker(self, workerType):
+    #Using this for both idle and roaming workers (even though a roaming worker isn't technically 'idle')
+    def _getIdleWorker(self, workerType, getRoaming = False):
         if not isUnitWorker(workerType):
             print("Tried to get an idle worker, but worker type of", workerType, " is not the type of a worker!")
             return None
@@ -417,14 +424,16 @@ class BuildOrder:
 
         idleWorkerTimelines = []
         for timeline in workerTimelines:
-            if timeline.getCurrentTask() == WorkerTask.IDLE:
+            if not getRoaming and timeline.getCurrentTask() == WorkerTask.IDLE:
+                idleWorkerTimelines.append(timeline)
+            elif getRoaming and timeline.getCurrentTask() == WorkerTask.ROAMING:
                 idleWorkerTimelines.append(timeline)
 
         if len(idleWorkerTimelines) > 0:
             return idleWorkerTimelines[0]
         else:
             return None
-    
+
     #Get the timeline of the 'most idle' worker on a given resource
     #@param onGold - True if the worker should be taken from gold. If false, from lumber
     def _getMostIdleWorkerOnResource(self, workerType, onGold):

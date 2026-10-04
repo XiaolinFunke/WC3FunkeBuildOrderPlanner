@@ -11,3 +11,7 @@
 #To run just one test class instead of all of them:
 #py -m unittest Test.<TestClassName>
 #Ex: py -m unittest Test.TestRESTEndpoints
+
+#You can also test and debug tests using unittest in VSCode using the Python extension
+#and clicking on the beaker icon 
+#See https://code.visualstudio.com/docs/python/testing
