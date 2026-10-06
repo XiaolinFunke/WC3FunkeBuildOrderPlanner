@@ -4,7 +4,8 @@ from SimEngine.BuildOrder import BuildOrder
 from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME, STARTING_GOLD, STARTING_LUMBER
 from SimEngine.Worker import WorkerTask, Worker
 from SimEngine.Trigger import Trigger, TriggerType
-from SimEngine.Action import WorkerMovementAction, BuildUnitAction
+from SimEngine.Action import WorkerMovementAction, BuildStructureAction, BuildUnitAction
+from Test.UniqueIDHandler import UniqueIDHandler
 
 #Checks the gold amount at the specified time BUT also
 #checks the simtime right before that time, to ensure that the gold was achieved at exactly that time
@@ -73,6 +74,39 @@ class TestResourceGathering(unittest.TestCase):
         #Subtract 1.5 from time, since we get our first gold at 2.5s instead of 1s
         expectedGoldAmount = STARTING_GOLD + (timeSec - 1.5) * 10
 
+        testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
+
+    def testElfGoldMiningStartRealisticWithBuilding(self):
+        actionIDHandler = UniqueIDHandler()
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
+        workerTimelines = buildOrder.findAllMatchingTimelines(timelineType=Worker.Wisp.name)
+
+        #Workers mine in a staggered fashion. More realistic
+        buildOrder.simulateAction(WorkerMovementAction(1 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Wisp.name, 1, workerTimelines[0].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1.2 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Wisp.name, 2, workerTimelines[1].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1.5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Wisp.name, 3, workerTimelines[2].getTimelineID()))
+        buildOrder.simulateAction(WorkerMovementAction(1.8 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Wisp.name, 4, workerTimelines[3].getTimelineID()))
+
+        #Queue first wisp
+        firstWispActionID = actionIDHandler.getNextID()
+        self.assertEqual(True, buildOrder.simulateAction(BuildUnitAction(Trigger(TriggerType.ASAP), Worker.Wisp.name, 60, 0, 1, 14 * SECONDS_TO_SIMTIME, firstWispActionID, "Tree of Life")))
+        #Time shouldn't have advanced yet
+        self.assertEqual(buildOrder.getCurrentSimTime(), 0)
+
+        #0th wisp -- Altar
+        altarActionID = actionIDHandler.getNextID()
+        self.assertEqual(True, buildOrder.simulateAction(BuildStructureAction(int(8 * SECONDS_TO_SIMTIME), Trigger(TriggerType.ASAP), WorkerTask.IDLE, "Altar of Elders", 
+                                              180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, altarActionID, False)))
+
+        #With 4 wisps, we will gain our first gold at 2.625 seconds, and 10 more gold every 1.25 seconds after that
+        #Make the time right on a time we would get 10 gold (with rounding from 3603.875)
+        timeSec = 3603.9
+        #Subtract 1.375 from time, since we get our first gold at 2.625s, which is 1.25 seconds later, so it's like 1.375 is our 'starting' time
+        expectedGoldAmount = STARTING_GOLD + int((timeSec - 1.375) / 1.25) * 10
+        #Subtract amount from paying for wisp and altar
+        expectedGoldAmount -= (180 + 60)
+
+        print(buildOrder.getEventHandler().printScheduledEvents())
         testGoldAmountPrecise(timeSec, expectedGoldAmount, buildOrder, self)
 
     def testElfGoldMiningOneWorkerSimple(self):

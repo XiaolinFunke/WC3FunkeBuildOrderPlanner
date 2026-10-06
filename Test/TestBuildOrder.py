@@ -7,7 +7,7 @@ from SimEngine.ResourceBank import ResourceBank
 from SimEngine.SimulationConstants import Race, SECONDS_TO_SIMTIME
 from SimEngine.Worker import Worker, WorkerTask
 from SimEngine.Trigger import Trigger, TriggerType
-from SimEngine.Timeline import Timeline 
+from SimEngine.Timeline import Timeline, WispTimeline
 from SimEngine.Action import BuildUnitAction, BuildStructureAction, WorkerMovementAction, ShopAction
 from Test.UniqueIDHandler import UniqueIDHandler
 
@@ -337,6 +337,46 @@ class TestBuildOrder(unittest.TestCase):
         self.assertEqual(False, buildOrder.simulateAction(BuildStructureAction(int(8 * SECONDS_TO_SIMTIME), Trigger(TriggerType.PERCENT_OF_ONGOING_ACTION, -100, actionIDWispBuild), WorkerTask.IDLE, "Altar of Elders", 
                                               180, 50, 0, 60 * SECONDS_TO_SIMTIME, Worker.Wisp.name, actionIDAltarBuild, False)))
 
+    #Test that the travel time works properly with Worker Movement actions -- the worker should move off of their current resource before the travel time, but not onto the new one until after the travel time
+    def testTravelTimeWorkerMovementAction(self):
+        actionIDHandler = UniqueIDHandler()
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
 
+        #Send all 1 wisp to gold immediately
+        #Should gain 10 gold at second 5, 10, 15, etc.
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(0 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.IDLE, WorkerTask.GOLD, Worker.Wisp.name, actionIDHandler.getNextID())))
+
+        #Move that wisp to lumber after 20 gold is gained (second 10), over 20 seconds
+        self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(20 * SECONDS_TO_SIMTIME, Trigger(TriggerType.GOLD_AMOUNT, 520), WorkerTask.GOLD, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        #Time should be at the start of the travel time
+        self.assertEqual(buildOrder.getCurrentSimTime(), 10 * SECONDS_TO_SIMTIME)
+
+        #Should gain lumber at second 10 + 20 + WISP_LUMBER_CYCLE_TIME
+        # self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(15 * SECONDS_TO_SIMTIME, Trigger(TriggerType.LUMBER_AMOUNT, 155), WorkerTask.LUMBER, WorkerTask.ROAMING, Worker.Wisp.name, actionIDHandler.getNextID())))
+        # self.assertEqual(buildOrder.getCurrentSimTime(), (30 + WispTimeline.WISP_LUMBER_CYCLE_TIME_SEC) * SECONDS_TO_SIMTIME)
+
+        #Send roaming worker back to gold - but worker should only be considered roaming after the travel time is finished, so that should push this back
+        #TODO: Currently, we don't push back for having a worker on a resource. Only if we already have a worker on that resource.
+        # self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(5 * SECONDS_TO_SIMTIME, Trigger(TriggerType.ASAP), WorkerTask.ROAMING, WorkerTask.GOLD, Worker.Wisp.name, actionIDHandler.getNextID())))
+        # self.assertEqual(buildOrder.getCurrentSimTime(), (45 + WispTimeline.WISP_LUMBER_CYCLE_TIME_SEC) * SECONDS_TO_SIMTIME)
+
+        #Last trigger is when we gain 10 more gold
+        # self.assertEqual(True, buildOrder.simulateAction(WorkerMovementAction(0 * SECONDS_TO_SIMTIME, Trigger(TriggerType.GOLD_AMOUNT, 530), WorkerTask.GOLD, WorkerTask.LUMBER, Worker.Wisp.name, actionIDHandler.getNextID())))
+        # self.assertEqual(buildOrder.getCurrentSimTime(), (50 + WispTimeline.WISP_LUMBER_CYCLE_TIME_SEC) * SECONDS_TO_SIMTIME)
+
+        #TODO:
+        #Should not take a worker from gold/lumb, etc. if they are still in the travel time portion, since that would effectively be negating that Action
+        #Sending a worker to roaming -- travel time is the time of the roam, and they go IDLE after that amount of time
+
+        #TODO: Currently, we don't push back for having a worker on a resource. Only if we already have a worker on that resource.
+        #Should we be pushing back for that?
+        #I thought no, but then, it could be confusing for the user. Because we only input the ordered action list, not actions at particular times
+        #So, what if they scroll ahead until a lumber worker will be ready, for example, but then try to put an action and it says 'no lumber worker avilable' because the action could be done sooner based on the trigger they picked (not counting that they need a lumber worker)
+        #Hmm, but then, really their trigger should be different in that case, shouldn't it? Because in the build order text, user would have no way to know we need to wait for the worker as well
+        #So, maybe it's OK to leave for now. We'll see how it feels
+        #But, we do need a solution for doing something with a worker that's done roaming
+        #WorkerMovement actions have no duration. We use travel time instead... is this good?
+        #Or we could add a duration just for the WorkerMovement action only
+        #I do like having the ROAMING wisp go idle when it's done, though. I think that's good, and matches what we do with CONSTRUCTING wisps
 
 
