@@ -10,6 +10,7 @@ from SimEngine.Trigger import Trigger, TriggerType
 from SimEngine.Timeline import Timeline, WispTimeline
 from SimEngine.Action import BuildUnitAction, BuildStructureAction, WorkerMovementAction, ShopAction
 from Test.UniqueIDHandler import UniqueIDHandler
+from SimEngine.Event import Event, eventfactorymethod
 
 class TestBuildOrder(unittest.TestCase):
     def testFindMatchingTimeline(self):
@@ -379,4 +380,51 @@ class TestBuildOrder(unittest.TestCase):
         #Or we could add a duration just for the WorkerMovement action only
         #I do like having the ROAMING wisp go idle when it's done, though. I think that's good, and matches what we do with CONSTRUCTING wisps
 
+    def testSaveState(self):
+        buildOrder = BuildOrder(Race.NIGHT_ELF)
 
+        NUM_STARTING_EVENTS = 10
+
+        #Factory method to create an event for this test
+        @eventfactorymethod
+        def getTestEvent( inactiveTimelines, eventNameStr, time ):
+            def addTimeline( simTime ):
+                inactiveTimelines.append(Timeline("Test Timeline", 1, buildOrder.mEventHandler))
+
+            event = Event(eventFunction = addTimeline, reverseFunction = None, eventTime=time, recurPeriodSimtime=0, 
+                      eventID=1, eventName=eventNameStr)
+            return event
+
+        event = getTestEvent( buildOrder.mInactiveTimelines, "Test Event", 0)
+
+        # This event references the original inactive timelines variable
+        buildOrder.mEventHandler.registerEvent(event)
+
+        #After saving state and loading, does the event still reference the correct inactive timelines list?
+        saveState = buildOrder.saveState()
+
+        #Run the event. It will add a timeline to the inactive timelines list. But this should only affect the current 
+        #build order, not the saved state
+        buildOrder.simulate(0)
+
+        #Should only be added to the current build order's inactive timelines list
+        self.assertEqual(len(buildOrder.mInactiveTimelines), NUM_STARTING_EVENTS + 1)
+        self.assertEqual(len(saveState.mInactiveTimelines), NUM_STARTING_EVENTS)
+
+        #After loading, inactive timelines should be reset to how it was
+        buildOrder.loadState(saveState)
+        self.assertEqual(len(buildOrder.mInactiveTimelines), NUM_STARTING_EVENTS)
+        self.assertEqual(len(saveState.mInactiveTimelines), NUM_STARTING_EVENTS)
+
+        #Run the event again. It will add a timeline to the inactive timelines list. But this should be the inactive timeline
+        #list of the newly-loaded build order, NOT the old one, as would happen if the saved state's functions weren't properly updated to point
+        #to the new inactive timelines list
+        buildOrder.simulate(0)
+        self.assertEqual(len(buildOrder.mInactiveTimelines), NUM_STARTING_EVENTS + 1)
+        #The save state should be unaffected by loading (it's still valid to load from again later)
+        self.assertEqual(len(saveState.mInactiveTimelines), NUM_STARTING_EVENTS)
+
+        #We should be able to load from that original save state a second time with no issue
+        buildOrder.loadState(saveState)
+        self.assertEqual(len(buildOrder.mInactiveTimelines), NUM_STARTING_EVENTS)
+        self.assertEqual(len(saveState.mInactiveTimelines), NUM_STARTING_EVENTS)

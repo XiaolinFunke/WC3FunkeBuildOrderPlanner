@@ -7,6 +7,7 @@ from SimEngine.ResourceSourceTimeline import GoldMineTimeline, CopseOfTreesTimel
 from SimEngine.Action import ActionType, Action
 from SimEngine.Event import Event
 from SimEngine.ResourceBank import ResourceBank
+import copy
 
 class MapStartingPosition:
     def __init__(self, name, lumberTripTravelTimeSec, goldTripTravelTimeSec):
@@ -17,6 +18,7 @@ class MapStartingPosition:
         #Only applies when fewer than 5 workers. Otherwise will just be 5s each
         self.mGoldTripTravelTimeWithMicroSec = 5
 
+#This class represents a build order for a single player (there can be multiple BuildOrders if it's a team build order)
 class BuildOrder:
     def __init__(self, race):
         #All actions that have been executed, in order. If an action in a list of actions we are executing fails, we won't add the rest (so that last one in this list will be the failed one)
@@ -57,6 +59,36 @@ class BuildOrder:
             for i in range(5):
                 self.mInactiveTimelines.append(PeasantTimeline(timelineID = self.getNextTimelineID(), eventHandler=self.mEventHandler))
             self.mInactiveTimelines.append(Timeline(timelineType = "Town Hall", timelineID = self.getNextTimelineID(), eventHandler = self.mEventHandler))
+
+    #After cloning, events must be rebuilt so their functions have the correct references
+    def _rebuildEvents(self):
+        self.mEventHandler.rebuildEvents()
+
+    # Clone this build order object, handling rebuilding of events properly
+    def _clone(self):
+        buildOrderObj = copy.deepcopy(self)
+        buildOrderObj._rebuildEvents()
+        return buildOrderObj
+
+    # Save the state and return the build order object
+    def saveState(self):
+        return self._clone()
+
+    # Load a previously saved state (build order object), in-place (build order object reference remains valid)
+    # NOTE: Any references we hold to attributes on this build order will no longer be valid after the state is loaded
+    def loadState(self, saveState):
+        #Do a clone of the build order object before modifying the current build order in-place, so the saveState can stay valid
+        newBuildOrder = saveState._clone()
+
+        self.mOrderedActionList = newBuildOrder.mOrderedActionList
+        self.mActiveTimelines = newBuildOrder.mActiveTimelines
+        self.mInactiveTimelines = newBuildOrder.mInactiveTimelines
+
+        self.mNextTimelineID = newBuildOrder.mNextTimelineID
+
+        self.mCurrentResources = newBuildOrder.mCurrentResources
+        self.mEventHandler = newBuildOrder.mEventHandler
+        self.mCurrentSimTime = newBuildOrder.mCurrentSimTime
 
     def simulateOrderedActionList(self, orderedActionList):
         for action in orderedActionList:
@@ -360,6 +392,8 @@ class BuildOrder:
     #Return True if executed the action successfully, False if didn't execute or failed to execute
     #Will be built with the most idle worker currently doing the workerTask passed in
     def _buildStructure(self, action):
+        originalSaveState = self.saveState()
+        ### First, find the minimum possible time we could build the structure at, to avoid doing more work than we need to
         #Simulate to the time when the travel time is over first. Any time before that is not feasible, even if we have the resources at that point
         self.simulate(self.mCurrentSimTime + action.mTravelTime)
         #This simTime is as soon as we can afford the structure, with all workers working (one may be taken off a resource, so this would be the minimum possible sim time for the building to start)
@@ -367,21 +401,28 @@ class BuildOrder:
             print("Tried to simulate until resources were available for", action, "but they never were")
             return False
 
+        minPossibleStartTime = self.mCurrentSimTime
         foundCorrectStartTime = False
         if action.mTravelTime == 0:
             #If there's no travel time, no need to simulate back and forth to account for travel time
             foundCorrectStartTime = True
             workerTimeline = self._getWorkerTimelineForAction(action)
+            if workerTimeline == None:
+                return False
+            #Get the timeline ID, since the timeline reference will be invalidated when we loadState()
+            workerTimelineID = workerTimeline.getTimelineID()
 
-        #Now, we need to see when we can actually afford the building while accounting for the worker that will be taken off its resource to travel (if it is indeed a worker on a resource)
-        #Never simulate back to before the original time the action was set to trigger at, since we want to maintain the order of the actions
-        self._simulateBackward(self.mCurrentSimTime - action.mTravelTime)
+        ### Now, we need to see when we can actually afford the building while accounting for the worker that will be taken off its resource to travel (if it is indeed a worker on a resource)
+        self.loadState(originalSaveState)
+        self.simulate(minPossibleStartTime - action.mTravelTime)
         while not foundCorrectStartTime:
+            loopSaveState = self.saveState()
             workerTimeline = self._getWorkerTimelineForAction(action)
             if workerTimeline == None:
                 return False
+            #Get the timeline ID, since the timeline reference will be invalidated when we loadState()
+            workerTimelineID = workerTimeline.getTimelineID()
             
-            resourceSource = workerTimeline.mCurrentResourceSourceTimeline
             #Move worker off of resource and simulate ahead to see if this start time works
             workerTimeline._changeTask(self.mCurrentSimTime, WorkerTask.IDLE)
             #Simulate ahead to see if this start time will work
@@ -392,11 +433,7 @@ class BuildOrder:
                 foundCorrectStartTime = True
 
             #Now that we've simulated ahead to check whether this time works, simulate back and reset
-            self._simulateBackward(self.mCurrentSimTime - action.mTravelTime)
-            #Put worker back to its previous task
-            #TODO: Why don't we want to use the sendWorkerToMine or sendWorkerToLumber functions? Seems using those here causes unit test errors, but not entirely sure why. 
-            # Should document and understand how those functions work better
-            workerTimeline._changeTask(self.mCurrentSimTime, action.mCurrentWorkerTask, resourceSource)
+            self.loadState(loopSaveState)
 
             if not foundCorrectStartTime:
                 #Increment so we are checking what happens if we remove the worker on the next simTime for the next iteration
@@ -406,6 +443,8 @@ class BuildOrder:
         #Create an event for when the resources should be deducted from our resource total
         self._registerPaymentForAction(action)
 
+        #We must get the worker timeline reference again from the ID, since loading the state invalidates the reference
+        workerTimeline = self._findMatchingTimeline(workerTimeline.getTimelineType(), workerTimelineID)
         if not workerTimeline.buildStructure(action, self.mInactiveTimelines, self.getNextTimelineID, self.mCurrentResources):
             print("Failed to build", action.mName)
             return False

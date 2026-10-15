@@ -1,6 +1,6 @@
 from SimEngine.SimulationConstants import SECONDS_TO_SIMTIME
 from SimEngine.Worker import WorkerTask, isUnitWorker, Worker
-from SimEngine.Event import Event
+from SimEngine.Event import Event, eventfactorymethod
 from SimEngine.EventGroup import EventGroup
 
 # Represents a single timeline on the planner. For example, the production queue of a barracks, or blacksmith, etc.
@@ -13,6 +13,7 @@ class Timeline:
 
     #Convenience method for getting an event that adds a new timeline and can be reversed
     @staticmethod
+    @eventfactorymethod
     def getNewTimelineEvent(inactiveTimelines, simTime, timelineName, timelineID, eventName, eventID, eventHandler):
         def removeTimeline(id):
             for i in range(len(inactiveTimelines)):
@@ -206,6 +207,7 @@ class WorkerTimeline(Timeline):
 
     #Convenience method for getting an event that adds a resource to a Worker and can be reversed
     @staticmethod
+    @eventfactorymethod
     def getAddResourceToWorkerEvent(workerTimeline, isResourceGold, amtToAdd, simTime, eventName, eventID):
         def eventFunc(currSimTime):
             workerTimeline.addResource(isResourceGold, amtToAdd)
@@ -219,6 +221,7 @@ class WorkerTimeline(Timeline):
     #TODO: Do these methods actually need to be static?
     #Convenience method for getting an event that returns the resources from a Worker to the overall resources and can be reversed
     @staticmethod
+    @eventfactorymethod
     def getReturnResourcesFromWorkerEvent(workerTimeline, isResourceGold, amtToReturn, currentResources, simTime, eventName, eventID):
         def eventFunc(currSimTime):
             workerTimeline.returnResources(currentResources, amtToReturn, isResourceGold)
@@ -295,6 +298,7 @@ class WorkerTimeline(Timeline):
 
     #Convenience method for getting an event that changes a worker's task and can be reversed
     #If task is being changed to gold or lumber, need to pass in that resource source timeline as well
+    @eventfactorymethod
     def getChangeTaskEvent(self, newTask, simTime, eventName, eventID, resourceSourceTimeline = None):
         originalTask = self.mCurrentTask
         def eventFunc(currSimTime):

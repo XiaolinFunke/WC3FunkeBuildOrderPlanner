@@ -1,7 +1,29 @@
-from copy import copy
+import functools
+from copy import copy, deepcopy
+
+#Define a decorator that can be added to an event-factory-method to store the method and args that made that event
+#This will allow us to recreate the event easily when a build order state is loaded -- this is necessary because, although
+#deep copy updates internal references to point to the new object, that doesn't work for references in event functions, so they must be recreated with the new references
+def eventfactorymethod(eventFactoryMethod):
+    @functools.wraps(eventFactoryMethod)
+    def wrapper(*args):
+        event = eventFactoryMethod(*args)
+        event.mFactory = EventFactory(wrapper, args)
+        return event
+    return wrapper
+
+#Simple class to wrap what is needed to create (or recreate) an event
+class EventFactory:
+    def __init__(self, method, args):
+        #Calling the method with these args should recreate the event
+        self.mMethod = method
+        self.mArgs = args
 
 class Event:
     def __init__(self, eventFunction, reverseFunction, eventTime, recurPeriodSimtime, eventID, eventName = ""):
+        #Should be set by decorator function after event is created
+        self.mFactory = None
+
         self.mCurrRecurrenceError = 0
         self.setEventTime(eventTime)
 
@@ -28,6 +50,7 @@ class Event:
 
     #Convenience method for getting an event that modifies our current resources and can be reversed
     @staticmethod
+    @eventfactorymethod
     def getModifyResourceCountEvent(currentResources, simTime, eventName, eventID, goldChange, lumberChange, foodChange, foodMaxChange, recurPeriodSimTime = 0):
         def eventFunc(currSimTime):
             currentResources.modifyResources(goldChange, lumberChange, foodChange, foodMaxChange)
@@ -41,6 +64,7 @@ class Event:
     #TODO: If we're storing the "getXEvent functions" in the classes they are concerned with and not here, then these should be moved
     #Convenience method for getting an event that modifies the number of workers in the mine and can be reversed
     @staticmethod
+    @eventfactorymethod
     def getModifyWorkersInMineEvent(goldMineTimeline, simTime, eventName, eventID):
         #Must use defined funcs instead of lamdbas so that the event function returns None
         #Must pass the current sim time, can't just use the simTime from the getModifyWorkersInMineEvent method,

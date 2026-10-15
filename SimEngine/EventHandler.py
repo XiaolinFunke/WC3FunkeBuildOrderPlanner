@@ -22,6 +22,12 @@ class EventHandler:
                 num += 1
         return num
 
+    def rebuildEvents(self):
+        for eventListForTime in self.mEvents.values():
+            for event, _ in eventListForTime:
+                # Recreate the event and get its function
+                event.mFunction = event.mFactory.mMethod(*event.mFactory.mArgs).mFunction
+
     def printEventsExecutedInOrder(self):
         if len(self.mEventsExecutedInOrder) == 0:
             print("No events executed")
